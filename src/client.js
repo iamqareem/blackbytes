@@ -7,8 +7,9 @@ if (!sessionId) {
 let currentCursor = null;
 let isLoading = false;
 let hasMore = true;
-let currentCardIndex = 0;
+let activeIndex = 0;
 let cardsData = [];
+let observer = null;
 
 const feed = document.getElementById('feed');
 const loader = document.getElementById('loader');
@@ -51,7 +52,8 @@ async function fetchFeed(cursor = null) {
         const data = await response.json();
         
         if (data.posts && data.posts.length > 0) {
-            cardsData.push(...data.posts.filter(p => !p.ad));
+            const newCards = data.posts.filter(p => !p.ad);
+            cardsData.push(...newCards);
             currentCursor = data.next_cursor;
             hasMore = data.posts.length === 20;
             renderCards();
@@ -70,26 +72,27 @@ async function fetchFeed(cursor = null) {
             emptyState.classList.remove('hidden');
         }
     } finally {
-        loader.classList.add('hidden');
+        isLoading = false;
     }
 }
 
 function renderCards() {
+    const startIndex = feed.children.length;
     const fragment = document.createDocumentFragment();
     
-    cardsData.forEach((post, index) => {
-        if (index < feed.children.length) return; // Already rendered
-        const card = createSwipeCard(post, index);
+    for (let i = startIndex; i < cardsData.length; i++) {
+        const post = cardsData[i];
+        const card = createFeedCard(post, i);
         fragment.appendChild(card);
-    });
+    }
     
     feed.appendChild(fragment);
-    setupSwipeGestures();
+    setupObserver();
 }
 
-function createSwipeCard(post, index) {
+function createFeedCard(post, index) {
     const article = document.createElement('article');
-    article.className = 'swipe-card animate-fade-in';
+    article.className = 'feed-card';
     article.dataset.index = index;
     article.dataset.postId = post.id;
     article.dataset.postData = JSON.stringify({
@@ -108,44 +111,21 @@ function createSwipeCard(post, index) {
     
     const mediaHtml = getMediaHtml(post);
     const categoryBadge = getCategoryBadge(post.category);
-    const placeholderImg = post.media_url ? '' : getPlaceholderImage(post.category);
+    const placeholderHtml = post.media_url ? '' : getPlaceholderHtml(post.category);
     
     article.innerHTML = `
-        <div class="swipe-card-inner">
-            ${mediaHtml || placeholderImg}
-            <div class="swipe-card-content">
-                <div class="swipe-card-meta">
-                    <span class="swipe-card-source">${escapeHtml(post.source_name)}</span>
-                    <span class="swipe-card-category">${categoryBadge}</span>
-                </div>
-                <h2 class="swipe-card-title">${escapeHtml(post.title)}</h2>
-                <p class="swipe-card-summary">${escapeHtml(post.summary)}</p>
+        ${mediaHtml || placeholderHtml}
+        <div class="feed-card-content">
+            <div class="feed-card-meta">
+                <span class="feed-card-source">${escapeHtml(post.source_name)}</span>
+                <span class="feed-card-category">${categoryBadge}</span>
             </div>
-            <div class="swipe-indicators">
-                <div class="swipe-indicator swipe-like" aria-label="Swipe right to like">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                </div>
-                <div class="swipe-indicator swipe-save" aria-label="Swipe left to save">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                </div>
-            </div>
-            <div class="swipe-actions">
-                <button class="swipe-action-btn" data-action="like" aria-label="Like">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span class="like-count">${post.likes || 0}</span>
-                </button>
-                <button class="swipe-action-btn" data-action="save" aria-label="Save">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                    <span class="save-count">${post.saves || 0}</span>
-                </button>
-                <button class="swipe-action-btn" data-action="share" aria-label="Share">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                    <span class="share-count">${post.shares || 0}</span>
-                </button>
-                <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="swipe-action-btn swipe-source" aria-label="View source">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                </a>
-            </div>
+            <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
+            <p class="feed-card-summary">${escapeHtml(post.summary)}</p>
+            <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="feed-card-source-link" aria-label="View source">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                View Source
+            </a>
         </div>
     `;
     
@@ -153,7 +133,7 @@ function createSwipeCard(post, index) {
 }
 
 function getMediaHtml(post) {
-    const { media_url, media_type, source_url } = post;
+    const { media_url, media_type, source_url, title } = post;
     
     if (!media_url) return '';
     
@@ -161,28 +141,28 @@ function getMediaHtml(post) {
         if (source_url.includes('tiktok.com')) {
             const videoId = source_url.match(/\/video\/(\d+)/)?.[1] || source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
             if (videoId) {
-                return `<div class="swipe-card-media relative"><iframe src="https://www.tiktok.com/embed/${videoId}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+                return `<div class="feed-card-media embed-media"><iframe src="https://www.tiktok.com/embed/${videoId}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
             }
         }
         if (source_url.includes('youtube.com') || source_url.includes('youtu.be')) {
             const videoId = source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
             if (videoId) {
-                return `<div class="swipe-card-media relative"><iframe src="https://www.youtube.com/embed/${videoId}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+                return `<div class="feed-card-media embed-media"><iframe src="https://www.youtube.com/embed/${videoId}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
             }
         }
         if (source_url.includes('twitter.com') || source_url.includes('x.com')) {
-            return `<div class="swipe-card-media flex items-center justify-center"><a href="${source_url}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium" style="color: var(--color-brand);">View on X →</a></div>`;
+            return `<div class="feed-card-media embed-media flex items-center justify-center"><a href="${source_url}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium" style="color: var(--color-brand);">View on X →</a></div>`;
         }
     }
     
     if (media_type === 'video') {
-        return `<video class="swipe-card-media" controls preload="metadata" poster="${escapeHtml(media_url)}"><source src="${escapeHtml(media_url)}" type="video/mp4"></video>`;
+        return `<video class="feed-card-media" controls preload="metadata" poster="${escapeHtml(media_url)}"><source src="${escapeHtml(media_url)}" type="video/mp4"></video>`;
     }
     
-    return `<img src="${escapeHtml(media_url)}" alt="${escapeHtml(post.title)}" class="swipe-card-media" loading="lazy">`;
+    return `<img src="${escapeHtml(media_url)}" alt="${escapeHtml(title)}" class="feed-card-media" loading="lazy">`;
 }
 
-function getPlaceholderImage(category) {
+function getPlaceholderHtml(category) {
     const gradients = {
         'Memes': 'linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%)',
         'Culture': 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)',
@@ -192,8 +172,8 @@ function getPlaceholderImage(category) {
         'Sports': 'linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%)',
     };
     const gradient = gradients[category] || gradients['Memes'];
-    return `<div class="swipe-card-media placeholder-media" style="background: ${gradient}; display: flex; align-items: center; justify-content: center;">
-        <svg class="w-16 h-16 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    return `<div class="feed-card-media placeholder-media" style="background: ${gradient}; display: flex; align-items: center; justify-content: center;">
+        <svg class="w-16 h-16 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     </div>`;
 }
 
@@ -215,158 +195,55 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function setupSwipeGestures() {
-    const cards = feed.querySelectorAll('.swipe-card');
+function setupObserver() {
+    if (observer) observer.disconnect();
     
-    cards.forEach((card, index) => {
-        if (card.dataset.swipeInitialized) return;
-        card.dataset.swipeInitialized = 'true';
-        
-        let startX = 0;
-        let startY = 0;
-        let currentX = 0;
-        let isDragging = false;
-        let lastTap = 0;
-        
-        const inner = card.querySelector('.swipe-card-inner');
-        const likeIndicator = card.querySelector('.swipe-like');
-        const saveIndicator = card.querySelector('.swipe-save');
-        
-        // Touch events
-        inner.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            isDragging = true;
-            inner.style.transition = 'none';
-            
-            // Double tap detection
-            const now = Date.now();
-            if (now - lastTap < 300) {
-                handleInteraction(card.dataset.postId, 'like', card.querySelector('[data-action="like"]'));
-                showLikeAnimation(card);
-            }
-            lastTap = now;
-        }, { passive: true });
-        
-        inner.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            
-            currentX = e.touches[0].clientX - startX;
-            const deltaY = Math.abs(e.touches[0].clientY - startY);
-            
-            // Prevent horizontal swipe if vertical scroll
-            if (deltaY > Math.abs(currentX)) {
-                isDragging = false;
-                return;
-            }
-            
-            e.preventDefault();
-            
-            const rotate = currentX / 15;
-            inner.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
-            
-            // Show indicators
-            const threshold = 80;
-            if (currentX > threshold) {
-                likeIndicator.style.opacity = Math.min((currentX - threshold) / 100, 1);
-                likeIndicator.style.transform = 'scale(1)';
-            } else {
-                likeIndicator.style.opacity = '0';
-                likeIndicator.style.transform = 'scale(0.8)';
-            }
-            
-            if (currentX < -threshold) {
-                saveIndicator.style.opacity = Math.min((-currentX - threshold) / 100, 1);
-                saveIndicator.style.transform = 'scale(1)';
-            } else {
-                saveIndicator.style.opacity = '0';
-                saveIndicator.style.transform = 'scale(0.8)';
-            }
-        }, { passive: false });
-        
-        inner.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            inner.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            likeIndicator.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-            saveIndicator.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-            
-            const threshold = 120;
-            
-            if (currentX > threshold) {
-                // Swipe right - Like
-                inner.style.transform = `translateX(${window.innerWidth + 100}px) rotate(30deg)`;
-                setTimeout(() => {
-                    handleInteraction(card.dataset.postId, 'like', card.querySelector('[data-action="like"]'));
-                    removeCard(card);
-                }, 150);
-            } else if (currentX < -threshold) {
-                // Swipe left - Save
-                inner.style.transform = `translateX(-${window.innerWidth + 100}px) rotate(-30deg)`;
-                setTimeout(() => {
-                    handleInteraction(card.dataset.postId, 'save', card.querySelector('[data-action="save"]'));
-                    removeCard(card);
-                }, 150);
-            } else {
-                // Snap back
-                inner.style.transform = 'translateX(0) rotate(0deg)';
-            }
-            
-            likeIndicator.style.opacity = '0';
-            likeIndicator.style.transform = 'scale(0.8)';
-            saveIndicator.style.opacity = '0';
-            saveIndicator.style.transform = 'scale(0.8)';
-        });
-        
-        // Click handlers for action buttons
-        card.querySelectorAll('.swipe-action-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const action = btn.dataset.action;
-                if (action === 'share') {
-                    sharePost(card.dataset.postId);
-                } else {
-                    handleInteraction(card.dataset.postId, action, btn);
+    const cards = feed.querySelectorAll('.feed-card');
+    
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+                const index = parseInt(entry.target.dataset.index);
+                if (index !== activeIndex) {
+                    activeIndex = index;
+                    updateActionBar(entry.target);
                 }
-            });
+            }
         });
+    }, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.6, 0.8],
     });
+    
+    cards.forEach(card => observer.observe(card));
 }
 
-function removeCard(card) {
-    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(-20px)';
-    setTimeout(() => {
-        card.remove();
-        checkLoadMore();
-    }, 300);
-}
-
-function checkLoadMore() {
-    const remainingCards = feed.querySelectorAll('.swipe-card').length;
-    if (remainingCards < 3 && hasMore && !isLoading) {
-        fetchFeed(currentCursor);
+function updateActionBar(card) {
+    const postData = JSON.parse(card.dataset.postData);
+    if (!postData) return;
+    
+    const likeCount = actionLikeBtn.querySelector('.like-count');
+    const saveCount = actionSaveBtn.querySelector('.save-count');
+    const shareCount = actionShareBtn.querySelector('.share-count');
+    
+    likeCount.textContent = postData.likes || 0;
+    saveCount.textContent = postData.saves || 0;
+    shareCount.textContent = postData.shares || 0;
+    
+    likeCount.classList.toggle('hidden', !postData.likes);
+    saveCount.classList.toggle('hidden', !postData.saves);
+    shareCount.classList.toggle('hidden', !postData.shares);
+    
+    actionLikeBtn.dataset.postId = postData.id;
+    actionSaveBtn.dataset.postId = postData.id;
+    actionShareBtn.dataset.postId = postData.id;
+    
+    if (postData.likes > 0) {
+        actionLikeBtn.classList.add('active');
+    } else {
+        actionLikeBtn.classList.remove('active');
     }
-}
-
-function showLikeAnimation(card) {
-    const heart = document.createElement('div');
-    heart.className = 'like-animation';
-    heart.innerHTML = '<svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
-    heart.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        color: var(--color-brand);
-        pointer-events: none;
-        z-index: 10;
-        animation: heartPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    `;
-    card.querySelector('.swipe-card-inner').appendChild(heart);
-    setTimeout(() => heart.remove(), 600);
 }
 
 async function handleInteraction(postId, action, btn) {
@@ -397,6 +274,7 @@ async function handleInteraction(postId, action, btn) {
                 if (countEl) {
                     const current = parseInt(countEl.textContent) || 0;
                     countEl.textContent = current + 1;
+                    countEl.classList.remove('hidden');
                 }
                 
                 if (action === 'like') {
@@ -459,7 +337,7 @@ function setupEmojiPicker() {
     emojiPicker.addEventListener('click', (e) => {
         const btn = e.target.closest('.emoji-btn');
         if (btn) {
-            const currentCard = feed.querySelector('.swipe-card');
+            const currentCard = feed.querySelector('.feed-card:nth-child(' + (activeIndex + 1) + ')');
             if (currentCard) {
                 handleInteraction(currentCard.dataset.postId, 'reaction', btn);
             }
@@ -477,7 +355,23 @@ function setupEmojiPicker() {
 }
 
 function setupInfiniteScroll() {
-    // For swipe cards, we load more when running low
+    let ticking = false;
+    
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight;
+                const clientHeight = document.documentElement.clientHeight;
+                
+                if (scrollTop + clientHeight >= scrollHeight - 300) {
+                    fetchFeed(currentCursor);
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
 }
 
 function setupCookieConsent() {
@@ -538,22 +432,26 @@ function registerServiceWorker() {
 }
 
 function init() {
+    setupInfiniteScroll();
     setupCookieConsent();
     setupEmojiPicker();
     registerServiceWorker();
     fetchFeed();
     
     actionLikeBtn.addEventListener('click', () => {
-        const currentCard = feed.querySelector('.swipe-card');
-        if (currentCard) handleInteraction(currentCard.dataset.postId, 'like', actionLikeBtn);
+        if (activeIndex < cardsData.length) {
+            handleInteraction(cardsData[activeIndex].id, 'like', actionLikeBtn);
+        }
     });
     actionSaveBtn.addEventListener('click', () => {
-        const currentCard = feed.querySelector('.swipe-card');
-        if (currentCard) handleInteraction(currentCard.dataset.postId, 'save', actionSaveBtn);
+        if (activeIndex < cardsData.length) {
+            handleInteraction(cardsData[activeIndex].id, 'save', actionSaveBtn);
+        }
     });
     actionShareBtn.addEventListener('click', () => {
-        const currentCard = feed.querySelector('.swipe-card');
-        if (currentCard) sharePost(currentCard.dataset.postId);
+        if (activeIndex < cardsData.length) {
+            sharePost(cardsData[activeIndex].id);
+        }
     });
     
     document.addEventListener('visibilitychange', () => {

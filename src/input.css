@@ -207,18 +207,6 @@
     overflow: hidden;
   }
 
-  .card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--color-text-primary);
-    margin: 0 0 8px 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
   .card-summary {
     font-size: 0.875rem;
     line-height: 1.5;
@@ -260,198 +248,108 @@
     color: var(--color-brand);
   }
 
-  /* Swipe Cards - Tinder-style flashcards */
-  .swipe-card {
+  /* Feed Cards - Vertical TikTok/Reels style */
+  .feed-card {
     position: relative;
     width: 100%;
     max-width: 480px;
-    margin: 0 auto;
+    margin: 0 auto 16px;
     border-radius: var(--radius-2xl);
     overflow: hidden;
-    box-shadow: var(--shadow-elevation-4);
+    box-shadow: var(--shadow-elevation-3);
     background-color: var(--color-surface);
   }
 
-  .swipe-card-inner {
+  .feed-card-media {
     position: relative;
     width: 100%;
-    aspect-ratio: 9 / 16;
-    transform-origin: center center;
-    touch-action: pan-y;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  .swipe-card-media {
-    width: 100%;
-    height: 100%;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
     background-color: var(--color-border);
   }
 
-  .swipe-card-media.placeholder-media {
+  .feed-card-media.embed-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .feed-card-media.placeholder-media {
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .swipe-card-content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 24px 20px 20px;
-    background: linear-gradient(180deg, transparent 0%, rgba(13,13,13,0.95) 100%);
-    color: var(--color-text-inverse);
+  .feed-card-content {
+    padding: 16px;
   }
 
-  .swipe-card-meta {
+  .feed-card-meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
-  .swipe-card-source {
+  .feed-card-source {
     font-size: 0.75rem;
     font-weight: 500;
-    color: rgba(255,255,255,0.8);
+    color: var(--color-text-secondary);
   }
 
-  .swipe-card-category {
+  .feed-card-category {
     font-size: 0.5625rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 4px 10px;
     border-radius: var(--radius-full);
-    background-color: var(--color-brand);
-    color: var(--color-text-inverse);
+    background-color: var(--color-brand-light);
+    color: var(--color-brand);
     flex-shrink: 0;
   }
 
-  .swipe-card-title {
-    font-size: 1.25rem;
+  .feed-card-title {
+    font-size: 1.125rem;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.3;
     margin: 0 0 8px 0;
-    color: var(--color-text-inverse);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    color: var(--color-text-primary);
   }
 
-  .swipe-card-summary {
+  .feed-card-summary {
     font-size: 0.875rem;
     line-height: 1.5;
-    color: rgba(255,255,255,0.9);
-    margin: 0;
+    color: var(--color-text-secondary);
+    margin: 0 0 16px 0;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .swipe-indicators {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    right: 20px;
-    display: flex;
-    justify-content: space-between;
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  .swipe-indicator {
-    display: flex;
+  .feed-card-source-link {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: var(--radius-full);
-    background-color: rgba(0,0,0,0.4);
-    backdrop-filter: blur(8px);
-    color: var(--color-text-inverse);
-    opacity: 0;
-    transform: scale(0.8);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-
-  .swipe-indicator svg {
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-  }
-
-  .swipe-actions {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 16px 20px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: linear-gradient(0deg, rgba(13,13,13,0.95) 0%, transparent 100%);
-    z-index: 10;
-  }
-
-  .swipe-action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px;
-    border-radius: var(--radius-full);
-    color: rgba(255,255,255,0.8);
-    background-color: rgba(0,0,0,0.3);
-    backdrop-filter: blur(8px);
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    min-width: 56px;
-  }
-
-  .swipe-action-btn:hover,
-  .swipe-action-btn:active {
-    background-color: rgba(59, 130, 246, 0.3);
-    color: var(--color-brand);
-    transform: scale(1.1);
-  }
-
-  .swipe-action-btn.active {
-    color: var(--color-brand);
-    background-color: rgba(59, 130, 246, 0.2);
-  }
-
-  .swipe-action-btn.active svg {
-    fill: currentColor;
-    stroke: currentColor;
-  }
-
-  .swipe-action-btn span {
-    font-size: 0.625rem;
+    gap: 6px;
+    font-size: 0.75rem;
     font-weight: 500;
+    color: var(--color-brand);
+    padding: 8px 12px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-brand-light);
+    transition: all 0.15s ease;
   }
 
-  .swipe-source {
-    color: rgba(255,255,255,0.7) !important;
+  .feed-card-source-link:hover {
+    background-color: var(--color-brand);
+    color: var(--color-text-inverse);
   }
 
-  .swipe-source:hover {
-    color: var(--color-brand) !important;
-    background-color: rgba(59, 130, 246, 0.2);
+  .feed-card-source-link svg {
+    flex-shrink: 0;
   }
 
-  /* Like Animation */
-  @keyframes heartPop {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-    50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-  }
-
-  .like-animation {
-    animation: heartPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  }
-
-  /* Buttons */
   .btn {
     display: inline-flex;
     align-items: center;
