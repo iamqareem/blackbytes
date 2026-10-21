@@ -1,5 +1,3 @@
-import { summarize } from './summarizer.js';
-
 let sessionId = localStorage.getItem('session_id');
 if (!sessionId) {
     sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -9,11 +7,22 @@ if (!sessionId) {
 let currentCursor = null;
 let isLoading = false;
 let hasMore = true;
+let activePostId = null;
+let activePostData = null;
+
 const feed = document.getElementById('feed');
 const loader = document.getElementById('loader');
 const cookieBanner = document.getElementById('cookie-banner');
 const cookieAccept = document.getElementById('cookie-accept');
 const cookieDecline = document.getElementById('cookie-decline');
+
+const emojiTrigger = document.getElementById('emoji-trigger');
+const emojiPicker = document.getElementById('emoji-picker');
+const emojiGrid = document.getElementById('emoji-grid');
+
+const actionLikeBtn = document.querySelector('.action-btn[data-action="like"]');
+const actionSaveBtn = document.querySelector('.action-btn[data-action="save"]');
+const actionShareBtn = document.querySelector('.action-btn[data-action="share"]');
 
 const CATEGORIES = ['Memes', 'Culture', 'Tech', 'Entertainment', 'News', 'Sports'];
 const CATEGORY_COLORS = {
@@ -24,6 +33,19 @@ const CATEGORY_COLORS = {
     'News': 'badge-news',
     'Sports': 'badge-sports',
 };
+
+const EMOJIS = [
+    { char: '😂', name: 'dying', label: 'Dying' },
+    { char: '😭', name: 'crying', label: 'Crying' },
+    { char: '🔥', name: 'fire', label: 'Fire' },
+    { char: '💀', name: 'dead', label: 'Dead' },
+    { char: '😭😭', name: 'screaming', label: 'Screaming' },
+    { char: '💅', name: 'idc', label: "Don't Care" },
+    { char: '🤝', name: 'facts', label: 'Facts' },
+    { char: '🫡', name: 'salute', label: 'Respect' },
+    { char: '😭💀', name: 'cannot', label: "Can't" },
+    { char: '✨', name: 'slay', label: 'Slay' },
+];
 
 function getCategoryBadge(category) {
     return CATEGORY_COLORS[category] || 'badge-memes';
@@ -45,6 +67,7 @@ async function fetchFeed(cursor = null) {
             renderPosts(data.posts);
             currentCursor = data.next_cursor;
             hasMore = data.posts.length === 20;
+            setupIntersectionObserver();
         } else {
             hasMore = false;
         }
@@ -79,6 +102,17 @@ function createPostCard(post) {
     const div = document.createElement('article');
     div.className = 'feed-card animate-fade-in relative group';
     div.dataset.postId = post.id;
+    div.dataset.postData = JSON.stringify({
+        id: post.id,
+        title: post.title,
+        summary: post.summary,
+        media_url: post.media_url,
+        source_url: post.source_url,
+        source_name: post.source_name,
+        likes: post.likes || 0,
+        shares: post.shares || 0,
+        saves: post.saves || 0,
+    });
     
     const mediaHtml = post.media_url ? getMediaHtml(post) : '';
     const categoryBadge = getCategoryBadge(post.category);
@@ -93,34 +127,12 @@ function createPostCard(post) {
             <h3 class="font-semibold text-ig-900 dark:text-ig-text mb-2 line-clamp-2">${escapeHtml(post.title)}</h3>
             <p class="text-ig-700 dark:text-ig-muted text-sm leading-relaxed mb-4">${escapeHtml(post.summary)}</p>
             <div class="flex items-center justify-between pt-2 border-t border-ig-200 dark:border-ig-border">
-                <div class="flex items-center gap-4">
-                    <button class="interact-btn flex items-center gap-1.5 text-ig-400 hover:text-ig-danger transition-colors" data-action="like" data-post-id="${post.id}" aria-label="Like">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                        <span class="like-count">${post.likes || 0}</span>
-                    </button>
-                    <button class="interact-btn flex items-center gap-1.5 text-ig-400 hover:text-ig-primary transition-colors" data-action="share" data-post-id="${post.id}" aria-label="Share">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                        <span class="share-count">${post.shares || 0}</span>
-                    </button>
-                    <button class="interact-btn flex items-center gap-1.5 text-ig-400 hover:text-ig-warning transition-colors" data-action="save" data-post-id="${post.id}" aria-label="Save">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                        <span class="save-count">${post.saves || 0}</span>
-                    </button>
-                </div>
                 <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="btn-ghost text-xs">
                     View Source
                 </a>
             </div>
         </div>
     `;
-    
-    div.querySelectorAll('.interact-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleInteraction(btn.dataset.postId, btn.dataset.action, btn);
-        });
-    });
     
     return div;
 }
@@ -196,6 +208,52 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function setupIntersectionObserver() {
+    const cards = feed.querySelectorAll('.feed-card:not([data-ad])');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+                const postId = entry.target.dataset.postId;
+                const postData = JSON.parse(entry.target.dataset.postData);
+                if (postId !== activePostId) {
+                    activePostId = postId;
+                    activePostData = postData;
+                    updateActionBar(postData);
+                }
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.6, 0.8],
+    });
+    
+    cards.forEach(card => observer.observe(card));
+}
+
+function updateActionBar(postData) {
+    if (!postData) return;
+    
+    actionLikeBtn.querySelector('.like-count').textContent = postData.likes || 0;
+    actionSaveBtn.querySelector('.save-count').textContent = postData.saves || 0;
+    actionShareBtn.querySelector('.share-count').textContent = postData.shares || 0;
+    
+    actionLikeBtn.dataset.postId = postData.id;
+    actionSaveBtn.dataset.postId = postData.id;
+    actionShareBtn.dataset.postId = postData.id;
+    
+    if (postData.likes > 0) {
+        actionLikeBtn.classList.add('text-ig-danger');
+        actionLikeBtn.classList.remove('text-ig-400');
+        actionLikeBtn.querySelector('svg').setAttribute('fill', 'currentColor');
+    } else {
+        actionLikeBtn.classList.remove('text-ig-danger');
+        actionLikeBtn.classList.add('text-ig-400');
+        actionLikeBtn.querySelector('svg').removeAttribute('fill');
+    }
+}
+
 async function handleInteraction(postId, action, btn) {
     if (btn.classList.contains('loading')) return;
     btn.classList.add('loading');
@@ -223,6 +281,10 @@ async function handleInteraction(postId, action, btn) {
             if (action === 'share') {
                 sharePost(postId);
             }
+            
+            if (action === 'reaction') {
+                trackEvent('reaction', { post_id: postId, reaction: btn.dataset.emoji });
+            }
         }
     } catch (err) {
         console.error('Interaction error:', err);
@@ -238,7 +300,7 @@ async function sharePost(postId) {
         
         if (navigator.share) {
             await navigator.share({
-                title: 'Afro Aggregator',
+                title: 'Blackbytes',
                 text: data.text,
                 url: window.location.origin + '/?post=' + postId,
             });
@@ -248,6 +310,40 @@ async function sharePost(postId) {
     } catch (err) {
         console.error('Share error:', err);
     }
+}
+
+function setupEmojiPicker() {
+    emojiGrid.innerHTML = EMOJIS.map(emoji => `
+        <button class="emoji-btn w-12 h-12 rounded-full bg-ig-100 dark:bg-ig-elevated text-2xl flex items-center justify-center hover:scale-110 hover:bg-ig-200 dark:hover:bg-ig-border transition-transform transition-colors active:scale-95" 
+                data-emoji="${emoji.char}" 
+                data-action="reaction"
+                aria-label="${emoji.label}"
+                role="menuitem">
+            ${emoji.char}
+        </button>
+    `).join('');
+    
+    emojiTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = emojiPicker.classList.toggle('hidden');
+        emojiTrigger.setAttribute('aria-expanded', !isHidden);
+    });
+    
+    emojiGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.emoji-btn');
+        if (btn && activePostId) {
+            handleInteraction(activePostId, 'reaction', btn);
+            emojiPicker.classList.add('hidden');
+            emojiTrigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!emojiTrigger.contains(e.target) && !emojiPicker.contains(e.target)) {
+            emojiPicker.classList.add('hidden');
+            emojiTrigger.setAttribute('aria-expanded', 'false');
+        }
+    });
 }
 
 function setupInfiniteScroll() {
@@ -317,8 +413,19 @@ function registerServiceWorker() {
 function init() {
     setupInfiniteScroll();
     setupCookieConsent();
+    setupEmojiPicker();
     registerServiceWorker();
     fetchFeed();
+    
+    actionLikeBtn.addEventListener('click', () => {
+        if (activePostId) handleInteraction(activePostId, 'like', actionLikeBtn);
+    });
+    actionSaveBtn.addEventListener('click', () => {
+        if (activePostId) handleInteraction(activePostId, 'save', actionSaveBtn);
+    });
+    actionShareBtn.addEventListener('click', () => {
+        if (activePostId) sharePost(activePostId);
+    });
     
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {

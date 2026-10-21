@@ -18,7 +18,7 @@ export function generateJsonLd(post, siteUrl) {
         },
         publisher: {
             '@type': 'Organization',
-            name: 'Afro Aggregator',
+            name: 'Blackbytes',
             logo: {
                 '@type': 'ImageObject',
                 url: `${siteUrl}/icons/icon-512.png`,

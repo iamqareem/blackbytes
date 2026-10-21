@@ -335,8 +335,8 @@ app.get('/post/:id', (req, res) => {
     }
     
     const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-    const siteName = getConfig.get('site_name')?.value || 'Afro Aggregator';
-    const siteDesc = getConfig.get('site_description')?.value || '';
+    const siteName = 'Blackbytes';
+    const siteDesc = 'Your daily dose of Afrocentric memes, culture & tech';
     const postUrl = `${siteUrl}/post/${post.id}`;
     const imageUrl = post.media_url || `${siteUrl}/icons/og-image.png`;
     
@@ -370,7 +370,7 @@ app.get('/post/:id', (req, res) => {
     <meta name="twitter:title" content="${post.title.replace(/"/g, '"')}">
     <meta name="twitter:description" content="${post.summary.replace(/"/g, '"')}">
     <meta name="twitter:image" content="${imageUrl.replace(/"/g, '"')}">
-    <meta name="twitter:site" content="@afroaggregator">
+    <meta name="twitter:site" content="@blackbytes">
     
     <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
     
@@ -413,7 +413,7 @@ app.get('/post/:id', (req, res) => {
                 </button>
                 <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="btn-secondary text-sm">View Source</a>
             </div>
-            <p class="text-xs text-ig-400">Curated by Afro Aggregator · AI-summarized</p>
+            <p class="text-xs text-ig-400">Curated by Blackbytes · AI-summarized</p>
         </footer>
     </article>
     

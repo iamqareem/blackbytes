@@ -1,7 +1,7 @@
 {
-    "name": "Afro Aggregator",
-    "short_name": "AfroAgg",
-    "description": "Curated Afrocentric memes, culture, tech & entertainment with AI summaries",
+    "name": "Blackbytes",
+    "short_name": "Blackbytes",
+    "description": "Your daily dose of Afrocentric memes, culture & tech",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#FAFAFA",
@@ -56,36 +56,6 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
-        }
-    ],
-    "shortcuts": [
-        {
-            "name": "Memes",
-            "short_name": "Memes",
-            "description": "Afrocentric memes and humor",
-            "url": "/?category=Memes",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-        },
-        {
-            "name": "Culture",
-            "short_name": "Culture",
-            "description": "African culture and lifestyle",
-            "url": "/?category=Culture",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-        },
-        {
-            "name": "Tech",
-            "short_name": "Tech",
-            "description": "African tech news and innovation",
-            "url": "/?category=Tech",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-        },
-        {
-            "name": "Entertainment",
-            "short_name": "Entertainment",
-            "description": "Afrobeats, movies, and entertainment",
-            "url": "/?category=Entertainment",
-            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
         }
     ],
     "categories": ["entertainment", "news", "lifestyle", "social"],
