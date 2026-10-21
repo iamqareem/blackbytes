@@ -31,7 +31,7 @@ def get_interaction_counts(cursor, session_id):
 
 def get_global_post_stats(cursor):
     cursor.execute("""
-        SELECT id, category, likes, shares, saves, views, created_at
+        SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at
         FROM posts
     """)
     return cursor.fetchall()
@@ -39,7 +39,7 @@ def get_global_post_stats(cursor):
 def calculate_scores(posts, favorite_categories, now):
     scored = []
     for post in posts:
-        post_id, category, likes, shares, saves, views, created_at = post
+        post_id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at = post
         
         category_weight = 5.0 if category in favorite_categories else 1.0
         
@@ -59,8 +59,14 @@ def calculate_scores(posts, favorite_categories, now):
         
         scored.append({
             'id': post_id,
-            'score': final_score,
+            'title': title,
+            'summary': summary,
+            'media_url': media_url,
+            'media_type': media_type,
+            'source_url': source_url,
+            'source_name': source_name,
             'category': category,
+            'score': final_score,
             'likes': likes,
             'shares': shares,
             'saves': saves,
