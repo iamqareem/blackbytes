@@ -34,6 +34,7 @@
     "better-sqlite3": "^9.4.3",
     "cheerio": "^1.0.0-rc.12",
     "compression": "^1.7.4",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
