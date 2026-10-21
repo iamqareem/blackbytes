@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { getDb } from './db.js';
 import { requireAuth } from './auth.js';
+import { generateJsonLd } from './seo.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,7 @@ const RANKER_SCRIPT = path.resolve(__dirname, '..', 'python', 'ranking_engine.py
 const db = getDb();
 
 const getConfig = db.prepare('SELECT value FROM site_config WHERE key = ?');
+const getPost = db.prepare('SELECT * FROM posts WHERE id = ?');
 const insertInteraction = db.prepare(`
     INSERT INTO user_interactions (session_id, post_id, action_type)
     VALUES (?, ?, ?)
@@ -44,6 +46,10 @@ const getPreferences = db.prepare('SELECT favorite_categories FROM user_preferen
 const getPostForShare = db.prepare('SELECT id, title, summary, media_url, source_url, source_name FROM posts WHERE id = ?');
 const getPostsForSitemap = db.prepare('SELECT id, source_url, created_at FROM posts ORDER BY created_at DESC LIMIT 50000');
 const getSiteConfig = db.prepare('SELECT key, value FROM site_config');
+const insertAnalytics = db.prepare(`
+    INSERT INTO analytics_events (event_name, payload, session_id)
+    VALUES (?, ?, ?)
+`);
 
 app.use(helmet({
     contentSecurityPolicy: false,
@@ -105,8 +111,35 @@ app.get('/api/feed', async (req, res) => {
         
         const result = await runRanker(sessionId, limit, cursor);
         
+        const enableAds = getConfig.get('enable_ads')?.value === 'true';
+        const adsenseClient = getConfig.get('adsense_client_id')?.value;
+        const adsenseSlot = getConfig.get('adsense_slot_feed')?.value;
+        
+        let posts = result.posts || [];
+        
+        if (enableAds && adsenseClient && adsenseSlot && posts.length > 0) {
+            const adInterval = 5;
+            const ads = [];
+            for (let i = adInterval - 1; i < posts.length; i += adInterval) {
+                ads.push({ index: i, ad: true, adsenseClient, adsenseSlot });
+            }
+            
+            const merged = [];
+            let adIdx = 0;
+            for (let i = 0; i < posts.length; i++) {
+                if (adIdx < ads.length && ads[adIdx].index === i) {
+                    merged.push(ads[adIdx]);
+                    adIdx++;
+                }
+                merged.push(posts[i]);
+            }
+            if (adIdx < ads.length) merged.push(...ads.slice(adIdx).map(a => ({ ...a, ad: true })));
+            posts = merged;
+        }
+        
         res.json({
             ...result,
+            posts,
             session_id: sessionId,
             next_cursor: result.posts.length > 0 ? result.posts[result.posts.length - 1].id : null,
         });
@@ -118,24 +151,26 @@ app.get('/api/feed', async (req, res) => {
 
 app.post('/api/interact', async (req, res) => {
     try {
-        const { session_id, post_id, action_type } = req.body;
+        const { session_id, post_id, action_type, payload } = req.body;
         
         if (!session_id || !post_id || !action_type) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
         
-        if (!['view', 'like', 'share', 'save'].includes(action_type)) {
+        if (!['view', 'like', 'share', 'save', 'ad_click', 'ad_impression'].includes(action_type)) {
             return res.status(400).json({ error: 'Invalid action_type' });
         }
         
-        insertInteraction.run(session_id, post_id, action_type);
-        updatePostStats.run(action_type, action_type, action_type, action_type, post_id);
+        if (post_id > 0) {
+            insertInteraction.run(session_id, post_id, action_type);
+            updatePostStats.run(action_type, action_type, action_type, action_type, post_id);
+        }
         
-        const analyticsInsert = db.prepare(`
-            INSERT INTO analytics_events (event_name, payload, session_id)
-            VALUES (?, ?, ?)
-        `);
-        analyticsInsert.run(`interaction_${action_type}`, JSON.stringify({ post_id }), session_id);
+        insertAnalytics.run(`interaction_${action_type}`, JSON.stringify(payload || { post_id }), session_id);
+        
+        if (action_type === 'ad_click') {
+            insertAnalytics.run('adsense_click', JSON.stringify(payload || { post_id }), session_id);
+        }
         
         res.json({ success: true });
     } catch (err) {
@@ -291,6 +326,103 @@ GET /api/preferences/:session_id
 PUT /api/preferences/:session_id {favorite_categories}
 GET /api/share/:id/whatsapp
 `);
+});
+
+app.get('/post/:id', (req, res) => {
+    const post = getPost.get(req.params.id);
+    if (!post) {
+        return res.status(404).sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
+    }
+    
+    const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
+    const siteName = getConfig.get('site_name')?.value || 'Afro Aggregator';
+    const siteDesc = getConfig.get('site_description')?.value || '';
+    const postUrl = `${siteUrl}/post/${post.id}`;
+    const imageUrl = post.media_url || `${siteUrl}/icons/og-image.png`;
+    
+    const jsonLd = generateJsonLd(post, siteUrl);
+    
+    let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0095F6">
+    <meta name="description" content="${post.summary.replace(/"/g, '"').substring(0, 160)}">
+    
+    <title>${post.title.replace(/"/g, '"')} | ${siteName}</title>
+    
+    <link rel="canonical" href="${postUrl}">
+    <link rel="manifest" href="/manifest.json">
+    
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="${post.title.replace(/"/g, '"')}">
+    <meta property="og:description" content="${post.summary.replace(/"/g, '"')}">
+    <meta property="og:image" content="${imageUrl.replace(/"/g, '"')}">
+    <meta property="og:url" content="${postUrl}">
+    <meta property="og:site_name" content="${siteName}">
+    <meta property="article:published_time" content="${post.created_at}">
+    <meta property="article:author" content="${post.source_name.replace(/"/g, '"')}">
+    <meta property="article:section" content="${post.category}">
+    <meta property="article:tag" content="${post.category}">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${post.title.replace(/"/g, '"')}">
+    <meta name="twitter:description" content="${post.summary.replace(/"/g, '"')}">
+    <meta name="twitter:image" content="${imageUrl.replace(/"/g, '"')}">
+    <meta name="twitter:site" content="@afroaggregator">
+    
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+    
+    <link rel="stylesheet" href="/dist/styles.css">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+</head>
+<body class="min-h-screen bg-ig-50 dark:bg-ig-bg">
+    <article class="max-w-2xl mx-auto px-4 py-8">
+        <header class="mb-6">
+            <a href="/" class="text-ig-400 hover:text-ig-primary text-sm mb-4 inline-block">&larr; Back to Feed</a>
+            <span class="badge ${post.category === 'Memes' ? 'badge-memes' : post.category === 'Culture' ? 'badge-culture' : post.category === 'Tech' ? 'badge-tech' : post.category === 'Entertainment' ? 'badge-entertainment' : post.category === 'News' ? 'badge-news' : 'badge-sports'}">${post.category}</span>
+            <h1 class="text-2xl md:text-3xl font-bold text-ig-900 dark:text-ig-text mt-3 mb-2 leading-tight">${post.title}</h1>
+            <div class="flex items-center gap-4 text-sm text-ig-400">
+                <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="hover:text-ig-primary">${post.source_name}</a>
+                <span>·</span>
+                <time>${new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+            </div>
+        </header>
+        
+        ${post.media_url ? `
+        <div class="mb-6 rounded-xl overflow-hidden bg-ig-100 dark:bg-ig-elevated">
+            ${post.media_type === 'embed' && post.source_url.includes('tiktok.com') ? (() => {
+                const videoId = post.source_url.match(/\/video\/(\d+)/)?.[1] || post.source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
+                return videoId ? `<iframe src="https://www.tiktok.com/embed/${videoId}" class="w-full aspect-video" frameborder="0" allowfullscreen></iframe>` : '';
+            })() : post.media_type === 'embed' && post.source_url.includes('youtube') ? (() => {
+                const videoId = post.source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+                return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}" class="w-full aspect-video" frameborder="0" allowfullscreen></iframe>` : '';
+            })() : post.media_type === 'video' ? `<video class="w-full" controls preload="metadata" poster="${post.media_url}"><source src="${post.media_url}" type="video/mp4"></video>` : `<img src="${post.media_url}" alt="${post.title.replace(/"/g, '"')}" class="w-full" loading="lazy">`}
+        </div>` : ''}
+        
+        <div class="prose prose-ig max-w-none dark:prose-invert">
+            <p class="text-lg text-ig-700 dark:text-ig-muted leading-relaxed whitespace-pre-wrap">${post.summary}</p>
+        </div>
+        
+        <footer class="mt-8 pt-6 border-t border-ig-200 dark:border-ig-border">
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button onclick="navigator.share ? navigator.share({title: '${post.title.replace(/'/g, "\\'")}', text: '${post.summary.replace(/'/g, "\\'").substring(0, 100)}', url: '${postUrl}') : window.open('https://wa.me/?text=${encodeURIComponent(post.title + '\\n\\n' + post.summary + '\\n\\n' + postUrl)}', '_blank')" class="btn-primary text-sm">
+                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+                    Share
+                </button>
+                <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="btn-secondary text-sm">View Source</a>
+            </div>
+            <p class="text-xs text-ig-400">Curated by Afro Aggregator · AI-summarized</p>
+        </footer>
+    </article>
+    
+    <script type="module" src="/dist/app.js"></script>
+</body>
+</html>`;
+    
+    res.set('Content-Type', 'text/html');
+    res.send(html);
 });
 
 app.get('*', (req, res) => {

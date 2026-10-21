@@ -74,6 +74,8 @@
   .badge-culture { @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300; }
   .badge-tech { @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300; }
   .badge-entertainment { @apply bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300; }
+  .badge-news { @apply bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300; }
+  .badge-sports { @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300; }
 }
 
 @layer utilities {
@@ -92,4 +94,25 @@
   .gradient-text {
     @apply bg-gradient-to-r from-ig-primary via-ig-primary to-ig-danger bg-clip-text text-transparent;
   }
+}
+
+@layer components {
+  .prose-ig {
+    @apply text-ig-700 dark:text-ig-muted;
+  }
+  .prose-ig p { @apply mb-4 leading-relaxed; }
+  .prose-ig a { @apply text-ig-primary underline hover:text-ig-primaryHover; }
+  .prose-ig strong { @apply font-semibold text-ig-900 dark:text-ig-text; }
+  .prose-ig em { @apply italic; }
+  .prose-ig blockquote { @apply border-l-4 border-ig-primary pl-4 my-4 italic text-ig-600 dark:text-ig-muted; }
+  .prose-ig h2 { @apply text-xl font-bold text-ig-900 dark:text-ig-text mt-8 mb-4; }
+  .prose-ig h3 { @apply text-lg font-semibold text-ig-900 dark:text-ig-text mt-6 mb-3; }
+  .prose-ig ul { @apply list-disc list-inside mb-4 space-y-2; }
+  .prose-ig ol { @apply list-decimal list-inside mb-4 space-y-2; }
+  .prose-ig code { @apply bg-ig-100 dark:bg-ig-elevated px-1.5 py-0.5 rounded text-sm font-mono; }
+  .prose-ig pre { @apply bg-ig-900 dark:bg-ig-bg p-4 rounded-xl overflow-x-auto mb-4; }
+  .prose-ig pre code { @apply bg-transparent p-0 text-ig-200; }
+  .dark .prose-invert { @apply text-ig-200; }
+  .dark .prose-invert strong { @apply text-ig-text; }
+  .dark .prose-invert blockquote { @apply border-ig-primary text-ig-400; }
 }

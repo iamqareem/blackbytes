@@ -63,8 +63,13 @@ function renderPosts(posts) {
     const fragment = document.createDocumentFragment();
     
     posts.forEach(post => {
-        const card = createPostCard(post);
-        fragment.appendChild(card);
+        if (post.ad) {
+            const adCard = createAdCard(post);
+            fragment.appendChild(adCard);
+        } else {
+            const card = createPostCard(post);
+            fragment.appendChild(card);
+        }
     });
     
     feed.appendChild(fragment);
@@ -116,6 +121,33 @@ function createPostCard(post) {
             handleInteraction(btn.dataset.postId, btn.dataset.action, btn);
         });
     });
+    
+    return div;
+}
+
+function createAdCard(ad) {
+    const div = document.createElement('article');
+    div.className = 'feed-card animate-fade-in relative';
+    div.dataset.ad = 'true';
+    
+    div.innerHTML = `
+        <div class="p-4 text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-ig-100 dark:bg-ig-elevated rounded-full text-xs text-ig-400 mb-3">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                Sponsored
+            </div>
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="${ad.adsenseClient}"
+                 data-ad-slot="${ad.adsenseSlot}"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+        </div>
+    `;
+    
+    if (window.adsbygoogle) {
+        setTimeout(() => (window.adsbygoogle = window.adsbygoogle || []).push({}), 0);
+    }
     
     return div;
 }
