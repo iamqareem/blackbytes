@@ -1,0 +1,86 @@
+{
+    # Global options
+    admin off
+    auto_https disable_redirects
+}
+
+# Main site - Public API + Frontend
+gossip.ugaplex.com {
+    encode zstd gzip
+    header {
+        # Security headers
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # Static assets with long cache
+    @static {
+        path /dist/*
+        path /manifest.json
+        path /sw.js
+        path /thunderbird/*
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Service Worker no cache
+    header /sw.js Cache-Control "no-cache, no-store, must-revalidate"
+
+    # API routes
+    reverse_proxy /api/* http://localhost:3000
+    reverse_proxy /feed.xml http://localhost:3000
+    reverse_proxy /sitemap.xml http://localhost:3000
+    reverse_proxy /robots.txt http://localhost:3000
+    reverse_proxy /llms.txt http://localhost:3000
+
+    # Frontend SPA fallback
+    try_files {path} /public/index.html
+    file_server {
+        root .
+    }
+}
+
+# Admin subdomain - mTLS protected
+admin.gossip.ugaplex.com {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # Client certificate authentication (mTLS)
+    tls {
+        client_auth require_and_verify
+        ca_pem /etc/caddy/admin-ca.pem
+    }
+
+    # Static admin assets
+    @adminStatic {
+        path /admin/dist/*
+    }
+    header @adminStatic Cache-Control "public, max-age=31536000, immutable"
+
+    # Admin API
+    reverse_proxy /admin/* http://localhost:3001
+
+    # Admin SPA fallback
+    try_files {path} /admin/index.html
+    file_server {
+        root .
+    }
+}
+
+# Development overrides (uncomment for local dev without Caddy)
+# :3000 {
+#     reverse_proxy http://localhost:3000
+# }
+# :3001 {
+#     reverse_proxy http://localhost:3001
+# }

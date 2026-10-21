@@ -1,0 +1,2 @@
+# Python dependencies - uses only native libraries
+# python3 -m pip install -r requirements.txt (no external deps needed)

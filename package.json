@@ -1,0 +1,52 @@
+{
+  "name": "afro-aggregator",
+  "version": "0.1.0",
+  "description": "Afrocentric Media & Meme Aggregator - Low-overhead, mobile-first content aggregator with AI summaries",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "admin:dev": "node --watch src/adminServer.js",
+    "admin:start": "node src/adminServer.js",
+    "build:css": "tailwindcss -i src/input.css -o dist/styles.css --minify",
+    "build:css:admin": "tailwindcss -i admin/input.css -o admin/dist/styles.css --minify",
+    "build:js": "esbuild src/client.js --bundle --outfile=dist/app.js --minify --format=esm --target=es2020",
+    "build:js:admin": "esbuild admin/src/app.js --bundle --outfile=admin/dist/app.js --minify --format=esm --target=es2020",
+    "build": "npm run build:css && npm run build:css:admin && npm run build:js && npm run build:js:admin",
+    "scrape": "node src/scraper.js",
+    "lint": "eslint src/ admin/src/",
+    "db:init": "node src/db.js"
+  },
+  "keywords": [
+    "aggregator",
+    "afrocentric",
+    "memes",
+    "pwa",
+    "content"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.14.1",
+    "axios": "^1.7.2",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "cheerio": "^1.0.0-rc.12",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.6.1",
+    "esbuild": "^0.21.5",
+    "eslint": "^9.5.0",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^3.4.19"
+  }
+}
