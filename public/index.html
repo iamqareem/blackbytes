@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0095F6">
+    <meta name="theme-color" content="#0052D4">
     <meta name="description" content="Blackbytes - Your daily dose of Afrocentric memes, culture & tech">
     
-    <title>Blackbytes - Afrocentric Media & Memes</title>
+    <title>Blackbytes</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
-    <link rel="mask-icon" href="/icons/icon.svg" color="#0095F6">
+    <link rel="mask-icon" href="/icons/icon.svg" color="#0052D4">
     
     <meta property="og:type" content="website">
     <meta property="og:title" content="Blackbytes">
@@ -24,84 +24,81 @@
     <meta name="twitter:title" content="Blackbytes">
     <meta name="twitter:description" content="Your daily dose of Afrocentric memes, culture & tech">
     <meta name="twitter:image" content="/icons/og-image.png">
+    <meta name="twitter:site" content="@blackbytes">
     
     <link rel="stylesheet" href="/dist/styles.css">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
     <script type="module" src="/dist/app.js"></script>
 </head>
-<body class="min-h-screen bg-ig-50 dark:bg-ig-bg">
-    <header class="sticky top-0 z-40 bg-ig-surface/80 dark:bg-ig-surface/80 backdrop-blur-sm border-b border-ig-200 dark:border-ig-border">
-        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/" class="flex items-center gap-2" aria-label="Blackbytes Home">
-                <svg class="w-8 h-8" viewBox="0 0 128 128">
-                    <use href="/icons/icon.svg#grad" />
-                    <path d="M38 84 Q38 56 56 56 Q74 56 74 74 Q74 86 64 96 Q54 86 38 84 Z" fill="white" opacity="0.95"/>
-                    <circle cx="48" cy="70" r="3.5" fill="#0095F6" opacity="0.9"/>
-                    <circle cx="64" cy="68" r="3.5" fill="#ED4956" opacity="0.9"/>
-                    <circle cx="80" cy="70" r="3.5" fill="#F56040" opacity="0.9"/>
-                    <polygon points="95,50 96.5,54 101,54 97.5,56.5 98.5,61 95,58.5 91.5,61 92.5,56.5 89,54 93.5,54" fill="#FFD700" opacity="0.9"/>
-                </svg>
-                <span class="font-bold text-xl text-ig-900 dark:text-ig-text tracking-tight">Blackbytes</span>
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-lg bg-ig-100 dark:bg-ig-elevated text-ig-600 dark:text-ig-muted hover:bg-ig-200 dark:hover:bg-ig-border transition-colors" aria-label="Toggle theme">
-                <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-            </button>
-        </div>
+<body class="min-h-screen">
+    <header class="header" role="banner">
+        <a href="/" class="logo" aria-label="Blackbytes Home">
+            <svg class="logo-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#0052D4;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#ED4956;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="64" cy="64" r="64" fill="url(#logoGrad)"/>
+                <path d="M38 84 Q38 56 56 56 Q74 56 74 74 Q74 86 64 96 Q54 86 38 84 Z" fill="white" opacity="0.95"/>
+                <circle cx="48" cy="70" r="3.5" fill="#0052D4" opacity="0.9"/>
+                <circle cx="64" cy="68" r="3.5" fill="#ED4956" opacity="0.9"/>
+                <circle cx="80" cy="70" r="3.5" fill="#F56040" opacity="0.9"/>
+                <polygon points="95,50 96.5,54 101,54 97.5,56.5 98.5,61 95,58.5 91.5,61 92.5,56.5 89,54 93.5,54" fill="#FFD700" opacity="0.9"/>
+            </svg>
+            <span class="logo-text">Blackbytes</span>
+        </a>
+        <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme" title="Toggle theme">
+            <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
     </header>
 
-    <main class="max-w-md mx-auto pb-28">
-        <div id="feed" class="space-y-4 px-4 pt-4">
-        </div>
-        
-        <div id="loader" class="hidden flex justify-center py-8">
-            <div class="w-8 h-8 border-3 border-ig-200 border-t-ig-primary rounded-full animate-spin"></div>
-        </div>
-        
-        <div id="empty-state" class="hidden text-center py-12 text-ig-400">
-            <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <p class="font-medium">No content yet</p>
-            <p class="text-sm mt-1">Check back soon for fresh content</p>
-        </div>
+    <main class="feed" id="feed" role="main">
     </main>
 
-    <!-- Bottom Action Bar - DevBytes style -->
-    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-ig-surface/95 dark:bg-ig-surface/95 backdrop-blur-sm border-t border-ig-200 dark:border-ig-border safe-area-bottom z-50" role="navigation" aria-label="Post actions">
-        <div class="flex items-center justify-between px-4 py-2.5 gap-4">
-            <!-- Left: Action Pill (Like, Save, Share) -->
-            <div class="flex items-center gap-1 bg-ig-100 dark:bg-ig-elevated rounded-full p-1" role="group" aria-label="Post actions">
-                <button class="action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ig-400 hover:text-ig-danger transition-colors active:scale-95" data-action="like" aria-label="Like">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span class="like-count text-sm font-medium">0</span>
-                </button>
-                <button class="action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ig-400 hover:text-ig-warning transition-colors active:scale-95" data-action="save" aria-label="Save">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                    <span class="save-count text-sm font-medium">0</span>
-                </button>
-                <button class="action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ig-400 hover:text-ig-primary transition-colors active:scale-95" data-action="share" aria-label="Share">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                    <span class="share-count text-sm font-medium">0</span>
-                </button>
-            </div>
+    <div class="feed-loader hidden" id="loader" aria-live="polite">
+        <div class="spinner"></div>
+    </div>
 
-            <!-- Right: Emoji Reaction Picker -->
-            <div class="relative">
-                <button id="emoji-trigger" class="p-2 rounded-full bg-ig-100 dark:bg-ig-elevated text-ig-400 hover:text-ig-primary hover:bg-ig-200 dark:hover:bg-ig-border transition-colors active:scale-95" aria-label="Reactions" aria-expanded="false" aria-haspopup="true">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-7c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3zm8 0c0-1.66-1.34-3-3-3s-3 1.34-3 3 1.34 3 3 3 3-1.34 3-3zm-8 5c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8 0c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
-                </button>
-                <div id="emoji-picker" class="hidden absolute bottom-full right-0 mb-2 bg-ig-surface dark:bg-ig-surface border border-ig-200 dark:border-ig-border rounded-xl shadow-lg p-3 w-56 animate-fade-in" role="menu" aria-label="Choose reaction">
-                    <div class="flex flex-wrap gap-2 justify-center" id="emoji-grid"></div>
-                </div>
+    <div class="empty-state hidden" id="empty-state">
+        <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <p class="empty-state-title">No content yet</p>
+        <p class="empty-state-desc">Check back soon for fresh content</p>
+    </div>
+
+    <nav class="action-bar" role="navigation" aria-label="Post actions">
+        <div class="action-pill" role="group" aria-label="Post actions">
+            <button class="btn-icon action-btn" data-action="like" aria-label="Like" title="Like">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                <span class="like-count hidden">0</span>
+            </button>
+            <button class="btn-icon action-btn" data-action="save" aria-label="Save" title="Save">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                <span class="save-count hidden">0</span>
+            </button>
+            <button class="btn-icon action-btn" data-action="share" aria-label="Share" title="Share">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                <span class="share-count hidden">0</span>
+            </button>
+        </div>
+
+        <div class="relative">
+            <button id="emoji-trigger" class="emoji-trigger" aria-label="Reactions" aria-expanded="false" aria-haspopup="true" title="Reactions">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-7c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3zm8 0c0-1.66-1.34-3-3-3s-3 1.34-3 3 1.34 3 3 3 3-1.34 3-3zm-8 5c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8 0c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+            </button>
+            <div id="emoji-picker" class="emoji-picker" role="menu" aria-label="Choose reaction">
             </div>
         </div>
     </nav>
 
-    <div id="cookie-banner" class="hidden fixed bottom-28 left-4 right-4 max-w-md mx-auto bg-ig-surface dark:bg-ig-surface border border-ig-200 dark:border-ig-border rounded-xl p-4 shadow-lg z-50 animate-slide-up">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p class="text-sm text-ig-700 dark:text-ig-muted">We use cookies to personalize your feed and analyze traffic. By continuing, you agree to our <a href="/privacy.html" class="text-ig-primary underline">Privacy Policy</a>.</p>
-            <div class="flex gap-2">
-                <button id="cookie-decline" class="btn-secondary text-sm py-2 px-4">Decline</button>
-                <button id="cookie-accept" class="btn-primary text-sm py-2 px-4">Accept</button>
+    <div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
+        <div class="cookie-content">
+            <p class="cookie-text">We use cookies to personalize your feed. By continuing, you agree to our <a href="/privacy.html">Privacy Policy</a>.</p>
+            <div class="cookie-actions">
+                <button id="cookie-decline" class="btn btn-secondary btn-sm">Decline</button>
+                <button id="cookie-accept" class="btn btn-primary btn-sm">Accept</button>
             </div>
         </div>
     </div>
