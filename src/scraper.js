@@ -1,0 +1,117 @@
+import cron from 'node-cron';
+import { getDb, initDb } from './db.js';
+import { loadPlugins, fetchAllPlugins } from './pluginManager.js';
+import { summarizeBatch } from './summarizer.js';
+
+const db = getDb();
+
+const insertPost = db.prepare(`
+    INSERT OR IGNORE INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+const updatePostEngagement = db.prepare(`
+    UPDATE posts SET 
+        engagement_score = views + (likes * 2) + (shares * 3) + (saves * 4),
+        indexed_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+`);
+
+const getConfig = db.prepare('SELECT value FROM site_config WHERE key = ?');
+
+function getCronSchedule() {
+    const row = getConfig.get('scraper_cron');
+    return row?.value || '*/30 * * * *';
+}
+
+async function runScraper() {
+    console.log('[Scraper] Starting scrape cycle...');
+    const startTime = Date.now();
+
+    try {
+        await loadPlugins();
+        const items = await fetchAllPlugins();
+        
+        if (items.length === 0) {
+            console.log('[Scraper] No items fetched');
+            return { fetched: 0, saved: 0, duration: Date.now() - startTime };
+        }
+
+        console.log(`[Scraper] Fetched ${items.length} raw items, summarizing...`);
+        const summarized = await summarizeBatch(items);
+
+        let saved = 0;
+        for (const item of summarized) {
+            const result = insertPost.run(
+                item.title,
+                item.summary,
+                item.media_url || null,
+                item.media_type || 'text',
+                item.source_url,
+                item.source_name,
+                item.category,
+                item.published_at || new Date().toISOString(),
+                new Date().toISOString()
+            );
+            if (result.changes > 0) saved++;
+        }
+
+        const duration = Date.now() - startTime;
+        console.log(`[Scraper] Completed: ${saved}/${items.length} new posts saved in ${duration}ms`);
+        
+        return { fetched: items.length, saved, duration };
+    } catch (err) {
+        console.error('[Scraper] Error:', err.message);
+        throw err;
+    }
+}
+
+let scheduledTask = null;
+
+export function startScheduler() {
+    if (scheduledTask) {
+        console.log('[Scraper] Scheduler already running');
+        return;
+    }
+
+    const schedule = getCronSchedule();
+    console.log(`[Scraper] Scheduling with cron: ${schedule}`);
+
+    scheduledTask = cron.schedule(schedule, async () => {
+        try {
+            await runScraper();
+        } catch (err) {
+            console.error('[Scraper] Scheduled run failed:', err.message);
+        }
+    });
+
+    scheduledTask.start();
+    console.log('[Scraper] Scheduler started');
+}
+
+export function stopScheduler() {
+    if (scheduledTask) {
+        scheduledTask.stop();
+        scheduledTask = null;
+        console.log('[Scraper] Scheduler stopped');
+    }
+}
+
+export async function triggerScrape() {
+    return await runScraper();
+}
+
+export { runScraper };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    initDb();
+    runScraper()
+        .then(result => {
+            console.log('Manual scrape result:', result);
+            process.exit(0);
+        })
+        .catch(err => {
+            console.error('Manual scrape failed:', err);
+            process.exit(1);
+        });
+}
