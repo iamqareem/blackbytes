@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0095F6">
+    <meta name="description" content="Curated Afrocentric memes, culture, tech & entertainment with AI summaries">
+    
+    <title>Afro Aggregator - Afrocentric Media & Memes</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#0095F6">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Afro Aggregator">
+    <meta property="og:description" content="Curated Afrocentric memes, culture, tech & entertainment with AI summaries">
+    <meta property="og:image" content="/icons/og-image.png">
+    <meta property="og:url" content="https://gossip.ugaplex.com">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Afro Aggregator">
+    <meta name="twitter:description" content="Curated Afrocentric memes, culture, tech & entertainment with AI summaries">
+    <meta name="twitter:image" content="/icons/og-image.png">
+    
+    <link rel="stylesheet" href="/dist/styles.css">
+    <script type="module" src="/dist/app.js"></script>
+</head>
+<body class="min-h-screen bg-ig-50 dark:bg-ig-bg">
+    <header class="sticky top-0 z-40 bg-ig-surface/80 dark:bg-ig-surface/80 backdrop-blur-sm border-b border-ig-200 dark:border-ig-border">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2" aria-label="Afro Aggregator Home">
+                <svg class="w-8 h-8 text-ig-primary" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                </svg>
+                <span class="font-bold text-xl text-ig-900 dark:text-ig-text">Afro Aggregator</span>
+            </a>
+            <div class="flex items-center gap-2">
+                <button id="theme-toggle" class="p-2 rounded-lg bg-ig-100 dark:bg-ig-elevated text-ig-600 dark:text-ig-muted hover:bg-ig-200 dark:hover:bg-ig-border transition-colors" aria-label="Toggle theme">
+                    <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                </button>
+                <a href="/tos.html" class="text-sm text-ig-400 hover:text-ig-primary transition-colors hidden sm:block">Terms</a>
+                <a href="/privacy.html" class="text-sm text-ig-400 hover:text-ig-primary transition-colors hidden sm:block">Privacy</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto pb-24">
+        <div id="feed" class="space-y-4 px-4 pt-4">
+        </div>
+        
+        <div id="loader" class="hidden flex justify-center py-8">
+            <div class="w-8 h-8 border-3 border-ig-200 border-t-ig-primary rounded-full animate-spin"></div>
+        </div>
+        
+        <div id="empty-state" class="hidden text-center py-12 text-ig-400">
+            <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="font-medium">No content yet</p>
+            <p class="text-sm mt-1">Check back soon for fresh Afrocentric content</p>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-ig-surface dark:bg-ig-surface border-t border-ig-200 dark:border-ig-border safe-area-bottom" role="navigation" aria-label="Main navigation">
+        <div class="flex justify-around py-2">
+            <a href="/" class="flex flex-col items-center gap-1 text-ig-primary" aria-current="page">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <span class="text-xs">Home</span>
+            </a>
+            <a href="/?category=Memes" class="flex flex-col items-center gap-1 text-ig-400 hover:text-ig-primary transition-colors">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <span class="text-xs">Memes</span>
+            </a>
+            <a href="/?category=Culture" class="flex flex-col items-center gap-1 text-ig-400 hover:text-ig-primary transition-colors">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <span class="text-xs">Culture</span>
+            </a>
+            <a href="/?category=Tech" class="flex flex-col items-center gap-1 text-ig-400 hover:text-ig-primary transition-colors">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <span class="text-xs">Tech</span>
+            </a>
+            <a href="/?category=Entertainment" class="flex flex-col items-center gap-1 text-ig-400 hover:text-ig-primary transition-colors">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <span class="text-xs">Entertainment</span>
+            </a>
+        </div>
+    </nav>
+
+    <div id="cookie-banner" class="hidden fixed bottom-24 left-4 right-4 max-w-md mx-auto bg-ig-surface dark:bg-ig-surface border border-ig-200 dark:border-ig-border rounded-xl p-4 shadow-lg z-50 animate-slide-up">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p class="text-sm text-ig-700 dark:text-ig-muted">We use cookies to personalize your feed and analyze traffic. By continuing, you agree to our <a href="/privacy.html" class="text-ig-primary underline">Privacy Policy</a>.</p>
+            <div class="flex gap-2">
+                <button id="cookie-decline" class="btn-secondary text-sm py-2 px-4">Decline</button>
+                <button id="cookie-accept" class="btn-primary text-sm py-2 px-4">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const toggle = document.getElementById('theme-toggle');
+            const html = document.documentElement;
+            
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+            }
+            
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+            
+            toggle.addEventListener('click', () => {
+                const newTheme = html.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+        })();
+    </script>
+</body>
+</html>

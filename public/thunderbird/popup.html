@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Afro Aggregator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 380px;
+            max-height: 600px;
+            overflow: hidden;
+            background: #fafafa;
+            color: #1a1a1a;
+        }
+        @media (prefers-color-scheme: dark) {
+            body { background: #121212; color: #fff; }
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px;
+            border-bottom: 1px solid #dbdbdb;
+            background: #fff;
+        }
+        @media (prefers-color-scheme: dark) {
+            .header { background: #1e1e1e; border-color: #3a3a3a; }
+        }
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: #0095f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo svg { width: 20px; height: 20px; fill: white; }
+        .title { font-weight: 700; font-size: 16px; }
+        .feed { overflow-y: auto; max-height: 480px; padding: 8px; }
+        .item {
+            padding: 12px;
+            border-bottom: 1px solid #efefef;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        @media (prefers-color-scheme: dark) {
+            .item { border-color: #2c2c2c; }
+        }
+        .item:hover { background: #f0f0f0; }
+        @media (prefers-color-scheme: dark) {
+            .item:hover { background: #2c2c2c; }
+        }
+        .item:last-child { border-bottom: none; }
+        .item-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #8e8e8e;
+        }
+        .badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-memes { background: #ffe4ec; color: #c13584; }
+        .badge-culture { background: #e8e0fe; color: #6c5ce7; }
+        .badge-tech { background: #d6eaff; color: #0984e3; }
+        .badge-entertainment { background: #ffe8d6; color: #e17055; }
+        .badge-news { background: #dfe6e9; color: #636e72; }
+        .badge-sports { background: #d4edda; color: #27ae60; }
+        @media (prefers-color-scheme: dark) {
+            .badge-memes { background: #c1358433; color: #f8a5d7; }
+            .badge-culture { background: #6c5ce733; color: #c4bfff; }
+            .badge-tech { background: #0984e333; color: #a0d4fb; }
+            .badge-entertainment { background: #e1705533; color: #fab1a0; }
+            .badge-news { background: #636e7233; color: #b2bec3; }
+            .badge-sports { background: #27ae6033; color: #7bed9f; }
+        }
+        .item-title { font-weight: 600; font-size: 14px; line-height: 1.4; margin-bottom: 4px; }
+        .item-summary { font-size: 12px; color: #8e8e8e; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        @media (prefers-color-scheme: dark) {
+            .item-summary { color: #aaa; }
+        }
+        .loading, .error { padding: 24px; text-align: center; color: #8e8e8e; font-size: 14px; }
+        .refresh-btn {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #0095f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,149,246,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .refresh-btn:hover { background: #1877f2; }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .refresh-btn svg { width: 20px; height: 20px; }
+        .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .empty { padding: 40px 20px; text-align: center; color: #8e8e8e; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+        </div>
+        <span class="title">Afro Aggregator</span>
+    </header>
+    
+    <div class="feed" id="feed">
+        <div class="loading">Loading feed...</div>
+    </div>
+    
+    <button class="refresh-btn" id="refresh-btn" aria-label="Refresh feed" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    </button>
+
+    <script type="module">
+        const FEED_URL = 'https://gossip.ugaplex.com/feed.xml';
+        const feedEl = document.getElementById('feed');
+        const refreshBtn = document.getElementById('refresh-btn');
+        
+        const CATEGORY_BADGES = {
+            'Memes': 'badge-memes',
+            'Culture': 'badge-culture',
+            'Tech': 'badge-tech',
+            'Entertainment': 'badge-entertainment',
+            'News': 'badge-news',
+            'Sports': 'badge-sports',
+        };
+        
+        function getBadgeClass(category) {
+            return CATEGORY_BADGES[category] || 'badge-memes';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateStr) {
+            try {
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString();
+            } catch {
+                return '';
+            }
+        }
+        
+        function renderItems(items) {
+            if (!items || items.length === 0) {
+                feedEl.innerHTML = '<div class="empty">No items found</div>';
+                return;
+            }
+            
+            feedEl.innerHTML = items.map(item => `
+                <article class="item" data-url="${escapeHtml(item.link)}">
+                    <div class="item-meta">
+                        <span class="badge ${getBadgeClass(item.category)}">${escapeHtml(item.category)}</span>
+                        <span>·</span>
+                        <span>${escapeHtml(item.author || 'Unknown')}</span>
+                        <span>·</span>
+                        <span>${formatDate(item.pubDate)}</span>
+                    </div>
+                    <h3 class="item-title">${escapeHtml(item.title)}</h3>
+                    <p class="item-summary">${escapeHtml(item.description || '')}</p>
+                </article>
+            `).join('');
+            
+            feedEl.querySelectorAll('.item').forEach(el => {
+                el.addEventListener('click', () => {
+                    browser.tabs.create({ url: el.dataset.url });
+                });
+            });
+        }
+        
+        async function fetchFeed() {
+            refreshBtn.classList.add('spinning');
+            refreshBtn.disabled = true;
+            
+            try {
+                const response = await fetch(FEED_URL, {
+                    headers: { 'Accept': 'application/xml, text/xml' }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'application/xml');
+                
+                const error = xml.querySelector('parsererror');
+                if (error) throw new Error('Invalid XML');
+                
+                const items = Array.from(xml.querySelectorAll('item')).map(item => ({
+                    title: item.querySelector('title')?.textContent || '',
+                    link: item.querySelector('link')?.textContent || '',
+                    description: item.querySelector('description')?.textContent || '',
+                    category: item.querySelector('category')?.textContent || 'General',
+                    author: item.querySelector('author')?.textContent || '',
+                    pubDate: item.querySelector('pubDate')?.textContent || '',
+                })).filter(item => item.title && item.link);
+                
+                renderItems(items);
+                
+            } catch (err) {
+                console.error('Feed fetch error:', err);
+                feedEl.innerHTML = `<div class="error">Failed to load feed<br><small>${escapeHtml(err.message)}</small></div>`;
+            } finally {
+                refreshBtn.classList.remove('spinning');
+                refreshBtn.disabled = false;
+            }
+        }
+        
+        refreshBtn.addEventListener('click', fetchFeed);
+        
+        document.addEventListener('DOMContentLoaded', fetchFeed);
+    </script>
+</body>
+</html>
