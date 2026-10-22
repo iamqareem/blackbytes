@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 const FLIPBOARD_MAGAZINES = [
     { id: 'african-culture', category: 'Culture', name: 'African Culture' },
@@ -27,25 +28,25 @@ async function fetchFlipboardMagazine(magazine) {
 
 function parseFlipboardHTML(html, magazine) {
     const items = [];
-    const articleMatches = html.matchAll(/<article[^>]*class="[^"]*story[^"]*"[\s\S]*?<\/article>/g);
-
-    for (const match of articleMatches) {
-        const articleHtml = match[0];
+    const $ = cheerio.load(html);
+    
+    $('article[class*="story"]').each((_, element) => {
+        const articleHtml = $(element);
         
-        const linkMatch = articleHtml.match(/<a[^>]*href="([^"]+)"[^>]*class="[^"]*title[^"]*"/);
-        const sourceUrl = linkMatch ? `https://flipboard.com${linkMatch[1]}` : null;
+        const linkEl = articleHtml.find('a[class*="title"]').first();
+        const sourceUrl = linkEl.attr('href') ? `https://flipboard.com${linkEl.attr('href')}` : null;
         
-        const titleMatch = articleHtml.match(/<h3[^>]*>([\s\S]*?)<\/h3>/);
-        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+        const titleEl = articleHtml.find('h3').first();
+        const title = titleEl.text().trim();
         
-        const descMatch = articleHtml.match(/<p[^>]*class="[^"]*excerpt[^"]*"[^>]*>([\s\S]*?)<\/p>/);
-        const content = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+        const descEl = articleHtml.find('p[class*="excerpt"]').first();
+        const content = descEl.text().trim();
         
-        const imgMatch = articleHtml.match(/<img[^>]*src="([^"]+)"/);
-        const mediaUrl = imgMatch ? imgMatch[1] : null;
+        const imgEl = articleHtml.find('img').first();
+        const mediaUrl = imgEl.attr('src') || imgEl.attr('data-src') || null;
         
-        const timeMatch = articleHtml.match(/<time[^>]*datetime="([^"]+)"/);
-        const publishedAt = timeMatch ? timeMatch[1] : new Date().toISOString();
+        const timeEl = articleHtml.find('time').first();
+        const publishedAt = timeEl.attr('datetime') || new Date().toISOString();
 
         if (sourceUrl && title) {
             items.push({
@@ -59,7 +60,7 @@ function parseFlipboardHTML(html, magazine) {
                 published_at: publishedAt,
             });
         }
-    }
+    });
 
     return items;
 }

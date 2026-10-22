@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 const RSS_SOURCES = [
     {
@@ -38,6 +39,16 @@ async function fetchRSSFeed(source) {
     }
 }
 
+function extractFirstImage(html) {
+    if (!html) return null;
+    const $ = cheerio.load(html);
+    const img = $('img').first();
+    if (img.length) {
+        return img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src') || null;
+    }
+    return null;
+}
+
 function parseRSSFeed(xml, source) {
     const items = [];
     const itemMatches = xml.matchAll(/<item>[\s\S]*?<\/item>/g);
@@ -52,16 +63,29 @@ function parseRSSFeed(xml, source) {
         const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
         const sourceUrl = linkMatch ? linkMatch[1].trim() : '';
         
-        const descMatch = itemXml.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) ||
-                         itemXml.match(/<description>([\s\S]*?)<\/description>/) ||
-                         itemXml.match(/<content:encoded><!\[CDATA\[(.*?)\]\]><\/content:encoded>/);
-        let content = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+        // Extract content:encoded first (full content with images)
+        let contentHtml = '';
+        const contentEncodedMatch = itemXml.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/);
+        if (contentEncodedMatch) {
+            contentHtml = contentEncodedMatch[1];
+        } else {
+            // Fallback to description
+            const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ||
+                             itemXml.match(/<description>([\s\S]*?)<\/description>/);
+            contentHtml = descMatch ? descMatch[1] : '';
+        }
+        
+        let content = contentHtml.replace(/<[^>]+>/g, ' ').trim();
         content = content.replace(/\[\s*\.\.\.\s*\]/g, '').trim();
         
-        const mediaMatch = itemXml.match(/<media:content[^>]*url="([^"]+)"/) ||
-                          itemXml.match(/<media:thumbnail[^>]*url="([^"]+)"/) ||
-                          itemXml.match(/<enclosure[^>]*url="([^"]+)"/);
-        const mediaUrl = mediaMatch ? mediaMatch[1] : null;
+        // Extract first image from content HTML
+        const mediaUrl = extractFirstImage(contentHtml);
+        
+        // Fallback to standard RSS media tags
+        const fallbackMediaMatch = itemXml.match(/<media:content[^>]*url="([^"]+)"/) ||
+                                  itemXml.match(/<media:thumbnail[^>]*url="([^"]+)"/) ||
+                                  itemXml.match(/<enclosure[^>]*url="([^"]+)"/);
+        const finalMediaUrl = mediaUrl || (fallbackMediaMatch ? fallbackMediaMatch[1] : null);
         
         const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/) ||
                             itemXml.match(/<published>(.*?)<\/published>/);
@@ -74,8 +98,8 @@ function parseRSSFeed(xml, source) {
             items.push({
                 title,
                 content: content || title,
-                media_url: mediaUrl,
-                media_type: mediaUrl ? (mediaUrl.includes('.mp4') || mediaUrl.includes('video') ? 'video' : 'image') : 'text',
+                media_url: finalMediaUrl,
+                media_type: finalMediaUrl ? (finalMediaUrl.includes('.mp4') || finalMediaUrl.includes('video') ? 'video' : 'image') : 'text',
                 source_url: sourceUrl,
                 source_name: source.name,
                 category: source.category,
