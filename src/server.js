@@ -492,11 +492,11 @@ app.get('/post/:id', (req, res) => {
             </div>
         </header>
         
-        ${post.media_url ? `
+        ${post.media_url || post.media_type === 'shorts' ? `
         <div class="mb-6 rounded-xl overflow-hidden bg-ig-100 dark:bg-ig-elevated">
-            ${post.media_type === 'embed' && post.source_url.includes('tiktok.com') ? (() => {
+            ${(['embed', 'shorts'].includes(post.media_type)) && post.source_url.includes('tiktok.com') ? (() => {
                 const videoId = post.source_url.match(/\/video\/(\d+)/)?.[1] || post.source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
-                return videoId ? `<iframe src="https://www.tiktok.com/embed/${videoId}" class="w-full aspect-video" frameborder="0" allowfullscreen></iframe>` : '';
+                return videoId ? `<iframe src="https://www.tiktok.com/player/v1/${videoId}" class="w-full" style="aspect-ratio: 9/16; max-height: 70vh; margin: 0 auto;" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` : '';
             })() : post.media_type === 'embed' && post.source_url.includes('youtube') ? (() => {
                 const videoId = post.source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
                 return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1" class="w-full aspect-video" frameborder="0" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` : '';

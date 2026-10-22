@@ -243,13 +243,15 @@ function getMediaBoxHtml(post) {
         }
     }
 
-    // TikTok embed
-    if (media_type === 'embed' && source_url && source_url.includes('tiktok.com')) {
+    // TikTok embed — official player, vertical like YouTube Shorts
+    if ((media_type === 'embed' || media_type === 'shorts') && source_url && source_url.includes('tiktok.com')) {
         const videoId = source_url.match(/\/video\/(\d+)/)?.[1] || source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
         if (videoId) {
-            return `<div class="${boxClass} is-vertical">
+            return `<div class="feed-card-img-box is-vertical">
                 <iframe
-                    src="https://www.tiktok.com/embed/${videoId}"
+                    src="https://www.tiktok.com/player/v1/${videoId}"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen loading="lazy"
                     title="${escapeHtml(title)}"></iframe>
             </div>`;
