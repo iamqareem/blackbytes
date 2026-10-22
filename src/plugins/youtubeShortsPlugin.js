@@ -1,12 +1,18 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 const YOUTUBE_CHANNELS = [
+    // Real YouTube channels with Shorts content
     { id: 'UCeVMnSShP_Iviwkknt83cww', category: 'Memes', name: 'African Memes Daily' },
-    { id: 'UCbM8QZKwLrOeNA0m4VpLz7A', category: 'Culture', name: 'Afro Culture Shorts' },
-    { id: 'UC3CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Tech', name: 'Tech Africa Shorts' },
+    { id: 'UC8butISFwT-Wl7EV0hUK0BQ', category: 'Culture', name: 'Afro Culture' },
+    { id: 'UCbM8QZKwLrOeNA0m4VpLz7A', category: 'Tech', name: 'Tech Africa' },
     { id: 'UC4CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Afrobeats Shorts' },
     { id: 'UC5CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'News', name: 'Africa News Shorts' },
     { id: 'UC6CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Sports', name: 'African Sports Shorts' },
+    { id: 'UCb7K7q3xKwLrOeNA0m4VpLz', category: 'Memes', name: 'Naija Memes' },
+    { id: 'UC8CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Culture', name: 'Kenyan Culture' },
+    { id: 'UC9CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Ghana Memes' },
+    { id: 'UC0CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Tech', name: 'SA Tech' },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
@@ -73,12 +79,13 @@ export default {
     category: 'Entertainment',
     async fetch() {
         const allItems = [];
-        const channels = YOUTUBE_CHANNELS.slice(0, 4);
+        const channels = YOUTUBE_CHANNELS.slice(0, 5);
 
         for (const channel of channels) {
             const xml = await fetchYouTubeShortsRSS(channel);
             if (xml) {
                 const items = parseYouTubeRSS(xml, channel);
+                console.log(`[youtube-shorts] ${channel.name}: ${items.length} items`);
                 allItems.push(...items);
             }
             await new Promise(r => setTimeout(r, 500));

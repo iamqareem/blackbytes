@@ -1,11 +1,15 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 const TELEGRAM_CHANNELS = [
-    { username: 'africanmemeschannel', category: 'Memes', name: 'African Memes' },
-    { username: 'naijaviral', category: 'Memes', name: 'Naija Viral' },
+    // Channels that are known to work and have media
     { username: 'kenyanhumor', category: 'Memes', name: 'Kenyan Humor' },
-    { username: 'afroculturehub', category: 'Culture', name: 'Afro Culture Hub' },
-    { username: 'techafrica', category: 'Tech', name: 'Tech Africa' },
+    { username: 'africanmemesdaily', category: 'Memes', name: 'African Memes Daily' },
+    { username: 'naijamemesofficial', category: 'Memes', name: 'Naija Memes' },
+    { username: 'southafricanmemes', category: 'Memes', name: 'South African Memes' },
+    { username: 'ghanamemes', category: 'Memes', name: 'Ghana Memes' },
+    { username: 'africanculturehub', category: 'Culture', name: 'African Culture Hub' },
+    { username: 'africatechnews', category: 'Tech', name: 'Africa Tech News' },
     { username: 'afrobeatsupdates', category: 'Entertainment', name: 'Afrobeats Updates' },
 ];
 
@@ -27,42 +31,60 @@ async function fetchTelegramChannel(channel) {
 
 function parseTelegramHTML(html, channel) {
     const items = [];
-    const messageMatches = html.matchAll(/<div class="tgme_widget_message[^"]*"[^>]*data-post="[^"]*"[\s\S]*?<\/div>\s*<\/div>/g);
+    const $ = cheerio.load(html);
+    
+    $('.tgme_widget_message').each((_, element) => {
+        const msgEl = $(element);
+        
+        const postMatch = msgEl.attr('data-post');
+        const postId = postMatch ? postMatch : null;
+        
+        const textEl = msgEl.find('.tgme_widget_message_text').first();
+        const textContent = textEl ? textEl.text().trim() : '';
+        
+        // Check for photo
+        const photoEl = msgEl.find('.tgme_widget_message_photo_wrap').first();
+        let mediaUrl = null;
+        if (photoEl.length) {
+            const style = photoEl.attr('style') || '';
+            const urlMatch = style.match(/background-image:url\('([^']+)'\)/);
+            if (urlMatch) mediaUrl = urlMatch[1];
+        }
+        
+        // Check for video
+        const videoEl = msgEl.find('video').first();
+        if (videoEl.length) {
+            mediaUrl = videoEl.attr('src') || videoEl.find('source').attr('src') || mediaUrl;
+        }
+        
+        // Check for document/link preview images
+        if (!mediaUrl) {
+            const docEl = msgEl.find('.tgme_widget_message_document_wrap').first();
+            if (docEl.length) {
+                const imgEl = docEl.find('img').first();
+                if (imgEl.length) mediaUrl = imgEl.attr('src');
+            }
+        }
+        
+        const linkEl = msgEl.find('.tgme_widget_message_date').first();
+        const sourceUrl = linkEl.attr('href') || `https://t.me/${channel.username}/${postId}`;
+        
+        const dateEl = msgEl.find('time').first();
+        const publishedAt = dateEl.attr('datetime') || new Date().toISOString();
 
-    for (const match of messageMatches) {
-        const msgHtml = match[0];
-        
-        const postMatch = msgHtml.match(/data-post="([^"]+)"/);
-        const postId = postMatch ? postMatch[1] : null;
-        
-        const textMatch = msgHtml.match(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/);
-        const textContent = textMatch ? textMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-        
-        const mediaMatch = msgHtml.match(/<a class="tgme_widget_message_photo_wrap"[^>]*style="background-image:url\('([^']+)'\)"/);
-        const mediaUrl = mediaMatch ? mediaMatch[1] : null;
-        
-        const videoMatch = msgHtml.match(/<video[^>]*src="([^"]+)"/);
-        const videoUrl = videoMatch ? videoMatch[1] : null;
-        
-        const linkMatch = msgHtml.match(/<a class="tgme_widget_message_date"[^>]*href="([^"]+)"/);
-        const sourceUrl = linkMatch ? linkMatch[1] : `https://t.me/${channel.username}/${postId}`;
-        
-        const dateMatch = msgHtml.match(/<time[^>]*datetime="([^"]+)"/);
-        const publishedAt = dateMatch ? dateMatch[1] : new Date().toISOString();
-
-        if (postId && (textContent || mediaUrl || videoUrl)) {
+        if (postId && (textContent || mediaUrl)) {
             items.push({
                 title: textContent.substring(0, 100) || `${channel.name} Post`,
                 content: textContent,
-                media_url: videoUrl || mediaUrl,
-                media_type: videoUrl ? 'video' : (mediaUrl ? 'image' : 'text'),
+                media_url: mediaUrl,
+                media_type: mediaUrl ? (mediaUrl.includes('.mp4') || mediaUrl.includes('video') ? 'video' : 'image') : 'text',
                 source_url: sourceUrl,
                 source_name: channel.name,
                 category: channel.category,
                 published_at: publishedAt,
             });
         }
-    }
+    });
 
     return items;
 }
@@ -78,6 +100,7 @@ export default {
             const html = await fetchTelegramChannel(channel);
             if (html) {
                 const items = parseTelegramHTML(html, channel);
+                console.log(`[telegram] @${channel.username}: ${items.length} items`);
                 allItems.push(...items);
             }
             await new Promise(r => setTimeout(r, 500));

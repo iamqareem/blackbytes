@@ -1,84 +1,151 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-const FLIPBOARD_MAGAZINES = [
-    { id: 'african-culture', category: 'Culture', name: 'African Culture' },
-    { id: 'african-memes-humor', category: 'Memes', name: 'African Memes & Humor' },
-    { id: 'tech-africa', category: 'Tech', name: 'Tech Africa' },
-    { id: 'afrobeats-music', category: 'Entertainment', name: 'Afrobeats & Music' },
-    { id: 'african-news', category: 'News', name: 'African News' },
-    { id: 'african-sports', category: 'Sports', name: 'African Sports' },
+const NEWS_SOURCES = [
+    {
+        name: 'BBC Africa',
+        url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml',
+        category: 'News',
+    },
+    {
+        name: 'African Arguments',
+        url: 'https://africanarguments.org/feed/',
+        category: 'News',
+    },
+    {
+        name: 'CNN Africa',
+        url: 'http://rss.cnn.com/rss/edition_africa.rss',
+        category: 'News',
+    },
+    {
+        name: 'Al Jazeera Africa',
+        url: 'https://www.aljazeera.com/xml/rss/all.xml',
+        category: 'News',
+    },
+    {
+        name: 'DW Africa',
+        url: 'https://rss.dw.com/rdf/rss-en-afr',
+        category: 'News',
+    },
+    {
+        name: 'France24 Africa',
+        url: 'https://www.france24.com/en/africa/rss',
+        category: 'News',
+    },
+    {
+        name: 'The Guardian Africa',
+        url: 'https://www.theguardian.com/world/africa/rss',
+        category: 'News',
+    },
+    {
+        name: 'Reuters Africa',
+        url: 'https://www.reuters.com/world/africa/rss',
+        category: 'News',
+    },
+    {
+        name: 'VOA Africa',
+        url: 'https://www.voanews.com/api/epiqqkemr',
+        category: 'News',
+    },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
 
-async function fetchFlipboardMagazine(magazine) {
-    const url = `https://flipboard.com/@${magazine.id}`;
+async function fetchNewsSource(source) {
     try {
-        const response = await axios.get(url, {
+        const response = await axios.get(source.url, {
             headers: { 'User-Agent': USER_AGENT },
             timeout: 15000,
         });
         return response.data;
     } catch (err) {
-        console.error(`Flipboard fetch failed for ${magazine.id}:`, err.message);
+        console.error(`News source fetch failed for ${source.name}:`, err.message);
         return null;
     }
 }
 
-function parseFlipboardHTML(html, magazine) {
-    const items = [];
+function extractFirstImage(html) {
+    if (!html) return null;
     const $ = cheerio.load(html);
-    
-    $('article[class*="story"]').each((_, element) => {
-        const articleHtml = $(element);
+    const img = $('img').first();
+    if (img.length) {
+        return img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src') || null;
+    }
+    return null;
+}
+
+function parseRSSFeed(xml, source) {
+    const items = [];
+    const itemMatches = xml.matchAll(/<item>[\s\S]*?<\/item>/g);
+
+    for (const match of itemMatches) {
+        const itemXml = match[0];
         
-        const linkEl = articleHtml.find('a[class*="title"]').first();
-        const sourceUrl = linkEl.attr('href') ? `https://flipboard.com${linkEl.attr('href')}` : null;
+        const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || 
+                          itemXml.match(/<title>([\s\S]*?)<\/title>/);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
         
-        const titleEl = articleHtml.find('h3').first();
-        const title = titleEl.text().trim();
+        const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
+        const sourceUrl = linkMatch ? linkMatch[1].trim() : '';
         
-        const descEl = articleHtml.find('p[class*="excerpt"]').first();
-        const content = descEl.text().trim();
+        let contentHtml = '';
+        const contentEncodedMatch = itemXml.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/);
+        if (contentEncodedMatch) {
+            contentHtml = contentEncodedMatch[1];
+        } else {
+            const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ||
+                             itemXml.match(/<description>([\s\S]*?)<\/description>/);
+            contentHtml = descMatch ? descMatch[1] : '';
+        }
         
-        const imgEl = articleHtml.find('img').first();
-        const mediaUrl = imgEl.attr('src') || imgEl.attr('data-src') || null;
+        let content = contentHtml.replace(/<[^>]+>/g, ' ').trim();
+        content = content.replace(/\[\s*\.\.\.\s*\]/g, '').trim();
         
-        const timeEl = articleHtml.find('time').first();
-        const publishedAt = timeEl.attr('datetime') || new Date().toISOString();
+        const mediaUrl = extractFirstImage(contentHtml);
+        
+        const fallbackMediaMatch = itemXml.match(/<media:content[^>]*url="([^"]+)"/) ||
+                                  itemXml.match(/<media:thumbnail[^>]*url="([^"]+)"/) ||
+                                  itemXml.match(/<enclosure[^>]*url="([^"]+)"/);
+        const finalMediaUrl = mediaUrl || (fallbackMediaMatch ? fallbackMediaMatch[1] : null);
+        
+        const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/) ||
+                            itemXml.match(/<published>(.*?)<\/published>/);
+        const publishedAt = pubDateMatch ? pubDateMatch[1] : new Date().toISOString();
+        
+        const guidMatch = itemXml.match(/<guid[^>]*>(.*?)<\/guid>/);
+        const guid = guidMatch ? guidMatch[1] : sourceUrl;
 
         if (sourceUrl && title) {
             items.push({
                 title,
                 content: content || title,
-                media_url: mediaUrl,
-                media_type: mediaUrl ? 'image' : 'text',
+                media_url: finalMediaUrl,
+                media_type: finalMediaUrl ? (finalMediaUrl.includes('.mp4') || finalMediaUrl.includes('video') ? 'video' : 'image') : 'text',
                 source_url: sourceUrl,
-                source_name: magazine.name,
-                category: magazine.category,
+                source_name: source.name,
+                category: source.category,
                 published_at: publishedAt,
             });
         }
-    });
+    }
 
     return items;
 }
 
 export default {
-    name: 'flipboard',
-    category: 'Culture',
+    name: 'news-rss',
+    category: 'News',
     async fetch() {
         const allItems = [];
-        const magazines = FLIPBOARD_MAGAZINES.slice(0, 4);
 
-        for (const magazine of magazines) {
-            const html = await fetchFlipboardMagazine(magazine);
-            if (html) {
-                const items = parseFlipboardHTML(html, magazine);
+        for (const source of NEWS_SOURCES) {
+            const xml = await fetchNewsSource(source);
+            if (xml) {
+                const items = parseRSSFeed(xml, source);
+                console.log(`[news-rss] ${source.name}: ${items.length} items`);
                 allItems.push(...items);
             }
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 300));
         }
 
         return allItems.slice(0, 20);

@@ -3,23 +3,53 @@ import * as cheerio from 'cheerio';
 
 const RSS_SOURCES = [
     {
-        name: 'OkayAfrica',
-        url: 'https://www.okayafrica.com/feed/',
-        category: 'Culture',
-    },
-    {
         name: 'BellaNaija',
         url: 'https://www.bellanaija.com/feed/',
         category: 'Entertainment',
     },
     {
         name: 'The Citizen (Tanzania)',
-        url: 'https://www.thecitizen.co.tz/service/rss/',
+        url: 'https://www.thecitizen.co.tz/tanzania/rss.xml',
         category: 'News',
     },
     {
-        name: 'Daily Monitor (Uganda)',
-        url: 'https://www.monitor.co.ug/service/rss/',
+        name: 'Africanews',
+        url: 'https://www.africanews.com/feed/rss',
+        category: 'News',
+    },
+    {
+        name: 'TechCabal',
+        url: 'https://techcabal.com/feed/',
+        category: 'Tech',
+    },
+    {
+        name: 'Disrupt Africa',
+        url: 'https://disrupt-africa.com/feed/',
+        category: 'Tech',
+    },
+    {
+        name: 'WeeTracker',
+        url: 'https://weetracker.com/feed/',
+        category: 'Tech',
+    },
+    {
+        name: 'Business Daily Africa',
+        url: 'https://www.businessdailyafrica.com/feed',
+        category: 'News',
+    },
+    {
+        name: 'The East African',
+        url: 'https://www.theeastafrican.co.ke/feed',
+        category: 'News',
+    },
+    {
+        name: 'Daily Nation',
+        url: 'https://nation.africa/kenya/rss',
+        category: 'News',
+    },
+    {
+        name: 'Mail & Guardian',
+        url: 'https://mg.co.za/feed/',
         category: 'News',
     },
 ];
@@ -121,6 +151,7 @@ export default {
             const xml = await fetchRSSFeed(source);
             if (xml) {
                 const items = parseRSSFeed(xml, source);
+                console.log(`[rss-blogs] ${source.name}: ${items.length} items`);
                 allItems.push(...items);
             }
             await new Promise(r => setTimeout(r, 300));
