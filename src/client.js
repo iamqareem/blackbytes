@@ -158,7 +158,14 @@ function getMediaHtml(post) {
     if (media_type === 'shorts') {
         const videoId = source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
         if (videoId) {
-            return `<div class="feed-card-media embed-media" style="aspect-ratio: 9/16;"><iframe src="https://www.youtube.com/embed/${videoId}?shorts=1&autoplay=0&rel=0" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+            // Use standard embed URL with shorts=1 parameter for proper Shorts player
+            return `<div class="feed-card-media embed-media" style="aspect-ratio: 9/16;">
+                <iframe src="https://www.youtube.com/embed/${videoId}?shorts=1&autoplay=0&rel=0&enablejsapi=1" 
+                    class="absolute inset-0 w-full h-full" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen></iframe>
+            </div>`;
         }
     }
     
