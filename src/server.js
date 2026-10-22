@@ -242,6 +242,7 @@ app.post('/api/interact', async (req, res) => {
 app.get('/api/interactions', (req, res) => {
     try {
         const { session_id, post_ids } = req.query;
+        console.log('[interactions] Query:', req.query);
         if (!session_id || !post_ids) {
             return res.status(400).json({ error: 'Missing session_id or post_ids' });
         }
@@ -250,9 +251,11 @@ app.get('/api/interactions', (req, res) => {
         if (ids.length === 0) return res.json({ interactions: {}, reactions: {} });
         
         const idsJson = JSON.stringify(ids);
+        console.log('[interactions] idsJson:', idsJson);
         
         // User's own interactions
         const rows = getSessionInteractions.all(session_id, idsJson);
+        console.log('[interactions] rows:', rows);
         const interactions = {};
         for (const row of rows) {
             if (!interactions[row.post_id]) interactions[row.post_id] = {};
@@ -261,13 +264,16 @@ app.get('/api/interactions', (req, res) => {
         
         // All users' reactions grouped by emoji per post
         const reactionRows = getReactionsForPosts.all(idsJson);
+        console.log('[interactions] reactionRows:', reactionRows);
         const reactions = {};
         for (const row of reactionRows) {
             if (!reactions[row.post_id]) reactions[row.post_id] = [];
             reactions[row.post_id].push({ emoji: row.payload, count: row.count });
         }
         
-        res.json({ interactions, reactions });
+        const result = { interactions, reactions };
+        console.log('[interactions] result:', result);
+        res.json(result);
     } catch (err) {
         console.error('Interactions fetch error:', err);
         res.status(500).json({ error: 'Failed to fetch interactions' });
