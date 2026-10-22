@@ -26,6 +26,12 @@ const insertInteraction = db.prepare(`
     INSERT INTO user_interactions (session_id, post_id, action_type)
     VALUES (?, ?, ?)
 `);
+const deleteInteraction = db.prepare(`
+    DELETE FROM user_interactions WHERE session_id = ? AND post_id = ? AND action_type = ?
+`);
+const checkInteraction = db.prepare(`
+    SELECT id FROM user_interactions WHERE session_id = ? AND post_id = ? AND action_type = ? LIMIT 1
+`);
 const updatePostStats = db.prepare(`
     UPDATE posts SET
         views = views + CASE WHEN ? = 'view' THEN 1 ELSE 0 END,
@@ -34,6 +40,24 @@ const updatePostStats = db.prepare(`
         saves = saves + CASE WHEN ? = 'save' THEN 1 ELSE 0 END,
         engagement_score = views + (likes * 2) + (shares * 3) + (saves * 4)
     WHERE id = ?
+`);
+const decrementPostStats = db.prepare(`
+    UPDATE posts SET
+        likes = MAX(0, likes - CASE WHEN ? = 'like' THEN 1 ELSE 0 END),
+        saves = MAX(0, saves - CASE WHEN ? = 'save' THEN 1 ELSE 0 END),
+        engagement_score = views + (likes * 2) + (shares * 3) + (saves * 4)
+    WHERE id = ?
+`);
+const getSessionInteractions = db.prepare(`
+    SELECT post_id, action_type FROM user_interactions
+    WHERE session_id = ? AND post_id IN (SELECT value FROM json_each(?))
+`);
+const getReactionsForPosts = db.prepare(`
+    SELECT ui.post_id, ui.payload, COUNT(*) as count
+    FROM user_interactions ui
+    WHERE ui.action_type = 'reaction' AND ui.post_id IN (SELECT value FROM json_each(?))
+    GROUP BY ui.post_id, ui.payload
+    ORDER BY count DESC
 `);
 const upsertPreferences = db.prepare(`
     INSERT INTO user_preferences (session_id, favorite_categories, updated_at)
@@ -157,25 +181,96 @@ app.post('/api/interact', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
         
-        if (!['view', 'like', 'share', 'save', 'ad_click', 'ad_impression'].includes(action_type)) {
+        const toggleableActions = ['like', 'save'];
+        const validActions = ['view', 'like', 'share', 'save', 'reaction', 'ad_click', 'ad_impression'];
+        if (!validActions.includes(action_type)) {
             return res.status(400).json({ error: 'Invalid action_type' });
         }
         
+        let toggled = false;
+        let active = true;
+
         if (post_id > 0) {
-            insertInteraction.run(session_id, post_id, action_type);
-            updatePostStats.run(action_type, action_type, action_type, action_type, post_id);
+            if (toggleableActions.includes(action_type)) {
+                // Toggle: check if interaction already exists
+                const existing = checkInteraction.get(session_id, post_id, action_type);
+                if (existing) {
+                    // Un-like / un-save
+                    deleteInteraction.run(session_id, post_id, action_type);
+                    decrementPostStats.run(action_type, action_type, post_id);
+                    toggled = true;
+                    active = false;
+                } else {
+                    insertInteraction.run(session_id, post_id, action_type);
+                    updatePostStats.run(action_type, action_type, action_type, action_type, post_id);
+                }
+            } else if (action_type === 'reaction') {
+                // Store reaction emoji in action_type payload via a separate log
+                // Use the payload field (emoji char) stored as action payload
+                const emoji = payload?.emoji || payload || '❤️';
+                // Only insert if not already reacted with same emoji
+                const existing = db.prepare(
+                    `SELECT id FROM user_interactions WHERE session_id = ? AND post_id = ? AND action_type = 'reaction' AND payload = ? LIMIT 1`
+                ).get(session_id, post_id, emoji);
+                if (!existing) {
+                    db.prepare(
+                        `INSERT INTO user_interactions (session_id, post_id, action_type, payload) VALUES (?, ?, 'reaction', ?)`
+                    ).run(session_id, post_id, emoji);
+                }
+            } else {
+                insertInteraction.run(session_id, post_id, action_type);
+                updatePostStats.run(action_type, action_type, action_type, action_type, post_id);
+            }
         }
         
-        insertAnalytics.run(`interaction_${action_type}`, JSON.stringify(payload || { post_id }), session_id);
+        if (!['reaction', 'ad_click', 'ad_impression'].includes(action_type)) {
+            insertAnalytics.run(`interaction_${action_type}`, JSON.stringify(payload || { post_id }), session_id);
+        }
         
         if (action_type === 'ad_click') {
             insertAnalytics.run('adsense_click', JSON.stringify(payload || { post_id }), session_id);
         }
         
-        res.json({ success: true });
+        res.json({ success: true, toggled, active });
     } catch (err) {
         console.error('Interact error:', err);
         res.status(500).json({ error: 'Failed to log interaction' });
+    }
+});
+
+// Get user's own interaction state for a batch of post IDs
+app.get('/api/interactions', (req, res) => {
+    try {
+        const { session_id, post_ids } = req.query;
+        if (!session_id || !post_ids) {
+            return res.status(400).json({ error: 'Missing session_id or post_ids' });
+        }
+        
+        const ids = post_ids.split(',').map(Number).filter(Boolean);
+        if (ids.length === 0) return res.json({ interactions: {}, reactions: {} });
+        
+        const idsJson = JSON.stringify(ids);
+        
+        // User's own interactions
+        const rows = getSessionInteractions.all(session_id, idsJson);
+        const interactions = {};
+        for (const row of rows) {
+            if (!interactions[row.post_id]) interactions[row.post_id] = {};
+            interactions[row.post_id][row.action_type] = true;
+        }
+        
+        // All users' reactions grouped by emoji per post
+        const reactionRows = getReactionsForPosts.all(idsJson);
+        const reactions = {};
+        for (const row of reactionRows) {
+            if (!reactions[row.post_id]) reactions[row.post_id] = [];
+            reactions[row.post_id].push({ emoji: row.payload, count: row.count });
+        }
+        
+        res.json({ interactions, reactions });
+    } catch (err) {
+        console.error('Interactions fetch error:', err);
+        res.status(500).json({ error: 'Failed to fetch interactions' });
     }
 });
 

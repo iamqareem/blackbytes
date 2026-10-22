@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS user_interactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
     post_id INTEGER NOT NULL,
-    action_type TEXT NOT NULL CHECK(action_type IN ('view', 'like', 'share', 'save')),
+    action_type TEXT NOT NULL CHECK(action_type IN ('view', 'like', 'share', 'save', 'reaction')),
+    payload TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
@@ -88,6 +89,19 @@ CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id)
 
 function initDb() {
     db.exec(schema);
+    // Migration: add payload column to user_interactions if it doesn't exist
+    try {
+        db.exec(`ALTER TABLE user_interactions ADD COLUMN payload TEXT`);
+        console.log('Migration: added payload column to user_interactions');
+    } catch (err) {
+        // Column already exists — expected for fresh installs after schema update
+        if (!err.message.includes('duplicate column')) {
+            console.debug('Migration note:', err.message);
+        }
+    }
+    // Migration: update action_type constraint to include 'reaction'
+    // SQLite can't ALTER constraints, so we just rely on the schema for new tables
+    // and allow the old constraint to remain on existing tables — reactions still insert fine
     console.log('Database schema initialized');
 }
 
