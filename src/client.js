@@ -153,15 +153,14 @@ function createFlashCard(post, index) {
     article.dataset.index = index;
     article.dataset.postId = post.id;
 
-    // Background media
-    const bgHtml = getBackgroundHtml(post);
+    // Image box above the text
+    const mediaBoxHtml = getMediaBoxHtml(post);
 
-    // Reaction pills (populated after interaction state loaded)
+    // Reaction pills (populated after interaction state loads)
     const reactionsHtml = `<div class="feed-card-reactions" id="reactions-${post.id}"></div>`;
 
     article.innerHTML = `
-        ${bgHtml}
-        <div class="feed-card-scrim"></div>
+        ${mediaBoxHtml}
         <div class="feed-card-content">
             <div class="feed-card-source-row">
                 <span class="feed-card-source">${escapeHtml(post.source_name)}</span>
@@ -171,9 +170,13 @@ function createFlashCard(post, index) {
             <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
             <p class="feed-card-summary">${escapeHtml(post.summary)}</p>
             ${reactionsHtml}
-            <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="feed-card-link" aria-label="View source">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                View Source
+            <a href="${escapeHtml(post.source_url)}" target="_blank" rel="noopener noreferrer"
+               class="feed-card-link" aria-label="Read full story from ${escapeHtml(post.source_name)}">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                Read on ${escapeHtml(post.source_name)}
             </a>
         </div>
     `;
@@ -181,34 +184,39 @@ function createFlashCard(post, index) {
     return article;
 }
 
-function getBackgroundHtml(post) {
-    const { media_url, media_type, source_url, title } = post;
+function getMediaBoxHtml(post) {
+    const { media_url, media_type, source_url, title, category } = post;
 
-    // YouTube Shorts — 9:16 iframe
+    // Vertical (Shorts / TikTok) — taller box
+    const isVertical = media_type === 'shorts';
+    const boxClass = `feed-card-img-box${isVertical ? ' is-vertical' : ''}`;
+
+    // YouTube Shorts
     if (media_type === 'shorts' && source_url) {
         const videoId = extractYouTubeId(source_url);
         if (videoId) {
-            return `<iframe
-                class="feed-card-bg-iframe"
-                src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                loading="lazy"
-                title="${escapeHtml(title)}"></iframe>`;
+            return `<div class="${boxClass}">
+                <iframe
+                    src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen loading="lazy"
+                    title="${escapeHtml(title)}"></iframe>
+            </div>`;
         }
     }
 
-    // YouTube embed
-    if (media_type === 'embed' && source_url && (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) {
+    // YouTube embed (landscape)
+    if (media_type === 'embed' && source_url &&
+        (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) {
         const videoId = extractYouTubeId(source_url);
         if (videoId) {
-            return `<iframe
-                class="feed-card-bg-iframe"
-                src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                loading="lazy"
-                title="${escapeHtml(title)}"></iframe>`;
+            return `<div class="feed-card-img-box">
+                <iframe
+                    src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen loading="lazy"
+                    title="${escapeHtml(title)}"></iframe>
+            </div>`;
         }
     }
 
@@ -216,36 +224,38 @@ function getBackgroundHtml(post) {
     if (media_type === 'embed' && source_url && source_url.includes('tiktok.com')) {
         const videoId = source_url.match(/\/video\/(\d+)/)?.[1] || source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
         if (videoId) {
-            return `<iframe
-                class="feed-card-bg-iframe"
-                src="https://www.tiktok.com/embed/${videoId}"
-                allowfullscreen
-                loading="lazy"
-                title="${escapeHtml(title)}"></iframe>`;
+            return `<div class="${boxClass} is-vertical">
+                <iframe
+                    src="https://www.tiktok.com/embed/${videoId}"
+                    allowfullscreen loading="lazy"
+                    title="${escapeHtml(title)}"></iframe>
+            </div>`;
         }
     }
 
-    // Image background
+    // Plain image
     if (media_url) {
-        return `<img
-            class="feed-card-bg"
-            src="${escapeHtml(media_url)}"
-            alt="${escapeHtml(title)}"
-            loading="lazy"
-            decoding="async">`;
+        return `<div class="feed-card-img-box">
+            <img src="${escapeHtml(media_url)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">
+        </div>`;
     }
 
-    // Placeholder gradient
+    // Placeholder box with category gradient
     const gradients = {
-        'Memes': 'linear-gradient(135deg, #1a0533 0%, #0d001a 100%)',
-        'Culture': 'linear-gradient(135deg, #001a33 0%, #00052a 100%)',
-        'Tech': 'linear-gradient(135deg, #001f3f 0%, #000d1a 100%)',
-        'Entertainment': 'linear-gradient(135deg, #1a0a00 0%, #0d0500 100%)',
-        'News': 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
-        'Sports': 'linear-gradient(135deg, #001a00 0%, #000d00 100%)',
+        'Memes':         'linear-gradient(135deg,#1e0a3a,#0d001f)',
+        'Culture':       'linear-gradient(135deg,#001a3a,#00062a)',
+        'Tech':          'linear-gradient(135deg,#00213f,#000f1f)',
+        'Entertainment': 'linear-gradient(135deg,#1f0a00,#100400)',
+        'News':          'linear-gradient(135deg,#111,#1c1c1c)',
+        'Sports':        'linear-gradient(135deg,#001f00,#000f00)',
     };
-    const gradient = gradients[post.category] || gradients['News'];
-    return `<div class="feed-card-placeholder" style="background: ${gradient};"></div>`;
+    const bg = gradients[category] || gradients['News'];
+    return `<div class="feed-card-img-box is-placeholder" style="background:${bg};">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+    </div>`;
 }
 
 function extractYouTubeId(url) {
