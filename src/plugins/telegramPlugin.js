@@ -2,15 +2,37 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 const TELEGRAM_CHANNELS = [
-    // Channels that are known to work and have media
-    { username: 'kenyanhumor', category: 'Memes', name: 'Kenyan Humor' },
-    { username: 'africanmemesdaily', category: 'Memes', name: 'African Memes Daily' },
-    { username: 'naijamemesofficial', category: 'Memes', name: 'Naija Memes' },
-    { username: 'southafricanmemes', category: 'Memes', name: 'South African Memes' },
-    { username: 'ghanamemes', category: 'Memes', name: 'Ghana Memes' },
-    { username: 'africanculturehub', category: 'Culture', name: 'African Culture Hub' },
-    { username: 'africatechnews', category: 'Tech', name: 'Africa Tech News' },
-    { username: 'afrobeatsupdates', category: 'Entertainment', name: 'Afrobeats Updates' },
+    // Top-tier Memes (High engagement, verified working)
+    { username: 'habeshan_memes', category: 'Memes', name: 'Habeshan Memes 🇪🇹' },
+    { username: 'Plantainchipps', category: 'Memes', name: 'Kenyan Memes' },
+    { username: 'ghanamemes', category: 'Memes', name: 'Ghana Memes 🇬🇭' },
+    { username: 'thememetimes', category: 'Memes', name: 'The Meme Times' },
+    { username: 'memeslabxyz', category: 'Memes', name: 'Memes Lab' },
+    { username: 'memecoin_daily', category: 'Memes', name: 'Crypto Meme Foundation' },
+
+    // Culture & Lifestyle
+    { username: 'AfricanArguments', category: 'Culture', name: 'African Arguments' },
+    { username: 'TheConversationAfrica', category: 'Culture', name: 'The Conversation Africa' },
+    { username: 'BBCAfrica', category: 'Culture', name: 'BBC Africa' },
+    { username: 'Africanews', category: 'Culture', name: 'Africanews' },
+
+    // Tech & Innovation
+    { username: 'TechCabal', category: 'Tech', name: 'TechCabal' },
+    { username: 'DisruptAfrica', category: 'Tech', name: 'Disrupt Africa' },
+    { username: 'WeeTracker', category: 'Tech', name: 'WeeTracker' },
+    { username: 'africanews_tech', category: 'Tech', name: 'Africanews Tech' },
+
+    // Entertainment & Music
+    { username: 'AfrobeatsGlobal', category: 'Entertainment', name: 'Afrobeats Global' },
+    { username: 'AfrobeatsUpdates', category: 'Entertainment', name: 'Afrobeats Updates' },
+    { username: 'AfricanMusic', category: 'Entertainment', name: 'African Music' },
+    { username: 'AfricanCultureHub', category: 'Entertainment', name: 'African Culture Hub' },
+
+    // News
+    { username: 'BBCAfrica', category: 'News', name: 'BBC Africa' },
+    { username: 'AlJazeeraAfrica', category: 'News', name: 'Al Jazeera Africa' },
+    { username: 'Africanews', category: 'News', name: 'Africanews' },
+    { username: 'AfricanArguments', category: 'News', name: 'African Arguments' },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
@@ -94,7 +116,8 @@ export default {
     category: 'Memes',
     async fetch() {
         const allItems = [];
-        const channels = TELEGRAM_CHANNELS.slice(0, 4);
+        // Use only the top 6 channels for performance
+        const channels = TELEGRAM_CHANNELS.slice(0, 6);
 
         for (const channel of channels) {
             const html = await fetchTelegramChannel(channel);
