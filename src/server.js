@@ -78,6 +78,7 @@ const insertAnalytics = db.prepare(`
 app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 app.use(compression());
 app.use(cors({
@@ -498,10 +499,10 @@ app.get('/post/:id', (req, res) => {
                 return videoId ? `<iframe src="https://www.tiktok.com/embed/${videoId}" class="w-full aspect-video" frameborder="0" allowfullscreen></iframe>` : '';
             })() : post.media_type === 'embed' && post.source_url.includes('youtube') ? (() => {
                 const videoId = post.source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
-                return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}" class="w-full aspect-video" frameborder="0" allowfullscreen></iframe>` : '';
+                return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1" class="w-full aspect-video" frameborder="0" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` : '';
             })() : post.media_type === 'shorts' ? (() => {
                 const videoId = post.source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
-                return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}?shorts=1&autoplay=0&rel=0&enablejsapi=1" class="w-full" style="aspect-ratio: 9/16;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` : '';
+                return videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1" class="w-full" style="aspect-ratio: 9/16;" frameborder="0" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` : '';
             })() : post.media_type === 'video' ? `<video class="w-full" controls preload="metadata" poster="${post.media_url}"><source src="${post.media_url}" type="video/mp4"></video>` : `<img src="${post.media_url}" alt="${post.title.replace(/"/g, '"')}" class="w-full" loading="lazy">`}
         </div>` : ''}
         

@@ -2,16 +2,11 @@ import axios from 'axios';
 
 // Real YouTube channels with Shorts content (verified channel IDs)
 const YOUTUBE_CHANNELS = [
-    { id: 'UCbmNph6atAoGfqLoCL_duAg', category: 'Entertainment', name: 'Jubilee' },
+    { id: 'UCBJycsmduvYEL83R_U4JriQ', category: 'Tech', name: 'Marques Brownlee' },
+    { id: 'UCdC0An4ZPNr_YiFiYoVbwaw', category: 'Memes', name: 'Daily Dose Of Internet' },
     { id: 'UCX6OQ3DkcsbYNE6H8uQQuVA', category: 'Entertainment', name: 'MrBeast' },
-    { id: 'UC4JX40jDee_tINbkjycV4Sg', category: 'Tech', name: 'MKBHD' },
-    { id: 'UCnUYZLuoy1rq1aVMwx4aTzw', category: 'Culture', name: 'Kurzgesagt' },
     { id: 'UCHnyfMqiRRG1u-2MsSQLbXA', category: 'Entertainment', name: 'Veritasium' },
-    { id: 'UCR1IuLEqb6UEA9zDORR1VWA', category: 'Memes', name: 'Daily Dose Of Internet' },
-    { id: 'UCpB959t8iPrxQWj7G6n0ctQ', category: 'Sports', name: 'Bleacher Report' },
-    { id: 'UCWX3yGbODI3HMCwE8TFrEEg', category: 'Culture', name: 'Vox' },
     { id: 'UC9-y-6csu5WGm29I7JiwpnA', category: 'Tech', name: 'Computerphile' },
-    { id: 'UCBcRF18a7Qf58cCRy5xuWwQ', category: 'Memes', name: 'MetaDave' },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';

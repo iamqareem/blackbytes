@@ -308,78 +308,6 @@
     color: #93C5FD;
   }
 
-  /* ─── INLINE ACTION BUTTONS (below source link) ────────────────── */
-  .feed-card-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-  }
-
-  .action-btn-inline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(20,20,20,0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #fff;
-    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .action-btn-inline:active { transform: scale(0.88); }
-  .action-btn-inline:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.2); }
-
-  .action-btn-inline svg {
-    width: 20px;
-    height: 20px;
-    transition: fill 0.2s, stroke 0.2s, transform 0.2s;
-  }
-
-  /* Like active */
-  .action-btn-inline[data-action="like"].active {
-    background: rgba(255,59,48,0.2);
-    border-color: rgba(255,59,48,0.45);
-  }
-  .action-btn-inline[data-action="like"].active svg {
-    fill: var(--color-like);
-    stroke: var(--color-like);
-    transform: scale(1.15);
-  }
-
-  /* Save active */
-  .action-btn-inline[data-action="save"].active {
-    background: rgba(255,214,10,0.15);
-    border-color: rgba(255,214,10,0.38);
-  }
-  .action-btn-inline[data-action="save"].active svg {
-    fill: var(--color-save);
-    stroke: var(--color-save);
-    transform: scale(1.12);
-  }
-
-  .action-btn-inline .action-btn-count {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.65);
-    min-height: 12px;
-    text-align: center;
-    letter-spacing: -0.01em;
-  }
-
-  .action-btn-inline .action-btn-count.hidden { visibility: hidden; }
-
   /* ─── RIGHT-SIDE ACTION BUTTONS (TikTok style) ────────────── */
   .action-bar {
     position: fixed;
@@ -426,6 +354,14 @@
   .action-btn:active { transform: scale(0.88); }
   .action-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.2); }
 
+  .action-btn,
+  .action-btn-inline {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   .action-btn svg {
     width: 22px;
     height: 22px;
@@ -454,16 +390,64 @@
     transform: scale(1.12);
   }
 
+  /* Share active */
+  .action-btn[data-action="share"].active {
+    background: rgba(48,209,88,0.2);
+    border-color: rgba(48,209,88,0.45);
+  }
+  .action-btn[data-action="share"].active svg {
+    fill: var(--color-share);
+    stroke: var(--color-share);
+    transform: scale(1.15);
+  }
+
   .action-btn-count {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    color: rgba(255,255,255,0.65);
+    color: rgba(255,255,255,0.7);
     min-height: 14px;
     text-align: center;
     letter-spacing: -0.01em;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
   }
 
-  .action-btn-count.hidden { visibility: hidden; }
+  .action-btn-count.hidden { display: none; }
+
+  /* Highlight numbers when corresponding action is active */
+  .action-btn-wrap .action-btn[data-action="like"].active ~ .action-btn-count,
+  .action-btn-count.active-like,
+  .action-btn-inline[data-action="like"].active .action-btn-count {
+    color: var(--color-like);
+    text-shadow: 0 0 10px rgba(255, 59, 48, 0.6);
+    font-weight: 800;
+  }
+
+  .action-btn-wrap .action-btn[data-action="save"].active ~ .action-btn-count,
+  .action-btn-count.active-save,
+  .action-btn-inline[data-action="save"].active .action-btn-count {
+    color: var(--color-save);
+    text-shadow: 0 0 10px rgba(255, 214, 10, 0.6);
+    font-weight: 800;
+  }
+
+  .action-btn-wrap .action-btn[data-action="share"].active ~ .action-btn-count,
+  .action-btn-count.active-share,
+  .action-btn-inline[data-action="share"].active .action-btn-count {
+    color: var(--color-share);
+    text-shadow: 0 0 10px rgba(48, 209, 88, 0.6);
+    font-weight: 800;
+  }
+
+  @keyframes numberPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+
+  .number-pop {
+    display: inline-block;
+    animation: numberPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
 
   /* Emoji trigger */
   .emoji-trigger {

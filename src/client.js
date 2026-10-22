@@ -178,21 +178,6 @@ function createFlashCard(post, index) {
                 </svg>
                 Read on ${escapeHtml(post.source_name)}
             </a>
-            <!-- Inline action buttons -->
-            <div class="feed-card-actions" role="group" aria-label="Post actions">
-                <button class="action-btn-inline" data-action="like" aria-label="Like" title="Like">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span class="action-btn-count hidden" data-count="like">0</span>
-                </button>
-                <button class="action-btn-inline" data-action="save" aria-label="Save" title="Save">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                    <span class="action-btn-count hidden" data-count="save">0</span>
-                </button>
-                <button class="action-btn-inline" data-action="share" aria-label="Share" title="Share">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                    <span class="action-btn-count hidden" data-count="share">0</span>
-                </button>
-            </div>
         </div>
     `;
 
@@ -212,9 +197,10 @@ function getMediaBoxHtml(post) {
         if (videoId) {
             return `<div class="${boxClass}">
                 <iframe
-                    src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+                    src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
                     title="${escapeHtml(title)}"></iframe>
             </div>`;
         }
@@ -229,7 +215,8 @@ function getMediaBoxHtml(post) {
                 <iframe
                     src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
                     title="${escapeHtml(title)}"></iframe>
             </div>`;
         }
@@ -355,28 +342,80 @@ function setActiveCard(index) {
     }
 }
 
+// ─── Active Post Resolver ─────────────────────────────────────────────────────
+function getActivePost() {
+    if (activeIndex >= 0 && activeIndex < cardsData.length) {
+        return cardsData[activeIndex];
+    }
+    const cards = feed.querySelectorAll('.feed-card');
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (rect.top >= -rect.height / 2 && rect.top <= rect.height / 2) {
+            const idx = parseInt(card.dataset.index, 10);
+            if (!isNaN(idx) && cardsData[idx]) {
+                activeIndex = idx;
+                return cardsData[idx];
+            }
+        }
+    }
+    return cardsData[0] || null;
+}
+
 // ─── Action Bar ───────────────────────────────────────────────────────────────
 function updateActionBar(post) {
+    if (!post) return;
     const state = interactionState[post.id] || {};
 
     // Like
     const isLiked = !!state.like;
     actionLikeBtn.classList.toggle('active', isLiked);
-    const totalLikes = post.likes || 0;
-    likeCount.textContent = totalLikes > 0 ? fmtCount(totalLikes) : '';
-    likeCount.classList.toggle('hidden', totalLikes === 0);
+    likeCount.classList.toggle('active-like', isLiked);
+    likeCount.textContent = fmtCount(post.likes || 0);
 
     // Save
     const isSaved = !!state.save;
     actionSaveBtn.classList.toggle('active', isSaved);
-    const totalSaves = post.saves || 0;
-    saveCount.textContent = totalSaves > 0 ? fmtCount(totalSaves) : '';
-    saveCount.classList.toggle('hidden', totalSaves === 0);
+    saveCount.classList.toggle('active-save', isSaved);
+    saveCount.textContent = fmtCount(post.saves || 0);
 
     // Share
-    const totalShares = post.shares || 0;
-    shareCount.textContent = totalShares > 0 ? fmtCount(totalShares) : '';
-    shareCount.classList.toggle('hidden', totalShares === 0);
+    const isShared = !!state.share;
+    actionShareBtn.classList.toggle('active', isShared);
+    shareCount.classList.toggle('active-share', isShared);
+    shareCount.textContent = fmtCount(post.shares || 0);
+
+    // Synchronize inline action buttons on the active card
+    const card = feed.querySelector(`.feed-card[data-post-id="${post.id}"]`);
+    if (card) {
+        const inlineLike = card.querySelector('.action-btn-inline[data-action="like"]');
+        const inlineSave = card.querySelector('.action-btn-inline[data-action="save"]');
+        const inlineShare = card.querySelector('.action-btn-inline[data-action="share"]');
+
+        if (inlineLike) {
+            inlineLike.classList.toggle('active', isLiked);
+            const countEl = inlineLike.querySelector('[data-count="like"]');
+            if (countEl) {
+                countEl.textContent = fmtCount(post.likes || 0);
+                countEl.classList.toggle('active-like', isLiked);
+            }
+        }
+        if (inlineSave) {
+            inlineSave.classList.toggle('active', isSaved);
+            const countEl = inlineSave.querySelector('[data-count="save"]');
+            if (countEl) {
+                countEl.textContent = fmtCount(post.saves || 0);
+                countEl.classList.toggle('active-save', isSaved);
+            }
+        }
+        if (inlineShare) {
+            inlineShare.classList.toggle('active', isShared);
+            const countEl = inlineShare.querySelector('[data-count="share"]');
+            if (countEl) {
+                countEl.textContent = fmtCount(post.shares || 0);
+                countEl.classList.toggle('active-share', isShared);
+            }
+        }
+    }
 
     // Emoji trigger reflects active reaction
     const myReaction = state.reaction;
@@ -411,52 +450,82 @@ function updateReactionPills(postId) {
 
 // ─── Interaction Handler ──────────────────────────────────────────────────────
 async function handleInteraction(postId, action, btn) {
-    if (btn?.classList.contains('_loading')) return;
-    if (btn) btn.classList.add('_loading');
+    if (!postId) return;
+    const post = cardsData.find(p => p.id === postId) || getActivePost();
+    if (!post) return;
 
-    const post = cardsData.find(p => p.id === postId);
-    if (!post) { if (btn) btn.classList.remove('_loading'); return; }
+    if (!interactionState[post.id]) interactionState[post.id] = {};
+    const state = interactionState[post.id];
 
+    // Snapshot current state for rollback
+    const prevLike = state.like;
+    const prevSave = state.save;
+    const prevLikes = post.likes || 0;
+    const prevSaves = post.saves || 0;
+    const prevShares = post.shares || 0;
+
+    // 1. Instant Optimistic Update
+    if (action === 'like') {
+        state.like = !prevLike;
+        post.likes = Math.max(0, prevLikes + (state.like ? 1 : -1));
+
+        actionLikeBtn.querySelector('svg')?.classList.add('heart-beat');
+        likeCount.classList.add('number-pop');
+        if (btn) btn.querySelector('svg')?.classList.add('heart-beat');
+
+        setTimeout(() => {
+            actionLikeBtn.querySelector('svg')?.classList.remove('heart-beat');
+            likeCount.classList.remove('number-pop');
+            if (btn) btn.querySelector('svg')?.classList.remove('heart-beat');
+        }, 400);
+    } else if (action === 'save') {
+        state.save = !prevSave;
+        post.saves = Math.max(0, prevSaves + (state.save ? 1 : -1));
+
+        saveCount.classList.add('number-pop');
+        setTimeout(() => saveCount.classList.remove('number-pop'), 400);
+        showToast(state.save ? '🔖 Saved!' : 'Unsaved');
+    } else if (action === 'share') {
+        state.share = true;
+        post.shares = prevShares + 1;
+
+        shareCount.classList.add('number-pop');
+        setTimeout(() => shareCount.classList.remove('number-pop'), 400);
+    }
+
+    // Reflect new numbers and highlight classes immediately
+    updateActionBar(post);
+
+    // 2. Background Sync
     try {
         const res = await fetch('/api/interact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: sessionId,
-                post_id: postId,
+                post_id: post.id,
                 action_type: action,
-                payload: { post_id: postId },
+                payload: { post_id: post.id },
             }),
         });
 
-        if (res.ok) {
-            const data = await res.json();
-            if (!interactionState[postId]) interactionState[postId] = {};
-
-            if (action === 'like') {
-                const wasLiked = interactionState[postId].like;
-                interactionState[postId].like = !wasLiked;
-                // Update count optimistically
-                post.likes = Math.max(0, (post.likes || 0) + (wasLiked ? -1 : 1));
-                // Heart animation
-                if (!wasLiked) {
-                    actionLikeBtn.querySelector('svg').classList.add('heart-beat');
-                    setTimeout(() => actionLikeBtn.querySelector('svg').classList.remove('heart-beat'), 500);
-                }
-            } else if (action === 'save') {
-                interactionState[postId].save = !interactionState[postId].save;
-                post.saves = Math.max(0, (post.saves || 0) + (interactionState[postId].save ? 1 : -1));
-                showToast(interactionState[postId].save ? '🔖 Saved!' : 'Unsaved');
-            } else if (action === 'share') {
-                post.shares = (post.shares || 0) + 1;
-            }
-
-            updateActionBar(post);
+        if (!res.ok) {
+            throw new Error(`Server returned ${res.status}`);
         }
     } catch (err) {
         console.error('Interaction error:', err);
-    } finally {
-        if (btn) btn.classList.remove('_loading');
+        // Rollback on network failure
+        if (action === 'like') {
+            state.like = prevLike;
+            post.likes = prevLikes;
+        } else if (action === 'save') {
+            state.save = prevSave;
+            post.saves = prevSaves;
+        } else if (action === 'share') {
+            post.shares = prevShares;
+        }
+        updateActionBar(post);
+        showToast('⚠️ Interaction not saved');
     }
 }
 
@@ -489,23 +558,44 @@ async function handleReaction(emoji, postId) {
 }
 
 async function sharePost(postId) {
-    try {
-        const res = await fetch(`/api/share/${postId}/whatsapp`);
-        const data = await res.json();
+    const post = cardsData.find(p => p.id === postId) || getActivePost();
+    if (!post) return;
 
-        if (navigator.share) {
+    // Trigger share action immediately
+    handleInteraction(post.id, 'share', actionShareBtn);
+
+    const shareUrl = `${window.location.origin}/?post=${post.id}`;
+    const shareText = `${post.title}\n\n${post.summary}\n\n${shareUrl}`;
+
+    if (navigator.share) {
+        try {
             await navigator.share({
-                title: 'Blackbytes',
-                text: data.text,
-                url: window.location.origin + '/?post=' + postId,
+                title: post.title || 'Blackbytes',
+                text: post.summary || '',
+                url: shareUrl,
             });
-        } else if (data.web_link) {
-            window.open(data.web_link, '_blank');
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.debug('Web Share fallback:', err.message);
         }
+    }
 
-        await handleInteraction(postId, 'share', actionShareBtn);
-    } catch (err) {
-        if (err.name !== 'AbortError') console.error('Share error:', err);
+    // Fallback: WhatsApp link or clipboard
+    try {
+        const res = await fetch(`/api/share/${post.id}/whatsapp`);
+        const data = await res.json();
+        if (data.web_link) {
+            window.open(data.web_link, '_blank');
+        } else {
+            await navigator.clipboard.writeText(shareUrl);
+            showToast('🔗 Link copied to clipboard!');
+        }
+    } catch (_) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareUrl);
+            showToast('🔗 Link copied to clipboard!');
+        }
     }
 }
 
@@ -538,8 +628,8 @@ function setupEmojiPicker() {
 
     emojiPicker.addEventListener('click', (e) => {
         const btn = e.target.closest('.emoji-btn');
-        if (btn && activeIndex >= 0 && activeIndex < cardsData.length) {
-            const post = cardsData[activeIndex];
+        const post = getActivePost();
+        if (btn && post) {
             handleReaction(btn.dataset.emoji, post.id);
             emojiPicker.classList.remove('open');
             emojiTrigger.setAttribute('aria-expanded', 'false');
@@ -601,23 +691,31 @@ function init() {
     registerServiceWorker();
     fetchFeed();
 
-    // Event delegation for inline action buttons (on feed container)
-    feed.addEventListener('click', (e) => {
-        const btn = e.target.closest('.action-btn-inline');
-        if (!btn) return;
-        
-        const card = btn.closest('.feed-card');
-        if (!card) return;
-        
-        const postId = parseInt(card.dataset.postId, 10);
-        const action = btn.dataset.action;
-        
-        if (action === 'share') {
-            sharePost(postId);
-        } else {
-            handleInteraction(postId, action, btn);
-        }
-    });
+    // Floating action buttons (right bar) - respond to both click and touch
+    const onLike = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const post = getActivePost();
+        if (post) handleInteraction(post.id, 'like', actionLikeBtn);
+    };
+
+    const onSave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const post = getActivePost();
+        if (post) handleInteraction(post.id, 'save', actionSaveBtn);
+    };
+
+    const onShare = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const post = getActivePost();
+        if (post) sharePost(post.id);
+    };
+
+    actionLikeBtn.addEventListener('click', onLike);
+    actionSaveBtn.addEventListener('click', onSave);
+    actionShareBtn.addEventListener('click', onShare);
 
     // Keyboard navigation (accessibility)
     document.addEventListener('keydown', (e) => {
