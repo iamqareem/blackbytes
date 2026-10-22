@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS posts (
     title TEXT NOT NULL,
     summary TEXT NOT NULL,
     media_url TEXT,
-    media_type TEXT CHECK(media_type IN ('video', 'image', 'embed', 'text')) DEFAULT 'text',
+    media_type TEXT CHECK(media_type IN ('video', 'image', 'embed', 'text', 'shorts')) DEFAULT 'text',
     source_url TEXT UNIQUE NOT NULL,
     source_name TEXT NOT NULL,
     category TEXT NOT NULL CHECK(category IN ('Memes', 'Culture', 'Tech', 'Entertainment', 'News', 'Sports')),

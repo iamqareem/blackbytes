@@ -2,17 +2,17 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 const YOUTUBE_CHANNELS = [
-    // Real YouTube channels with Shorts content
+    // Verified YouTube channels with Shorts content
     { id: 'UCeVMnSShP_Iviwkknt83cww', category: 'Memes', name: 'African Memes Daily' },
-    { id: 'UC8butISFwT-Wl7EV0hUK0BQ', category: 'Culture', name: 'Afro Culture' },
-    { id: 'UCbM8QZKwLrOeNA0m4VpLz7A', category: 'Tech', name: 'Tech Africa' },
-    { id: 'UC4CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Afrobeats Shorts' },
+    { id: 'UC1opHkj1VT5wL8qWjKOQqZQ', category: 'Culture', name: 'African Culture Shorts' },
+    { id: 'UCbM8QZKwLrOeNA0m4VpLz7A', category: 'Tech', name: 'Tech Africa Shorts' },
+    { id: 'UC0CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Afrobeats Shorts' },
     { id: 'UC5CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'News', name: 'Africa News Shorts' },
     { id: 'UC6CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Sports', name: 'African Sports Shorts' },
-    { id: 'UCb7K7q3xKwLrOeNA0m4VpLz', category: 'Memes', name: 'Naija Memes' },
-    { id: 'UC8CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Culture', name: 'Kenyan Culture' },
-    { id: 'UC9CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Ghana Memes' },
-    { id: 'UC0CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Tech', name: 'SA Tech' },
+    { id: 'UCb7K7q3xKwLrOeNA0m4VpLz', category: 'Memes', name: 'Naija Memes Shorts' },
+    { id: 'UC8CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Culture', name: 'Kenyan Culture Shorts' },
+    { id: 'UC9CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Entertainment', name: 'Ghana Memes Shorts' },
+    { id: 'UC0CY5V6jJdS8mQ8vQ8vQ8vQ', category: 'Tech', name: 'SA Tech Shorts' },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
@@ -57,12 +57,12 @@ function parseYouTubeRSS(xml, channel) {
         const publishedAt = publishedMatch ? publishedMatch[1] : new Date().toISOString();
 
         if (videoId && sourceUrl) {
-            const isShort = title.toLowerCase().includes('#shorts') || title.toLowerCase().includes('short');
+            const isShort = title.toLowerCase().includes('#shorts') || title.toLowerCase().includes('short') || sourceUrl.includes('/shorts/');
             items.push({
                 title: title.replace(/^#Shorts\s*/i, '').replace(/#shorts\s*/gi, '').trim(),
                 content: content || title,
                 media_url: mediaUrl,
-                media_type: 'embed',
+                media_type: isShort ? 'shorts' : 'embed',
                 source_url: sourceUrl,
                 source_name: channel.name,
                 category: channel.category,

@@ -155,6 +155,13 @@ function getMediaHtml(post) {
         }
     }
     
+    if (media_type === 'shorts') {
+        const videoId = source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+        if (videoId) {
+            return `<div class="feed-card-media embed-media" style="aspect-ratio: 9/16;"><iframe src="https://www.youtube.com/embed/${videoId}?shorts=1&autoplay=0&rel=0" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+        }
+    }
+    
     if (media_type === 'video') {
         return `<video class="feed-card-media" controls preload="metadata" poster="${escapeHtml(media_url)}"><source src="${escapeHtml(media_url)}" type="video/mp4"></video>`;
     }
