@@ -686,6 +686,118 @@
   }
 
   .heart-beat { animation: heartBeat 0.38s ease; }
+
+  /* ─── LIGHT MODE ──────────────────────────────────────────── */
+  html.light {
+    --color-bg: #FFFFFF;
+    --color-surface: #F5F5F5;
+    --color-text-primary: #0B0B0B;
+    --color-text-secondary: rgba(0,0,0,0.68);
+    --color-text-muted: rgba(0,0,0,0.45);
+    --color-brand: #2563EB;
+    --color-brand-hover: #3B82F6;
+    --color-brand-glow: rgba(37, 99, 235, 0.35);
+  }
+
+  html.light,
+  html.light body {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  html.light .logo-text { color: #0B0B0B; }
+
+  html.light #theme-toggle { color: rgba(0,0,0,0.65); }
+  html.light #theme-toggle:hover { background: rgba(0,0,0,0.08); }
+  html.light #theme-toggle svg { width: 20px; height: 20px; }
+
+  html.light .feed-card { background: #FFFFFF; }
+
+  html.light .feed-card-img-box {
+    border-color: rgba(0,0,0,0.1);
+    background: #F1F1F1;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  }
+  html.light .feed-card-img-box.is-placeholder { border-color: rgba(0,0,0,0.08); }
+  html.light .feed-card-img-box.is-placeholder svg { color: #111; }
+
+  html.light .feed-card-source { color: rgba(0,0,0,0.42); }
+  html.light .feed-card-dot { background: rgba(0,0,0,0.22); }
+  html.light .feed-card-category {
+    background: rgba(37,99,235,0.1);
+    color: #2563EB;
+    border-color: rgba(37,99,235,0.28);
+  }
+
+  html.light .feed-card-title { color: #0B0B0B; }
+  html.light .feed-card-summary { color: rgba(0,0,0,0.55); }
+
+  html.light .feed-card-reaction-pill {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.08);
+  }
+  html.light .feed-card-reaction-pill span { color: rgba(0,0,0,0.5); }
+
+  html.light .feed-card-link {
+    color: #2563EB;
+    background: rgba(37,99,235,0.1);
+    border-color: rgba(37,99,235,0.3);
+  }
+  html.light .feed-card-link:hover {
+    background: rgba(37,99,235,0.18);
+    border-color: rgba(37,99,235,0.55);
+    color: #1D4ED8;
+  }
+
+  html.light .action-btn {
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(0,0,0,0.12);
+    color: #111;
+  }
+  html.light .action-btn:hover {
+    background: rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.2);
+  }
+  html.light .action-btn-count { color: rgba(0,0,0,0.65); }
+
+  html.light .emoji-trigger {
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(0,0,0,0.12);
+    color: rgba(0,0,0,0.85);
+  }
+  html.light .emoji-picker {
+    background: rgba(255,255,255,0.97);
+    border-color: rgba(0,0,0,0.1);
+  }
+  html.light .emoji-btn { background: rgba(0,0,0,0.05); }
+  html.light .emoji-btn:hover { background: rgba(0,0,0,0.1); }
+
+  html.light .progress-dot { background: rgba(0,0,0,0.16); }
+  html.light .progress-dot.active { background: rgba(0,0,0,0.7); }
+
+  html.light .feed-loader { background: var(--color-bg); }
+  html.light .spinner { border-color: rgba(0,0,0,0.08); border-top-color: var(--color-brand); }
+
+  html.light .empty-state { background: var(--color-bg); color: rgba(0,0,0,0.45); }
+  html.light .empty-state-title { color: rgba(0,0,0,0.7); }
+
+  html.light .cookie-banner {
+    background: rgba(255,255,255,0.97);
+    border-color: rgba(0,0,0,0.1);
+  }
+  html.light .cookie-text { color: rgba(0,0,0,0.6); }
+  html.light .btn-secondary {
+    background: rgba(0,0,0,0.05);
+    color: rgba(0,0,0,0.7);
+    border-color: rgba(0,0,0,0.12);
+  }
+  html.light .btn-secondary:hover { background: rgba(0,0,0,0.1); }
+
+  html.light .toast {
+    background: rgba(255,255,255,0.97);
+    border-color: rgba(0,0,0,0.1);
+    color: rgba(0,0,0,0.85);
+  }
 }
 
 @layer utilities {

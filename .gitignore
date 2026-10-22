@@ -39,4 +39,5 @@ coverage/
 .esbuild/
 
 # Thunderbird extension package
-*.xpi
+*.xpi*.sqlite-shm
+*.sqlite-wal

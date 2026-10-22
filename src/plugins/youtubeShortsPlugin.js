@@ -1,12 +1,11 @@
 import axios from 'axios';
 
-// Real YouTube channels with Shorts content (verified channel IDs)
+// African comedy & meme YouTube Shorts influencers
 const YOUTUBE_CHANNELS = [
-    { id: 'UCBJycsmduvYEL83R_U4JriQ', category: 'Tech', name: 'Marques Brownlee' },
-    { id: 'UCdC0An4ZPNr_YiFiYoVbwaw', category: 'Memes', name: 'Daily Dose Of Internet' },
-    { id: 'UCX6OQ3DkcsbYNE6H8uQQuVA', category: 'Entertainment', name: 'MrBeast' },
-    { id: 'UCHnyfMqiRRG1u-2MsSQLbXA', category: 'Entertainment', name: 'Veritasium' },
-    { id: 'UC9-y-6csu5WGm29I7JiwpnA', category: 'Tech', name: 'Computerphile' },
+    { id: 'UClHh8adR12eC41xCPPuBmBQ', category: 'Memes', name: 'William Last KRM' },
+    { id: 'UCZKveEdM9fe6mFR6Epth2TA', category: 'Memes', name: 'Oga Sabinus' },
+    { id: 'UCG6orNVuXIICv9_ifH6msIA', category: 'Memes', name: 'Broda Shaggi' },
+    { id: 'UCQmZ9BIYOBSkxL-eqqg5z-g', category: 'Memes', name: 'Mark Angel Comedy' },
 ];
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
