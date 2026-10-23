@@ -54,9 +54,14 @@
                 </svg>
                 <span class="logo-text">Blackbytes</span>
             </a>
-            <button id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            </button>
+            <div style="display:flex; align-items:center; gap:2px;">
+                <button id="prefs-toggle" aria-label="Content preferences" title="Preferences">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                </button>
+                <button id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -114,6 +119,20 @@
 
     <!-- Progress dots -->
     <div class="progress-dots" id="progress-dots" aria-hidden="true"></div>
+
+    <!-- Preferences modal -->
+    <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Content preferences">
+        <div class="prefs-card">
+            <button id="prefs-close" class="prefs-close" aria-label="Close">&times;</button>
+            <h2 class="prefs-title">Your feed, your rules</h2>
+            <p class="prefs-desc">Pick what you want to see — we'll only push content from your picks.</p>
+            <div class="prefs-chips" id="prefs-chips"></div>
+            <div class="prefs-actions">
+                <button id="prefs-all" class="btn btn-secondary">Show everything</button>
+                <button id="prefs-save" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Cookie banner -->
     <div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">

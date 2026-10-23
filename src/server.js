@@ -133,6 +133,7 @@ app.get('/api/feed', async (req, res) => {
         
         const limit = Math.min(parseInt(req.query.limit) || 20, 50);
         const cursor = req.query.cursor || null;
+        const offset = parseInt(cursor, 10) || 0;
         
         const result = await runRanker(sessionId, limit, cursor);
         
@@ -166,7 +167,7 @@ app.get('/api/feed', async (req, res) => {
             ...result,
             posts,
             session_id: sessionId,
-            next_cursor: result.posts.length > 0 ? result.posts[result.posts.length - 1].id : null,
+            next_cursor: (result.posts || []).length === limit ? offset + limit : null,
         });
     } catch (err) {
         console.error('Feed error:', err);
@@ -286,6 +287,7 @@ app.get('/api/preferences/:session_id', (req, res) => {
     res.json({
         session_id: req.params.session_id,
         favorite_categories: row ? JSON.parse(row.favorite_categories) : [],
+        exists: !!row,
     });
 });
 

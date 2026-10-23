@@ -97,11 +97,15 @@ def main():
         
         now = datetime.now()
         scored = calculate_scores(posts, favorite_categories, now)
-        
-        if cursor_id:
-            scored = [p for p in scored if p['id'] > int(cursor_id)]
-        
-        result = scored[:limit]
+
+        # Only push preferred categories when the user has saved preferences
+        if favorite_categories:
+            scored = [p for p in scored if p['category'] in favorite_categories]
+
+        total_available = len(scored)
+
+        offset = int(cursor_id) if cursor_id else 0
+        result = scored[offset:offset + limit]
         
         cursor.execute("""
             SELECT post_id FROM user_interactions 
@@ -117,6 +121,7 @@ def main():
             'session_id': session_id,
             'favorite_categories': favorite_categories,
             'interaction_counts': interaction_counts,
+            'total_available': total_available,
         }))
     
     except Exception as e:

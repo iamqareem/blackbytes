@@ -85,7 +85,7 @@ async function fetchFeed(cursor = null) {
             const startIdx = cardsData.length;
             cardsData.push(...newPosts);
             currentCursor = data.next_cursor;
-            hasMore = data.posts.length === 20;
+            hasMore = data.next_cursor !== null && data.next_cursor !== undefined && newPosts.length > 0;
 
             renderCards(startIdx);
             loader.classList.add('hidden');
@@ -698,6 +698,93 @@ function showToast(message) {
     setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// ─── Preferences ─────────────────────────────────────────────────────────────
+const PREF_CATEGORIES = ['Memes', 'Culture', 'Tech', 'Entertainment', 'News', 'Sports'];
+const prefsToggle = document.getElementById('prefs-toggle');
+const prefsModal = document.getElementById('prefs-modal');
+const prefsChips = document.getElementById('prefs-chips');
+const prefsSave = document.getElementById('prefs-save');
+const prefsAll = document.getElementById('prefs-all');
+const prefsClose = document.getElementById('prefs-close');
+let selectedPrefs = new Set();
+
+function renderPrefsChips() {
+    prefsChips.innerHTML = PREF_CATEGORIES.map(cat =>
+        `<button class="prefs-chip${selectedPrefs.has(cat) ? ' selected' : ''}" data-cat="${cat}" type="button">${cat}</button>`
+    ).join('');
+}
+
+function openPrefsModal() {
+    renderPrefsChips();
+    prefsModal.classList.add('open');
+}
+
+function closePrefsModal() {
+    prefsModal.classList.remove('open');
+}
+
+function resetFeed() {
+    feed.innerHTML = '';
+    cardsData = [];
+    currentCursor = null;
+    hasMore = true;
+    activeIndex = -1;
+    progressDots.innerHTML = '';
+    emptyState.classList.add('hidden');
+    fetchFeed();
+}
+
+async function savePreferences(cats) {
+    try {
+        const res = await fetch(`/api/preferences/${encodeURIComponent(sessionId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ favorite_categories: cats }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        selectedPrefs = new Set(cats);
+        closePrefsModal();
+        resetFeed();
+        showToast(cats.length ? 'Feed updated to your preferences' : 'Showing everything');
+    } catch (err) {
+        console.error('Save preferences failed:', err);
+        showToast('Could not save preferences');
+    }
+}
+
+async function setupPreferences() {
+    prefsChips.addEventListener('click', (e) => {
+        const chip = e.target.closest('.prefs-chip');
+        if (!chip) return;
+        const cat = chip.dataset.cat;
+        if (selectedPrefs.has(cat)) selectedPrefs.delete(cat);
+        else selectedPrefs.add(cat);
+        chip.classList.toggle('selected');
+    });
+
+    prefsSave.addEventListener('click', () => {
+        if (selectedPrefs.size === 0) {
+            showToast('Pick at least one — or choose “Show everything”');
+            return;
+        }
+        savePreferences([...selectedPrefs]);
+    });
+
+    prefsAll.addEventListener('click', () => savePreferences([]));
+    prefsClose.addEventListener('click', closePrefsModal);
+    prefsModal.addEventListener('click', (e) => { if (e.target === prefsModal) closePrefsModal(); });
+    prefsToggle.addEventListener('click', openPrefsModal);
+
+    try {
+        const res = await fetch(`/api/preferences/${encodeURIComponent(sessionId)}`);
+        const data = await res.json();
+        selectedPrefs = new Set(data.favorite_categories || []);
+        if (!data.exists) openPrefsModal();
+    } catch (err) {
+        console.debug('Preferences load failed:', err);
+    }
+}
+
 // ─── Service Worker ───────────────────────────────────────────────────────────
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -712,7 +799,7 @@ function init() {
     setupEmojiPicker();
     setupCookieConsent();
     registerServiceWorker();
-    fetchFeed();
+    setupPreferences().finally(() => fetchFeed());
 
     // Floating action buttons (right bar) - respond to both click and touch
     const onLike = (e) => {

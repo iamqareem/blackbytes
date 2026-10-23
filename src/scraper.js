@@ -10,6 +10,18 @@ const insertPost = db.prepare(`
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
+// Refresh content for live-updating posts (e.g. match scores) without resetting stats
+const upsertPost = db.prepare(`
+    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_url) DO UPDATE SET
+        title = excluded.title,
+        summary = excluded.summary,
+        media_url = excluded.media_url,
+        media_type = excluded.media_type,
+        indexed_at = excluded.indexed_at
+`);
+
 const updatePostEngagement = db.prepare(`
     UPDATE posts SET 
         engagement_score = views + (likes * 2) + (shares * 3) + (saves * 4),
@@ -42,7 +54,8 @@ async function runScraper() {
 
         let saved = 0;
         for (const item of summarized) {
-            const result = insertPost.run(
+            const stmt = item.upsert ? upsertPost : insertPost;
+            const result = stmt.run(
                 item.title,
                 item.summary,
                 item.media_url || null,

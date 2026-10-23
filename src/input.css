@@ -80,7 +80,8 @@
     letter-spacing: -0.03em;
   }
 
-  #theme-toggle {
+  #theme-toggle,
+  #prefs-toggle {
     width: 40px;
     height: 40px;
     display: flex;
@@ -91,7 +92,11 @@
     transition: background 0.15s;
   }
 
-  #theme-toggle:hover { background: rgba(255,255,255,0.1); }
+  #theme-toggle:hover,
+  #prefs-toggle:hover { background: rgba(255,255,255,0.1); }
+
+  #theme-toggle svg,
+  #prefs-toggle svg { width: 20px; height: 20px; }
 
   /* ─── SNAP-SCROLL FEED ────────────────────────────────────── */
   .feed {
@@ -687,6 +692,94 @@
 
   .heart-beat { animation: heartBeat 0.38s ease; }
 
+  /* ─── PREFERENCES MODAL ─────────────────────────────────────── */
+  .prefs-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 350;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .prefs-modal.open { display: flex; }
+
+  .prefs-card {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    background: rgba(17,17,17,0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+    padding: 24px 22px 22px;
+    animation: fadeInUp 0.25s ease;
+  }
+
+  .prefs-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: rgba(255,255,255,0.45);
+    padding: 4px 8px;
+    transition: color 0.15s;
+  }
+
+  .prefs-close:hover { color: #fff; }
+
+  .prefs-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .prefs-desc {
+    font-size: 0.83rem;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+
+  .prefs-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .prefs-chip {
+    padding: 9px 15px;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .prefs-chip:hover { background: rgba(255,255,255,0.1); }
+
+  .prefs-chip.selected {
+    background: rgba(59,130,246,0.18);
+    border-color: rgba(59,130,246,0.55);
+    color: #93C5FD;
+  }
+
+  .prefs-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
   /* ─── LIGHT MODE ──────────────────────────────────────────── */
   html.light {
     --color-bg: #FFFFFF;
@@ -707,9 +800,32 @@
 
   html.light .logo-text { color: #0B0B0B; }
 
-  html.light #theme-toggle { color: rgba(0,0,0,0.65); }
-  html.light #theme-toggle:hover { background: rgba(0,0,0,0.08); }
+  html.light #theme-toggle,
+  html.light #prefs-toggle { color: rgba(0,0,0,0.65); }
+  html.light #theme-toggle:hover,
+  html.light #prefs-toggle:hover { background: rgba(0,0,0,0.08); }
   html.light #theme-toggle svg { width: 20px; height: 20px; }
+
+  html.light .prefs-modal { background: rgba(0,0,0,0.4); }
+  html.light .prefs-card {
+    background: #FFFFFF;
+    border-color: rgba(0,0,0,0.1);
+  }
+  html.light .prefs-close { color: rgba(0,0,0,0.4); }
+  html.light .prefs-close:hover { color: #000; }
+  html.light .prefs-title { color: #0B0B0B; }
+  html.light .prefs-desc { color: rgba(0,0,0,0.6); }
+  html.light .prefs-chip {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.12);
+    color: rgba(0,0,0,0.7);
+  }
+  html.light .prefs-chip:hover { background: rgba(0,0,0,0.08); }
+  html.light .prefs-chip.selected {
+    background: rgba(37,99,235,0.12);
+    border-color: rgba(37,99,235,0.5);
+    color: #2563EB;
+  }
 
   html.light .feed-card { background: #FFFFFF; }
 
