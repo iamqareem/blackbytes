@@ -6,8 +6,14 @@ import { summarizeBatch } from './summarizer.js';
 const db = getDb();
 
 const insertPost = db.prepare(`
-    INSERT OR IGNORE INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
+    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_url) DO UPDATE SET
+        title = excluded.title,
+        summary = excluded.summary,
+        media_url = excluded.media_url,
+        media_type = excluded.media_type,
+        indexed_at = excluded.indexed_at
 `);
 
 // Refresh content for live-updating posts (e.g. match scores) without resetting stats
@@ -42,7 +48,7 @@ async function runScraper() {
 
     try {
         await loadPlugins();
-        const items = await fetchAllPlugins();
+        let items = await fetchAllPlugins();
         
         if (items.length === 0) {
             console.log('[Scraper] No items fetched');
@@ -50,6 +56,12 @@ async function runScraper() {
         }
 
         console.log(`[Scraper] Fetched ${items.length} raw items, summarizing...`);
+        // Global max posts per fetch cycle — keep feed fresh, prevent runaway growth
+        const MAX_POSTS_PER_CYCLE = 40;
+        if (items.length > MAX_POSTS_PER_CYCLE) {
+            console.log(`[Scraper] Capping to ${MAX_POSTS_PER_CYCLE} newest items (was ${items.length})`);
+            items = items.slice(0, MAX_POSTS_PER_CYCLE);
+        }
         const summarized = await summarizeBatch(items);
 
         let saved = 0;
