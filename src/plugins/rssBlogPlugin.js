@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { takeNewestBySource } from '../feedUtils.js';
 
 const RSS_SOURCES = [
     {
@@ -157,6 +158,6 @@ export default {
             await new Promise(r => setTimeout(r, 300));
         }
 
-        return allItems.slice(0, 20);
+        return takeNewestBySource(allItems, 6);
     },
 };

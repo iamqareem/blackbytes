@@ -1,20 +1,44 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { takeNewestBySource } from '../feedUtils.js';
 
 const TELEGRAM_CHANNELS = [
-    // Top 6 fetched — verified working, image-rich (meme gravity first)
+    // Curated — verified working, image-rich, subsaharan spectrum (meme gravity first)
     { username: 'habeshan_memes', category: 'Memes', name: 'Habeshan Memes 🇪🇹' },
     { username: 'Plantainchipps', category: 'Memes', name: 'Kenyan Memes' },
     { username: 'ghanamemes', category: 'Memes', name: 'Ghana Memes 🇬🇭' },
     { username: 'thememetimes', category: 'Memes', name: 'The Meme Times' },
-    { username: 'naijamemes', category: 'Memes', name: 'Naija Memes' },
     { username: 'BBCAfrica', category: 'Culture', name: 'BBC Africa' },
 
-    // Backup channels (not fetched by default — promote to top 6 after verifying)
+    // Backup channels (not fetched by default — promote to top after verifying)
     { username: 'TechCabal', category: 'Tech', name: 'TechCabal' },
     { username: 'DisruptAfrica', category: 'Tech', name: 'Disrupt Africa' },
     { username: 'AlJazeeraAfrica', category: 'News', name: 'Al Jazeera Africa' },
 ];
+
+// Promos, crypto spam, engagement bait — blocked on meme channels
+const AD_PATTERNS = [
+    /\b(airdrop|whitelist|mint(ing)?|launch\s*app|nft|pump|trading\s+signals?|crypto|blockchain)\b/i,
+    /\b(giveaway|free\s+(money|crypto|airdrop)|earn\s+\$|win\s+\$|\bprize\b)\b/i,
+    /\b(dm|message)\s+(us|me)\s+(for|to)\s+(promo|advert|sponsor|paid|booking|collab)/i,
+    /\b(advertisement|sponsored|paid\s+partnership|promoted\s+post)\b/i,
+    /\b(click|tap)\s+(the\s+)?(link|below|here)\s*(now|today)?\b/i,
+    /\blink\s+in\s+bio\b/i,
+    /\b(use|enter|apply)\s+(code|promo|coupon)\b/i,
+    /\b(discount|coupon|promo\s+code|voucher|%[\s-]?off)\b/i,
+    /t\.me\/(joinchat|\+)/i,
+    /\b(subscribe|follow|join)\s+(@\w+|our|this|the)\s*(channel|group|chat|bot|page)/i,
+    /\bturn\s+on\s+(post\s+)?notifications\b/i,
+    /\b(tag|mention)\s+\d*\s*(a\s+)?friend/i,
+];
+
+// News channels legitimately end headlines with "click the link" — skip ad filter for them
+const TRUSTED_NEWS = new Set(['BBC Africa']);
+
+function isAd(text, sourceName) {
+    if (TRUSTED_NEWS.has(sourceName)) return false;
+    return AD_PATTERNS.some(re => re.test(text));
+}
 
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
 
@@ -76,6 +100,10 @@ function parseTelegramHTML(html, channel) {
         const publishedAt = dateEl.attr('datetime') || new Date().toISOString();
 
         if (postId && (textContent || mediaUrl)) {
+            // Text-only posts need real substance; media posts kept unless they're ads
+            if (!mediaUrl && textContent.replace(/\s+/g, ' ').trim().length < 30) return;
+            if (isAd(textContent, channel.name)) return;
+
             items.push({
                 title: textContent.substring(0, 100) || `${channel.name} Post`,
                 content: textContent,
@@ -103,13 +131,13 @@ export default {
         for (const channel of channels) {
             const html = await fetchTelegramChannel(channel);
             if (html) {
-                const items = parseTelegramHTML(html, channel).slice(-8);
+                const items = parseTelegramHTML(html, channel).slice(-6);
                 console.log(`[telegram] @${channel.username}: ${items.length} items`);
                 allItems.push(...items);
             }
             await new Promise(r => setTimeout(r, 500));
         }
 
-        return allItems.slice(0, 48);
+        return takeNewestBySource(allItems, 6);
     },
 };

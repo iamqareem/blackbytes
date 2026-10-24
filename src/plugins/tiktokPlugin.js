@@ -3,17 +3,24 @@ import { promisify } from 'util';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+import { takeNewestBySource } from '../feedUtils.js';
 
 const execFileAsync = promisify(execFile);
 
-// African TikTok creators — verified extractable via yt-dlp (2026-10)
+// East African TikTok creators — verified extractable via yt-dlp (2026-10).
+// Round 1 of a rotating subsaharan roster (this shot: Kenya, Tanzania, Uganda, Rwanda).
 const TIKTOK_CHANNELS = [
-    { username: 'brodashaggi', category: 'Memes', name: 'Broda Shaggi' },
-    { username: 'markangelcomedy', category: 'Memes', name: 'Mark Angel Comedy' },
-    { username: 'wode_maya', category: 'Culture', name: 'Wode Maya' },
+    { username: 'mulamwah', category: 'Memes', name: 'Mulamwah 🇰🇪' },
+    { username: 'terencecreative', category: 'Memes', name: 'Terence Creative 🇰🇪' },
+    { username: 'diamondplatnumz', category: 'Culture', name: 'Diamond Platnumz 🇹🇿' },
+    { username: 'officialzuchu', category: 'Entertainment', name: 'Zuchu 🇹🇿' },
+    { username: 'tengetengeofficial', category: 'Memes', name: 'Tengetenge 🇺🇬' },
+    { username: 'ghettokids_tfug256', category: 'Culture', name: 'Triplets Ghetto Kids 🇺🇬' },
+    { username: 'general_benda', category: 'Memes', name: 'General Benda 🇷🇼' },
+    { username: 'kilipaul', category: 'Culture', name: 'Kili Paul 🇹🇿' },
 ];
 
-const PER_CHANNEL = 5;
+const PER_CHANNEL = 6;
 const MAX_DURATION = 300;
 
 function resolveYtDlp() {
@@ -88,6 +95,6 @@ export default {
             }
         }
 
-        return allItems.slice(0, 15);
+        return takeNewestBySource(allItems, 6);
     },
 };

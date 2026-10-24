@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { takeNewestBySource } from '../feedUtils.js';
 
 // Big European clubs — curated focus (PL elite + European giants)
 const BIG_CLUB_RE = /(manchester\s+united|man\s+united|manchester\s+city|man\s+city|liverpool|arsenal|chelsea|tottenham|spurs|newcastle|aston\s+villa|west\s+ham|everton|leicester|leeds|barcelona|real\s+madrid|atletico|bayern|dortmund|juventus|ac\s+milan|inter\s+milan|psg|paris\s+saint)/i;
@@ -14,8 +15,8 @@ const FOOTBALL_SOURCES = [
 const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard';
 const ESPN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36';
 const PL_LOGO = 'https://a.espncdn.com/i/leaguelogos/soccer/500/23.png';
-// -8..-1 covers last weekend's results from any weekday; 0..+3 upcoming fixtures
-const MATCH_DAY_OFFSETS = [-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3];
+// -2..-1 recent results; 0..+3 upcoming fixtures
+const MATCH_DAY_OFFSETS = [-2, -1, 0, 1, 2, 3];
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
 
 async function fetchXml(url) {
@@ -95,7 +96,7 @@ async function fetchClubGossip() {
 
     const all = [];
     for (const r of results) if (r.status === 'fulfilled') all.push(...r.value);
-    return all.slice(0, 30);
+    return takeNewestBySource(all, 6);
 }
 
 async function fetchMatchUpdates() {
@@ -174,7 +175,7 @@ async function fetchMatchUpdates() {
     }
 
     console.log(`[sports] ESPN match updates: ${items.length} items`);
-    return items.slice(0, 25);
+    return items;
 }
 
 export default {
@@ -192,6 +193,7 @@ export default {
         if (matches.status === 'fulfilled') allItems.push(...matches.value);
         else console.error('[sports] matches failed:', matches.reason?.message);
 
-        return allItems.slice(0, 55);
+        // Gossip capped to 6 newest; match updates pass through full (upsert lifecycle refresh)
+        return [...allItems];
     },
 };

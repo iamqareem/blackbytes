@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { takeNewestBySource } from '../feedUtils.js';
 
 // African comedy & meme YouTube Shorts influencers
 const YOUTUBE_CHANNELS = [
@@ -127,6 +128,6 @@ export default {
         }
 
         console.log(`[youtube-shorts] Total items fetched: ${allItems.length}`);
-        return allItems.slice(0, 25);
+        return takeNewestBySource(allItems, 6);
     },
 };
