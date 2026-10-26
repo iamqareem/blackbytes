@@ -6,26 +6,28 @@ import { summarizeBatch } from './summarizer.js';
 const db = getDb();
 
 const insertPost = db.prepare(`
-    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(source_url) DO UPDATE SET
         title = excluded.title,
         summary = excluded.summary,
         media_url = excluded.media_url,
         media_type = excluded.media_type,
-        indexed_at = excluded.indexed_at
+        indexed_at = excluded.indexed_at,
+        media_caption = excluded.media_caption
 `);
 
 // Refresh content for live-updating posts (e.g. match scores) without resetting stats
 const upsertPost = db.prepare(`
-    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(source_url) DO UPDATE SET
         title = excluded.title,
         summary = excluded.summary,
         media_url = excluded.media_url,
         media_type = excluded.media_type,
-        indexed_at = excluded.indexed_at
+        indexed_at = excluded.indexed_at,
+        media_caption = excluded.media_caption
 `);
 
 const updatePostEngagement = db.prepare(`
@@ -67,7 +69,7 @@ async function runScraper() {
         let saved = 0;
         for (const item of summarized) {
             const stmt = item.upsert ? upsertPost : insertPost;
-            const result = stmt.run(
+const result = stmt.run(
                 item.title,
                 item.summary,
                 item.media_url || null,
@@ -76,7 +78,8 @@ async function runScraper() {
                 item.source_name,
                 item.category,
                 item.published_at || new Date().toISOString(),
-                new Date().toISOString()
+                new Date().toISOString(),
+                item.mediaCaption
             );
             if (result.changes > 0) saved++;
         }
