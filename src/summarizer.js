@@ -1,15 +1,19 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const SUMMARIZER_HF_TOKEN = process.env.SUMMARIZER_HF_TOKEN;
+const SUMMARIZER_MODEL = process.env.SUMMARIZER_MODEL || 'facebook/bart-large-cnn';
 const MAX_WORDS = parseInt(process.env.SUMMARY_MAX_WORDS) || 60;
 const MAX_CHARS = MAX_WORDS * 6;
 
 let genAI = null;
 let model = null;
+let hfEnabled = false;
 
+// ------- Initialise Gemini (kept for backward compat) -------
 function initGemini() {
     if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
-        console.warn('GEMINI_API_KEY not configured - using fallback truncation');
+        console.warn('GEMINI_API_KEY not configured - will use HF or fallback');
         return false;
     }
     try {
@@ -22,14 +26,28 @@ function initGemini() {
     }
 }
 
-const hasGemini = initGemini();
+// ------- Initialise Hugging Face ----------
+function initHf() {
+    if (!SUMMARIZER_HF_TOKEN) {
+        console.info('SUMMARIZER_HF_TOKEN not set - using truncation fallback');
+        return;
+    }
+    // Token present — mark summarizer as HF-enabled
+    hfEnabled = true;
+    console.info(`Hugging Face summarizer enabled (model: ${SUMMARIZER_MODEL})`);
+}
 
+initGemini();
+initHf();
+
+// ------- Helper: truncate to max words -------
 function truncateToWords(text, maxWords) {
     const words = text.trim().split(/\s+/);
     if (words.length <= maxWords) return text.trim();
     return words.slice(0, maxWords).join(' ') + '…';
 }
 
+// ------- Helper: clean text of URLs, handles, tags -------
 function cleanText(text) {
     return text
         .replace(/https?:\/\/\S+/g, '')
@@ -40,95 +58,74 @@ function cleanText(text) {
 }
 
 /**
- * Summarize a social media post, with optional Gemini vision to describe
- * the main visual element when no media_url is available.
+ * Summarize a social media post using Gemini, Hugging Face, or truncation.
  * 
  * @param {string} text - post content/text
  * @param {string} title - post title
- * @param {string|null} mediaUrl - optional direct media URL (image/video)
- * @param {boolean} useVision - whether to attempt Gemini vision description
+ * @param {boolean} useHf - whether to attempt HF summarization
  * @returns {{summary: string, mediaCaption?: string}} - text summary + optional visual caption
  */
-export async function summarize(text, title = '', mediaUrl = null, useVision = true) {
+export async function summarize(text, title = '', useHf = true) {
     const cleaned = cleanText(text);
-    
-    // Always produce a text summary first
-    let summary = '';
-    if (!cleaned || cleaned.length < 50) {
-        summary = truncateToWords(cleaned || title, MAX_WORDS);
-    } else if (!hasGemini || !model) {
-        summary = truncateToWords(cleaned, MAX_WORDS);
-    } else {
+
+    // --- Try Hugging Face Inference API ---
+    if (useHf && hfEnabled) {
         try {
-            const prompt = `Summarize this social media post in exactly ${MAX_WORDS} words or fewer. Be punchy, conversational, and capture the essence. No hashtags, no handles, no URLs. Just the story.
-
-Title: "${title}"
-Content: "${cleaned}"
-
-Summary (<${MAX_WORDS} words):`;
-            const result = await model.generateContent(prompt);
-            const summaryText = result.response.text().trim();
-            const wordCount = summaryText.split(/\s+/).length;
-            if (wordCount > MAX_WORDS * 1.2) {
-                summary = truncateToWords(summaryText, MAX_WORDS);
+            const response = await fetch(
+                `https://api-inference.huggingface.co/models/${SUMMARIZER_MODEL}`,
+                {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${SUMMARIZER_HF_TOKEN}` },
+                    body: JSON.stringify({ inputs: cleaned || title })
+                }
+            );
+            if (!response.ok) {
+                throw new Error(`HF API ${response.status}`);
+            }
+            const result = await response.json();
+            // HF summarization models return { summary_text: "..." }
+            let summary;
+            if (Array.isArray(result)) {
+                summary = result[0]?.summary_text || result[0] || '';
             } else {
-                summary = summaryText;
+                summary = result?.summary_text || result || '';
             }
+            if (!summary || summary.length < 5) {
+                throw new Error('empty summary');
+            }
+            // Trim to MAX_WORDS if needed
+            const words = summary.trim().split(/\s+/);
+            summary = words.length > MAX_WORDS ? words.slice(0, MAX_WORDS).join(' ') + '…' : summary;
+            return { summary, mediaCaption: null };
         } catch (err) {
-            console.error('Gemini summarization failed:', err.message);
-            summary = truncateToWords(cleaned, MAX_WORDS);
+            console.error('Hugging Face summarization failed:', err.message);
+            // fall through to truncation
         }
     }
 
-    // Attempt Gemini vision to describe the main visual element
-    let mediaCaption = null;
-    if (useVision && model) {
-        try {
-            const visionPrompt = mediaUrl
-                ? `Based on this title and text, describe the main visual element in one sentence. Output only the sentence, no other text.
-
-Title: "${title}"
-Content: "${cleaned}"`
-                : `Describe a suitable illustrative image for this social media post in one sentence. Output only the description.
-
-Title: "${title}"
-Content: "${cleaned}"`;
-
-            const visionResult = await model.generateContent(visionPrompt);
-            const visionText = visionResult.response.text().trim();
-            // Validate it's a single sentence-ish description
-            if (visionText && visionText.length > 5 && visionText.length < 200) {
-                mediaCaption = visionText;
-            }
-        } catch (err) {
-            console.error('Gemini vision failed:', err.message);
-            // Don't fall through — mediaCaption stays null
-        }
+    // --- Fallback: truncation (original behavior) ---
+    if (!cleaned || cleaned.length < 50) {
+        return { summary: truncateToWords(cleaned || title, MAX_WORDS), mediaCaption: null };
     }
-
-    return { summary, mediaCaption };
+    return { summary: truncateToWords(cleaned, MAX_WORDS), mediaCaption: null };
 }
 
 /**
- * Summarize a batch of items, attaching both text summary and optional media caption.
+ * Summarize a batch of items, attaching summaries.
  * 
  * @param {Array} items - each item: { title, content, media_url, media_type, source_url, source_name, category, published_at }
- * @param {boolean} useVision - whether to attempt Gemini vision descriptions
- * @returns {Array} items enriched with { summary, mediaCaption }
+ * @param {boolean} useHf - whether to attempt HF summarization
+ * @returns {Array} items enriched with { summary }
  */
-export async function summarizeBatch(items, useVision = true) {
+export async function summarizeBatch(items, useHf = true) {
     const results = [];
     for (const item of items) {
-        const { summary, mediaCaption } = await summarize(
-            item.content || item.title,
-            item.title,
-            item.media_url,
-            useVision
-        );
-        results.push({ ...item, summary, mediaCaption });
+        const { summary } = await summarize(item.content || item.title, item.title, useHf);
+        results.push({ ...item, summary });
         await new Promise(r => setTimeout(r, 100));
     }
     return results;
 }
 
-export { hasGemini, MAX_WORDS };
+// Export utilities
+export { hfEnabled, MAX_WORDS };
