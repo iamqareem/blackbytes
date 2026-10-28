@@ -104,9 +104,11 @@ export async function summarize(text, title = '', useAi = true) {
             lastCallAt = Date.now();
             callsToday++;
 
+            // 20s hard timeout — undici's default is 300s, which stalls the scrape silently
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(20000),
                 body: JSON.stringify({
                     model: MODEL,
                     messages: [
@@ -121,6 +123,7 @@ export async function summarize(text, title = '', useAi = true) {
             if (response.status === 402 && attempt === 0) {
                 // Rate limited — pollinations asks for a 30s wait
                 callsToday--; // don't count the rejected call
+                console.log('[summarizer] rate limited (402), waiting 30s before retry...');
                 await new Promise(r => setTimeout(r, RATE_LIMIT_WAIT_MS));
                 continue;
             }

@@ -130,7 +130,7 @@ async function runScraper() {
         const existingStmt = db.prepare('SELECT summary FROM posts WHERE source_url = ?');
         const summarized = [];
         let aiCount = 0;
-        for (const item of items) {
+        for (const [i, item] of items.entries()) {
             if (VIDEO_TYPES.has(item.media_type)) {
                 summarized.push({ ...item, summary: '' });
                 continue;
@@ -142,6 +142,7 @@ async function runScraper() {
                 const { summary } = await summarize(item.content || item.title, item.title, true);
                 summarized.push({ ...item, summary });
                 aiCount++;
+                console.log(`[Scraper] summarized ${i + 1}/${items.length} (${aiCount} AI calls) — ${item.source_name}: ${item.title.slice(0, 40)}`);
             }
         }
         console.log(`[Scraper] AI summaries generated: ${aiCount}/${items.length} (rest reused from DB)`);
