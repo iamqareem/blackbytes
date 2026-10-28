@@ -44,3 +44,7 @@ coverage/
 # SQLite sidecars
 *.sqlite-shm
 *.sqlite-wal
+
+# Python
+__pycache__/
+*.pyc
