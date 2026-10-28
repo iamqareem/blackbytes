@@ -1,10 +1,57 @@
 import 'dotenv/config';
 import cron from 'node-cron';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { getDb, initDb } from './db.js';
 import { loadPlugins, fetchAllPlugins } from './pluginManager.js';
 import { summarize } from './summarizer.js';
 
 const db = getDb();
+
+const OG_USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
+
+// Fetch og:image (or first <img>) from an article page for posts missing media
+async function fetchOgImage(pageUrl) {
+    try {
+        const { data: html } = await axios.get(pageUrl, {
+            headers: { 'User-Agent': OG_USER_AGENT },
+            timeout: 10000,
+            maxContentLength: 2 * 1024 * 1024,
+        });
+        const $ = cheerio.load(html);
+        const og = $('meta[property="og:image"]').attr('content')
+            || $('meta[name="twitter:image"]').attr('content')
+            || $('link[rel="image_src"]').attr('href');
+        if (og) return new URL(og, pageUrl).href;
+        const img = $('article img').first().attr('src')
+            || $('main img').first().attr('src')
+            || $('img').first().attr('src');
+        if (img && !img.startsWith('data:')) return new URL(img, pageUrl).href;
+    } catch {
+        // page fetch failed — leave imageless
+    }
+    return null;
+}
+
+// Backfill images for items without media_url (sequential, small delay)
+async function backfillImages(items) {
+    const need = items.filter(it => !it.media_url && it.media_type !== 'shorts'
+        && it.media_type !== 'embed' && it.source_url && /^https?:\/\//.test(it.source_url));
+    if (need.length === 0) return 0;
+
+    let found = 0;
+    for (const item of need) {
+        const img = await fetchOgImage(item.source_url);
+        if (img) {
+            item.media_url = img;
+            item.media_type = 'image';
+            found++;
+        }
+        await new Promise(r => setTimeout(r, 250));
+    }
+    console.log(`[og-image] backfilled ${found}/${need.length} images`);
+    return found;
+}
 
 const insertPost = db.prepare(`
     INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
@@ -65,6 +112,8 @@ async function runScraper() {
             console.log(`[Scraper] Capping to ${MAX_POSTS_PER_CYCLE} newest items (was ${items.length})`);
             items = items.slice(0, MAX_POSTS_PER_CYCLE);
         }
+        // Fill missing images from article pages (og:image)
+        await backfillImages(items);
         // Spend AI calls only on genuinely new posts; reuse existing summaries on upserts
         const existingStmt = db.prepare('SELECT summary FROM posts WHERE source_url = ?');
         const summarized = [];
