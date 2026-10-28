@@ -794,9 +794,30 @@ function registerServiceWorker() {
     }
 }
 
+// ─── HUD Tuck (TikTok-style) ──────────────────────────────────────────────────
+// Action pill + emoji trigger hide while swiping, reappear on tap.
+function setupHudTuck() {
+    const setTucked = (tucked) => document.body.classList.toggle('hud-tucked', tucked);
+
+    // Swiping tucks the HUD away
+    feed.addEventListener('scroll', () => {
+        setTucked(true);
+        // Swipe also dismisses an open emoji picker
+        emojiPicker.classList.remove('open');
+        emojiTrigger.setAttribute('aria-expanded', 'false');
+    }, { passive: true });
+
+    // Tapping the card area toggles the HUD back (links/buttons keep their own behavior)
+    feed.addEventListener('click', (e) => {
+        if (e.target.closest('a, button')) return;
+        setTucked(!document.body.classList.contains('hud-tucked'));
+    });
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
     setupEmojiPicker();
+    setupHudTuck();
     setupCookieConsent();
     registerServiceWorker();
     setupPreferences().finally(() => fetchFeed());
