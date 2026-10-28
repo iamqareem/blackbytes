@@ -34,8 +34,7 @@ async function fetchOgImage(pageUrl) {
 }
 
 // Backfill images for items without media_url (sequential, small delay)
-async function backfillImages(items) {
-    const need = items.filter(it => !it.media_url && it.media_type !== 'shorts'
+async function backfillImages(items) {    const need = items.filter(it => !it.media_url && it.media_type !== 'shorts'
         && it.media_type !== 'embed' && it.source_url && /^https?:\/\//.test(it.source_url));
     if (need.length === 0) return 0;
 
@@ -150,12 +149,35 @@ const result = stmt.run(
 
         const duration = Date.now() - startTime;
         console.log(`[Scraper] Completed: ${saved}/${items.length} new posts saved in ${duration}ms`);
-        
+
         return { fetched: items.length, saved, duration };
     } catch (err) {
         console.error('[Scraper] Error:', err.message);
         throw err;
     }
+}
+
+// One-off maintenance: fill media_url for existing posts missing images
+export async function backfillExistingImages({ limit = 200 } = {}) {
+    const rows = db.prepare(`
+        SELECT id, source_url FROM posts
+        WHERE (media_url IS NULL OR media_url = '')
+          AND source_url LIKE 'http%'
+          AND media_type NOT IN ('shorts', 'embed')
+        ORDER BY indexed_at DESC LIMIT ?
+    `).all(limit);
+
+    let found = 0;
+    for (const row of rows) {
+        const img = await fetchOgImage(row.source_url);
+        if (img) {
+            db.prepare("UPDATE posts SET media_url = ?, media_type = 'image' WHERE id = ?").run(img, row.id);
+            found++;
+        }
+        await new Promise(r => setTimeout(r, 250));
+    }
+    console.log(`[backfill] ${found}/${rows.length} images restored`);
+    return { checked: rows.length, found };
 }
 
 let scheduledTask = null;
@@ -197,13 +219,17 @@ export { runScraper };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     initDb();
-    runScraper()
+    const mode = process.argv[2];
+    const task = mode === '--backfill-images'
+        ? backfillExistingImages({ limit: parseInt(process.argv[3]) || 200 })
+        : runScraper();
+    task
         .then(result => {
-            console.log('Manual scrape result:', result);
+            console.log(mode === '--backfill-images' ? 'Backfill result:' : 'Manual scrape result:', result);
             process.exit(0);
         })
         .catch(err => {
-            console.error('Manual scrape failed:', err);
+            console.error('Failed:', err);
             process.exit(1);
         });
 }
