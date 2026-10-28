@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cron from 'node-cron';
 import { getDb, initDb } from './db.js';
 import { loadPlugins, fetchAllPlugins } from './pluginManager.js';
