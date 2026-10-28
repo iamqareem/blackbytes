@@ -79,22 +79,23 @@ export default {
             return [];
         }
 
-        const results = await Promise.allSettled(
-            TIKTOK_CHANNELS.map(channel => fetchChannel(channel, bin))
-        );
-
         const allItems = [];
-        for (let i = 0; i < results.length; i++) {
-            const r = results[i];
-            const channel = TIKTOK_CHANNELS[i];
-            if (r.status === 'fulfilled') {
-                console.log(`[tiktok] @${channel.username}: ${r.value.length} items`);
-                allItems.push(...r.value);
-            } else {
-                console.error(`[tiktok] @${channel.username} failed:`, r.reason?.message || r.reason);
+        let successCount = 0;
+        // Sequential fetches with delays to avoid TikTok WAF rate-limiting
+        for (const channel of TIKTOK_CHANNELS) {
+            try {
+                const items = await fetchChannel(channel, bin);
+                console.log(`[tiktok] @${channel.username}: ${items.length} items`);
+                allItems.push(...items);
+                successCount++;
+            } catch (err) {
+                console.error(`[tiktok] @${channel.username} failed:`, err.message);
             }
+            // Delay between channels to avoid rate-limit
+            await new Promise(r => setTimeout(r, 1500));
         }
 
+        console.log(`[tiktok] ${successCount}/${TIKTOK_CHANNELS.length} channels succeeded`);
         return takeNewestBySource(allItems, 6);
     },
 };

@@ -9,23 +9,8 @@ const NEWS_SOURCES = [
         category: 'News',
     },
     {
-        name: 'African Arguments',
-        url: 'https://africanarguments.org/feed/',
-        category: 'News',
-    },
-    {
-        name: 'CNN Africa',
-        url: 'http://rss.cnn.com/rss/edition_africa.rss',
-        category: 'News',
-    },
-    {
         name: 'Al Jazeera Africa',
         url: 'https://www.aljazeera.com/xml/rss/all.xml',
-        category: 'News',
-    },
-    {
-        name: 'DW Africa',
-        url: 'https://rss.dw.com/rdf/rss-en-afr',
         category: 'News',
     },
     {
@@ -36,16 +21,6 @@ const NEWS_SOURCES = [
     {
         name: 'The Guardian Africa',
         url: 'https://www.theguardian.com/world/africa/rss',
-        category: 'News',
-    },
-    {
-        name: 'Reuters Africa',
-        url: 'https://www.reuters.com/world/africa/rss',
-        category: 'News',
-    },
-    {
-        name: 'VOA Africa',
-        url: 'https://www.voanews.com/api/epiqqkemr',
         category: 'News',
     },
 ];

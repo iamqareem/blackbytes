@@ -9,11 +9,6 @@ const RSS_SOURCES = [
         category: 'Entertainment',
     },
     {
-        name: 'The Citizen (Tanzania)',
-        url: 'https://www.thecitizen.co.tz/tanzania/rss.xml',
-        category: 'News',
-    },
-    {
         name: 'Africanews',
         url: 'https://www.africanews.com/feed/rss',
         category: 'News',
@@ -32,26 +27,6 @@ const RSS_SOURCES = [
         name: 'WeeTracker',
         url: 'https://weetracker.com/feed/',
         category: 'Tech',
-    },
-    {
-        name: 'Business Daily Africa',
-        url: 'https://www.businessdailyafrica.com/feed',
-        category: 'News',
-    },
-    {
-        name: 'The East African',
-        url: 'https://www.theeastafrican.co.ke/feed',
-        category: 'News',
-    },
-    {
-        name: 'Daily Nation',
-        url: 'https://nation.africa/kenya/rss',
-        category: 'News',
-    },
-    {
-        name: 'Mail & Guardian',
-        url: 'https://mg.co.za/feed/',
-        category: 'News',
     },
 ];
 
@@ -94,13 +69,11 @@ function parseRSSFeed(xml, source) {
         const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
         const sourceUrl = linkMatch ? linkMatch[1].trim() : '';
         
-        // Extract content:encoded first (full content with images)
         let contentHtml = '';
         const contentEncodedMatch = itemXml.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/);
         if (contentEncodedMatch) {
             contentHtml = contentEncodedMatch[1];
         } else {
-            // Fallback to description
             const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ||
                              itemXml.match(/<description>([\s\S]*?)<\/description>/);
             contentHtml = descMatch ? descMatch[1] : '';
@@ -109,10 +82,8 @@ function parseRSSFeed(xml, source) {
         let content = contentHtml.replace(/<[^>]+>/g, ' ').trim();
         content = content.replace(/\[\s*\.\.\.\s*\]/g, '').trim();
         
-        // Extract first image from content HTML
         const mediaUrl = extractFirstImage(contentHtml);
         
-        // Fallback to standard RSS media tags
         const fallbackMediaMatch = itemXml.match(/<media:content[^>]*url="([^"]+)"/) ||
                                   itemXml.match(/<media:thumbnail[^>]*url="([^"]+)"/) ||
                                   itemXml.match(/<enclosure[^>]*url="([^"]+)"/);

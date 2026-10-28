@@ -9,6 +9,8 @@ const MAX_CHARS = MAX_WORDS * 6;
 let genAI = null;
 let model = null;
 let hfEnabled = false;
+let hfFailedCount = 0;
+let hfDisabled = false;
 
 // ------- Initialise Gemini (kept for backward compat) -------
 function initGemini() {
@@ -57,6 +59,19 @@ function cleanText(text) {
         .trim();
 }
 
+// ------- Retry helper with exponential backoff -------
+async function fetchWithRetry(url, options, maxRetries = 2, delayMs = 500) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            return response;
+        } catch (err) {
+            if (attempt === maxRetries) throw err;
+            await new Promise(r => setTimeout(r, delayMs * Math.pow(2, attempt)));
+        }
+    }
+}
+
 /**
  * Summarize a social media post using Gemini, Hugging Face, or truncation.
  * 
@@ -69,15 +84,16 @@ export async function summarize(text, title = '', useHf = true) {
     const cleaned = cleanText(text);
 
     // --- Try Hugging Face Inference API ---
-    if (useHf && hfEnabled) {
+    if (useHf && hfEnabled && !hfDisabled) {
         try {
-            const response = await fetch(
+            const response = await fetchWithRetry(
                 `https://api-inference.huggingface.co/models/${SUMMARIZER_MODEL}`,
                 {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${SUMMARIZER_HF_TOKEN}` },
                     body: JSON.stringify({ inputs: cleaned || title })
-                }
+                },
+                2, 500
             );
             if (!response.ok) {
                 throw new Error(`HF API ${response.status}`);
@@ -98,7 +114,16 @@ export async function summarize(text, title = '', useHf = true) {
             summary = words.length > MAX_WORDS ? words.slice(0, MAX_WORDS).join(' ') + '…' : summary;
             return { summary, mediaCaption: null };
         } catch (err) {
-            console.error('Hugging Face summarization failed:', err.message);
+            hfFailedCount++;
+            // Log first 3 failures, then every 10th
+            if (hfFailedCount <= 3 || hfFailedCount % 10 === 0) {
+                console.error(`Hugging Face summarization failed (${hfFailedCount}):`, err.message);
+            }
+            // Disable HF after 5 consecutive failures (likely unreachable)
+            if (hfFailedCount >= 5) {
+                hfDisabled = true;
+                console.warn('Hugging Face summarizer disabled after 5 consecutive failures - using truncation fallback');
+            }
             // fall through to truncation
         }
     }
