@@ -91,6 +91,12 @@ const updatePostEngagement = db.prepare(`
 
 const getConfig = db.prepare('SELECT value FROM site_config WHERE key = ?');
 
+// RSS/XML often encodes query separators as &amp; — corrupts signed image URLs (e.g. i.guim.co.uk)
+function decodeMediaUrl(url) {
+    if (!url) return url;
+    return url.replace(/&amp;/g, '&').replace(/&#0?38;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'");
+}
+
 function getCronSchedule() {
     const row = getConfig.get('scraper_cron');
     return row?.value || '*/30 * * * *';
@@ -118,11 +124,17 @@ async function runScraper() {
         }
         // Fill missing images from article pages (og:image)
         await backfillImages(items);
+        // Video posts: title + video only, no word summary
+        const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
         // Spend AI calls only on genuinely new posts; reuse existing summaries on upserts
         const existingStmt = db.prepare('SELECT summary FROM posts WHERE source_url = ?');
         const summarized = [];
         let aiCount = 0;
         for (const item of items) {
+            if (VIDEO_TYPES.has(item.media_type)) {
+                summarized.push({ ...item, summary: '' });
+                continue;
+            }
             const row = existingStmt.get(item.source_url);
             if (row?.summary) {
                 summarized.push({ ...item, summary: row.summary });
@@ -140,7 +152,7 @@ async function runScraper() {
 const result = stmt.run(
                 item.title,
                 item.summary,
-                item.media_url || null,
+                decodeMediaUrl(item.media_url) || null,
                 item.media_type || 'text',
                 item.source_url,
                 item.source_name,
@@ -176,7 +188,7 @@ export async function backfillExistingImages({ limit = 200 } = {}) {
     for (const row of rows) {
         const img = await fetchOgImage(row.source_url);
         if (img) {
-            db.prepare("UPDATE posts SET media_url = ?, media_type = 'image' WHERE id = ?").run(img, row.id);
+            db.prepare("UPDATE posts SET media_url = ?, media_type = 'image' WHERE id = ?").run(decodeMediaUrl(img), row.id);
             found++;
         }
         await new Promise(r => setTimeout(r, 250));

@@ -14,7 +14,9 @@ const FOOTBALL_SOURCES = [
 
 const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard';
 const ESPN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36';
-const PL_LOGO = 'https://a.espncdn.com/i/leaguelogos/soccer/500/23.png';
+// Per-match share card (team crests + fixture) — same image ESPN uses for og:image
+const matchShareCard = (eventId) =>
+    `https://s.secure.espncdn.com/stitcher/sports/soccer/eng.1/events/${eventId}.png?templateId=espn.com.share.1`;
 // -2..-1 recent results; 0..+3 upcoming fixtures
 const MATCH_DAY_OFFSETS = [-2, -1, 0, 1, 2, 3];
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
@@ -159,7 +161,7 @@ async function fetchMatchUpdates() {
                 items.push({
                     title: title.substring(0, 120),
                     content: summary,
-                    media_url: PL_LOGO,
+                    media_url: matchShareCard(ev.id),
                     media_type: 'image',
                     source_url: `https://www.espn.com/soccer/match/_/gameId/${ev.id}`,
                     source_name: 'Premier League',

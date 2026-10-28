@@ -189,7 +189,7 @@ function createFlashCard(post, index) {
                 <span class="feed-card-category">${escapeHtml(post.category)}</span>
             </div>
             <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
-            <p class="feed-card-summary">${escapeHtml(post.summary)}</p>
+            ${post.summary ? `<p class="feed-card-summary">${escapeHtml(post.summary)}</p>` : ''}
             ${reactionsHtml}
             <a href="${escapeHtml(post.source_url)}" target="_blank" rel="noopener noreferrer"
                class="feed-card-link" aria-label="Read full story from ${escapeHtml(post.source_name)}">
@@ -588,7 +588,7 @@ async function sharePost(postId) {
     handleInteraction(post.id, 'share', actionShareBtn);
 
     const shareUrl = `${window.location.origin}/?post=${post.id}`;
-    const shareText = `${post.title}\n\n${post.summary}\n\n${shareUrl}`;
+    const shareText = [post.title, post.summary, shareUrl].filter(Boolean).join('\n\n');
 
     if (navigator.share) {
         try {
