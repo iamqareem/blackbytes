@@ -333,6 +333,62 @@
     }
   }
 
+  /* ─── BOTTOM-LEFT ACTION PILL (like / save / share) ─────────── */
+  /* Shares the bottom baseline with the emoji trigger (bottom-right):
+     both sit at 96px + safe-area, keeping them colinear. */
+  .action-pill {
+    position: fixed;
+    left: 12px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px;
+    border-radius: var(--radius-full);
+    background: rgba(20,20,20,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: auto;
+  }
+
+  @media (min-width: 480px) {
+    .action-pill {
+      left: calc((100vw - 480px) / 2 + 12px);
+    }
+  }
+
+  /* Buttons sit inline in the pill: icon + count on one line */
+  .action-pill .action-btn-wrap {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .action-pill .action-btn {
+    width: auto;
+    height: 42px;
+    padding: 0 10px;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .action-pill .action-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: transparent;
+  }
+
+  .action-pill .action-btn-count {
+    min-height: 0;
+    padding-right: 4px;
+  }
+
+  .action-pill .action-btn-wrap:not(:last-child) {
+    border-right: 1px solid rgba(255,255,255,0.08);
+    padding-right: 2px;
+  }
+
   .action-btn-wrap {
     display: flex;
     flex-direction: column;
@@ -875,6 +931,23 @@
     border-color: rgba(0,0,0,0.2);
   }
   html.light .action-btn-count { color: rgba(0,0,0,0.65); }
+
+  html.light .action-pill {
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(0,0,0,0.12);
+  }
+  html.light .action-pill .action-btn {
+    background: transparent;
+    border-color: transparent;
+    color: #111;
+  }
+  html.light .action-pill .action-btn:hover {
+    background: rgba(0,0,0,0.06);
+    border-color: transparent;
+  }
+  html.light .action-pill .action-btn-wrap:not(:last-child) {
+    border-right-color: rgba(0,0,0,0.1);
+  }
 
   html.light .emoji-trigger {
     background: rgba(255,255,255,0.9);

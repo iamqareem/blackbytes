@@ -80,8 +80,8 @@
         <p class="empty-state-desc">Check back soon for fresh content</p>
     </div>
 
-    <!-- Right-side action buttons (TikTok/Reels style) -->
-    <nav class="action-bar" id="action-bar" role="navigation" aria-label="Post actions">
+    <!-- Bottom-left action pill: like / save / share on one horizontal plane -->
+    <div class="action-pill" id="action-pill" role="group" aria-label="Post actions">
         <!-- Like -->
         <div class="action-btn-wrap">
             <button class="action-btn" data-action="like" aria-label="Like" title="Like">
@@ -105,8 +105,10 @@
             </button>
             <span class="action-btn-count" id="share-count">0</span>
         </div>
+    </div>
 
-        <!-- Emoji reactions -->
+    <!-- Floating emoji trigger (bottom-right, colinear with the action pill) -->
+    <nav class="action-bar" id="action-bar" role="navigation" aria-label="Reactions">
         <div class="action-btn-wrap" style="position:relative;">
             <button id="emoji-trigger" class="emoji-trigger" aria-label="Reactions" aria-expanded="false" aria-haspopup="true" title="React">
                 😊
