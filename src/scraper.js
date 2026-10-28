@@ -2,7 +2,7 @@ import 'dotenv/config';
 import cron from 'node-cron';
 import { getDb, initDb } from './db.js';
 import { loadPlugins, fetchAllPlugins } from './pluginManager.js';
-import { summarizeBatch } from './summarizer.js';
+import { summarize } from './summarizer.js';
 
 const db = getDb();
 
@@ -65,7 +65,21 @@ async function runScraper() {
             console.log(`[Scraper] Capping to ${MAX_POSTS_PER_CYCLE} newest items (was ${items.length})`);
             items = items.slice(0, MAX_POSTS_PER_CYCLE);
         }
-        const summarized = await summarizeBatch(items);
+        // Spend AI calls only on genuinely new posts; reuse existing summaries on upserts
+        const existingStmt = db.prepare('SELECT summary FROM posts WHERE source_url = ?');
+        const summarized = [];
+        let aiCount = 0;
+        for (const item of items) {
+            const row = existingStmt.get(item.source_url);
+            if (row?.summary) {
+                summarized.push({ ...item, summary: row.summary });
+            } else {
+                const { summary } = await summarize(item.content || item.title, item.title, true);
+                summarized.push({ ...item, summary });
+                aiCount++;
+            }
+        }
+        console.log(`[Scraper] AI summaries generated: ${aiCount}/${items.length} (rest reused from DB)`);
 
         let saved = 0;
         for (const item of summarized) {

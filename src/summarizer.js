@@ -1,55 +1,44 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Free AI summarization via Pollinations.ai (keyless, GPT-OSS 20B).
+// Anonymous tier: ~1 reply / 30s per IP on the classic endpoint, burst-tolerant
+// on POST /openai. We go sequential with small gaps, honour 402 backoff, and
+// fall back to truncation when the budget runs out.
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const SUMMARIZER_HF_TOKEN = process.env.SUMMARIZER_HF_TOKEN;
-const SUMMARIZER_MODEL = process.env.SUMMARIZER_MODEL || 'facebook/bart-large-cnn';
+const API_URL = 'https://text.pollinations.ai/openai';
+const MODEL = process.env.SUMMARIZER_MODEL || 'openai-fast';
 const MAX_WORDS = parseInt(process.env.SUMMARY_MAX_WORDS) || 60;
-const MAX_CHARS = MAX_WORDS * 6;
+const DAILY_CALL_LIMIT = parseInt(process.env.SUMMARY_DAILY_LIMIT) || 500;
+const MIN_CONTENT_CHARS = 80; // skip AI for short meme titles — nothing to summarize
+const CALL_GAP_MS = 1200;     // polite gap between sequential calls
+const RATE_LIMIT_WAIT_MS = 30000; // pollinations asks to wait 30s on 402
 
-let genAI = null;
-let model = null;
-let hfEnabled = false;
-let hfFailedCount = 0;
-let hfDisabled = false;
+let aiEnabled = true;
+let callsToday = 0;
+let consecutiveFailures = 0;
+let disabled = false;
+let lastCallAt = 0;
 
-// ------- Initialise Gemini (kept for backward compat) -------
-function initGemini() {
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
-        console.warn('GEMINI_API_KEY not configured - will use HF or fallback');
-        return false;
-    }
-    try {
-        genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        return true;
-    } catch (err) {
-        console.error('Failed to initialize Gemini:', err.message);
-        return false;
+function todayKey() {
+    return new Date().toISOString().slice(0, 10);
+}
+let countDay = todayKey();
+
+function refreshDailyCount() {
+    const key = todayKey();
+    if (key !== countDay) {
+        countDay = key;
+        callsToday = 0;
     }
 }
 
-// ------- Initialise Hugging Face ----------
-function initHf() {
-    if (!SUMMARIZER_HF_TOKEN) {
-        console.info('SUMMARIZER_HF_TOKEN not set - using truncation fallback');
-        return;
-    }
-    // Token present — mark summarizer as HF-enabled
-    hfEnabled = true;
-    console.info(`Hugging Face summarizer enabled (model: ${SUMMARIZER_MODEL})`);
-}
+console.info(`AI summarizer enabled (Pollinations, model: ${MODEL}, daily limit: ${DAILY_CALL_LIMIT})`);
 
-initGemini();
-initHf();
-
-// ------- Helper: truncate to max words -------
+// ------- Helpers -------
 function truncateToWords(text, maxWords) {
     const words = text.trim().split(/\s+/);
     if (words.length <= maxWords) return text.trim();
     return words.slice(0, maxWords).join(' ') + '…';
 }
 
-// ------- Helper: clean text of URLs, handles, tags -------
 function cleanText(text) {
     return text
         .replace(/https?:\/\/\S+/g, '')
@@ -59,98 +48,127 @@ function cleanText(text) {
         .trim();
 }
 
-// ------- Retry helper with exponential backoff -------
-async function fetchWithRetry(url, options, maxRetries = 2, delayMs = 500) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            const response = await fetch(url, options);
-            return response;
-        } catch (err) {
-            if (attempt === maxRetries) throw err;
-            await new Promise(r => setTimeout(r, delayMs * Math.pow(2, attempt)));
-        }
-    }
+function clampWords(text, maxWords) {
+    const words = text.trim().split(/\s+/);
+    return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : text;
 }
 
+function truncationFallback(cleaned, title) {
+    return truncateToWords(cleaned || title, MAX_WORDS);
+}
+
+const SYSTEM_PROMPT =
+    `You write short, descriptive summaries for an African media & meme feed. ` +
+    `Given a post title and content, produce 1-2 sentences (max ${MAX_WORDS} words) that say WHO, WHAT and WHERE. ` +
+    `Be specific and concrete — mention names, places and key facts. ` +
+    `No hashtags, no emoji, no "this post says", no preamble, just the summary.`;
+
 /**
- * Summarize a social media post using Gemini, Hugging Face, or truncation.
- * 
+ * Summarize a social media post with Pollinations, falling back to truncation.
+ *
  * @param {string} text - post content/text
  * @param {string} title - post title
- * @param {boolean} useHf - whether to attempt HF summarization
- * @returns {{summary: string, mediaCaption?: string}} - text summary + optional visual caption
+ * @param {boolean} useAi - whether to attempt AI summarization
+ * @returns {Promise<{summary: string, mediaCaption: null}>}
  */
-export async function summarize(text, title = '', useHf = true) {
+export async function summarize(text, title = '', useAi = true) {
     const cleaned = cleanText(text);
 
-    // --- Try Hugging Face Inference API ---
-    if (useHf && hfEnabled && !hfDisabled) {
+    if (!useAi || !aiEnabled || disabled) {
+        return { summary: truncationFallback(cleaned, title), mediaCaption: null };
+    }
+
+    refreshDailyCount();
+    if (callsToday >= DAILY_CALL_LIMIT) {
+        return { summary: truncationFallback(cleaned, title), mediaCaption: null };
+    }
+
+    const input = cleaned.length >= MIN_CONTENT_CHARS
+        ? `${title ? `Title: ${title}\n` : ''}Content: ${cleaned}`
+        : null;
+    if (!input) {
+        // Too short to summarize — truncation is already the full text
+        return { summary: truncationFallback(cleaned || title, title), mediaCaption: null };
+    }
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        refreshDailyCount();
+        if (callsToday >= DAILY_CALL_LIMIT) break;
+
         try {
-            const response = await fetchWithRetry(
-                `https://api-inference.huggingface.co/models/${SUMMARIZER_MODEL}`,
-                {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${SUMMARIZER_HF_TOKEN}` },
-                    body: JSON.stringify({ inputs: cleaned || title })
-                },
-                2, 500
-            );
+            // Respect sequential gap
+            const sinceLast = Date.now() - lastCallAt;
+            if (sinceLast < CALL_GAP_MS) {
+                await new Promise(r => setTimeout(r, CALL_GAP_MS - sinceLast));
+            }
+            lastCallAt = Date.now();
+            callsToday++;
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: MODEL,
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: input },
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.3,
+                }),
+            });
+
+            if (response.status === 402 && attempt === 0) {
+                // Rate limited — pollinations asks for a 30s wait
+                callsToday--; // don't count the rejected call
+                await new Promise(r => setTimeout(r, RATE_LIMIT_WAIT_MS));
+                continue;
+            }
             if (!response.ok) {
-                throw new Error(`HF API ${response.status}`);
+                throw new Error(`Pollinations API ${response.status}`);
             }
+
             const result = await response.json();
-            // HF summarization models return { summary_text: "..." }
-            let summary;
-            if (Array.isArray(result)) {
-                summary = result[0]?.summary_text || result[0] || '';
-            } else {
-                summary = result?.summary_text || result || '';
-            }
+            const summary = result?.choices?.[0]?.message?.content?.trim() || '';
             if (!summary || summary.length < 5) {
                 throw new Error('empty summary');
             }
-            // Trim to MAX_WORDS if needed
-            const words = summary.trim().split(/\s+/);
-            summary = words.length > MAX_WORDS ? words.slice(0, MAX_WORDS).join(' ') + '…' : summary;
-            return { summary, mediaCaption: null };
+
+            consecutiveFailures = 0;
+            return { summary: clampWords(summary, MAX_WORDS), mediaCaption: null };
         } catch (err) {
-            hfFailedCount++;
-            // Log first 3 failures, then every 10th
-            if (hfFailedCount <= 3 || hfFailedCount % 10 === 0) {
-                console.error(`Hugging Face summarization failed (${hfFailedCount}):`, err.message);
+            consecutiveFailures++;
+            // Log first few failures, then every 10th
+            if (consecutiveFailures <= 3 || consecutiveFailures % 10 === 0) {
+                console.error(`AI summarization failed (${consecutiveFailures}):`, err.message);
             }
-            // Disable HF after 5 consecutive failures (likely unreachable)
-            if (hfFailedCount >= 5) {
-                hfDisabled = true;
-                console.warn('Hugging Face summarizer disabled after 5 consecutive failures - using truncation fallback');
+            if (consecutiveFailures >= 8) {
+                disabled = true;
+                console.warn('AI summarizer disabled after 8 consecutive failures - using truncation fallback');
             }
-            // fall through to truncation
+            break; // don't retry non-402 errors
         }
     }
 
-    // --- Fallback: truncation (original behavior) ---
-    if (!cleaned || cleaned.length < 50) {
-        return { summary: truncateToWords(cleaned || title, MAX_WORDS), mediaCaption: null };
-    }
-    return { summary: truncateToWords(cleaned, MAX_WORDS), mediaCaption: null };
+    return { summary: truncationFallback(cleaned, title), mediaCaption: null };
 }
 
 /**
- * Summarize a batch of items, attaching summaries.
- * 
- * @param {Array} items - each item: { title, content, media_url, media_type, source_url, source_name, category, published_at }
- * @param {boolean} useHf - whether to attempt HF summarization
- * @returns {Array} items enriched with { summary }
+ * Summarize a batch of items sequentially (respecting rate limits).
+ *
+ * @param {Array} items - items with { title, content, ... }
+ * @param {boolean} useAi - whether to attempt AI summarization
+ * @returns {Promise<Array>} items enriched with { summary }
  */
-export async function summarizeBatch(items, useHf = true) {
+export async function summarizeBatch(items, useAi = true) {
     const results = [];
     for (const item of items) {
-        const { summary } = await summarize(item.content || item.title, item.title, useHf);
+        const { summary } = await summarize(item.content || item.title, item.title, useAi);
         results.push({ ...item, summary });
-        await new Promise(r => setTimeout(r, 100));
     }
+    refreshDailyCount();
+    console.log(`[summarizer] AI calls today: ${callsToday}/${DAILY_CALL_LIMIT}`);
     return results;
 }
 
-// Export utilities
-export { hfEnabled, MAX_WORDS };
+export { aiEnabled as hfEnabled, MAX_WORDS };
