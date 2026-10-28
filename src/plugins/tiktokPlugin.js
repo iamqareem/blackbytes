@@ -20,7 +20,9 @@ const TIKTOK_CHANNELS = [
     { username: 'kilipaul', category: 'Culture', name: 'Kili Paul 🇹🇿' },
 ];
 
-const PER_CHANNEL = 6;
+// Each creator contributes only their LATEST video per cycle — keeps the
+// meme feed fresh and varied instead of one creator owning the whole deck.
+const PER_CHANNEL = 1;
 const MAX_DURATION = 300;
 
 function resolveYtDlp() {

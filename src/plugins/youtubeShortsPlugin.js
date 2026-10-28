@@ -128,6 +128,7 @@ export default {
         }
 
         console.log(`[youtube-shorts] Total items fetched: ${allItems.length}`);
-        return takeNewestBySource(allItems, 6);
+        // Latest video per channel only — freshness over volume
+        return takeNewestBySource(allItems, channels.length);
     },
 };

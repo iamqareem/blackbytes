@@ -17,8 +17,8 @@ const ESPN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K
 // Per-match share card (team crests + fixture) — same image ESPN uses for og:image
 const matchShareCard = (eventId) =>
     `https://s.secure.espncdn.com/stitcher/sports/soccer/eng.1/events/${eventId}.png?templateId=espn.com.share.1`;
-// -2..-1 recent results; 0..+3 upcoming fixtures
-const MATCH_DAY_OFFSETS = [-2, -1, 0, 1, 2, 3];
+// Score updates kept simple: yesterday's results + today only (as user requested)
+const MATCH_DAY_OFFSETS = [-1, 0];
 const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
 
 async function fetchXml(url) {

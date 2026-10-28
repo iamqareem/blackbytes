@@ -97,6 +97,18 @@ function decodeMediaUrl(url) {
     return url.replace(/&amp;/g, '&').replace(/&#0?38;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'");
 }
 
+// Store every date as ISO-8601 UTC — the Python ranker parses with
+// fromisoformat(), which chokes on RFC-2822 strings ("Fri, 02 Oct 2026 ... GMT")
+function normalizeDate(value) {
+    if (!value) return new Date().toISOString();
+    // JS Date doesn't know RSS zone abbrevs like BST — map the common ones
+    const s = String(value)
+        .replace(/ BST$/, ' +0100')
+        .replace(/ (GMT|UTC|Z)$/, ' +0000');
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
 function getCronSchedule() {
     const row = getConfig.get('scraper_cron');
     return row?.value || '*/30 * * * *';
@@ -158,7 +170,7 @@ const result = stmt.run(
                 item.source_url,
                 item.source_name,
                 item.category,
-                item.published_at || new Date().toISOString(),
+                normalizeDate(item.published_at),
                 new Date().toISOString(),
                 item.mediaCaption
             );
