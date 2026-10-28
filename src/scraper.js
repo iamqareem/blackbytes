@@ -11,6 +11,7 @@ const db = getDb();
 const OG_USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
 
 // Fetch og:image (or first <img>) from an article page for posts missing media
+let ogErrLogged = 0;
 async function fetchOgImage(pageUrl) {
     try {
         const { data: html } = await axios.get(pageUrl, {
@@ -27,8 +28,12 @@ async function fetchOgImage(pageUrl) {
             || $('main img').first().attr('src')
             || $('img').first().attr('src');
         if (img && !img.startsWith('data:')) return new URL(img, pageUrl).href;
-    } catch {
-        // page fetch failed — leave imageless
+    } catch (err) {
+        // Log first few failures for visibility, then every 20th
+        if (ogErrLogged < 3 || ogErrLogged % 20 === 0) {
+            console.log(`[og-image] failed for ${pageUrl.slice(0, 80)}:`, err.code || err.message);
+        }
+        ogErrLogged++;
     }
     return null;
 }
