@@ -1,0 +1,168 @@
+/* Snapfeed PWA input — scanned by Tailwind for pwa/index.html */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Colors ── */
+:root {
+  --color-bg: #000000;
+  --color-surface: #111111;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: hsla(0, 0%, 100%, 0.75);
+  --color-text-muted: hsla(0, 0%, 100%, 0.45);
+  --color-brand: #3B82F6;
+  --color-brand-hover: #60A5FA;
+  --radius-full: 9999px;
+  --radius-lg: 20px;
+  --radius-md: 16px;
+}
+
+html.light {
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-text-primary: #0b0b0b;
+  --color-text-secondary: rgba(0, 0, 0, 0.68);
+  --color-text-muted: rgba(0, 0, 0, 0.45);
+  --color-brand: #2563eb;
+  --color-brand-hover: #3b82f6;
+}
+
+html.light body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Feed card semantic classes ── */
+.feed-card {
+  width: 100%;
+  height: 100svh;
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 16px 108px;
+  overflow: hidden;
+}
+
+.feed-card-img-box {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 16px;
+  border: 1.5px solid hsla(0, 0%, 100%, 0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+  background: #141414;
+  aspect-ratio: 16/9;
+}
+
+.feed-card-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.feed-card-img-box iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.feed-card-content {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+.feed-card-title {
+  font-size: clamp(0.975rem, 4.5vw, 1.3rem);
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.feed-card-summary {
+  font-size: 0.825rem;
+  line-height: 1.55;
+  color: hsla(0, 0%, 100%, 0.52);
+  margin: 0 0 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feed-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #60A5FA;
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.feed-card-link:hover {
+  background: rgba(59, 130, 246, 0.24);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: #93C5FD;
+}
+
+/* ── Tucked HUD state ── */
+.hud-tucked {
+  opacity: 0 !important;
+  transform: translateY(16px) !important;
+  pointer-events: none !important;
+}
+
+/* ── Animations ── */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heartBeat {
+  0%, to { transform: scale(1); }
+  40% { transform: scale(1.45); }
+  65% { transform: scale(1.2); }
+}
+
+.heart-beat {
+  animation: heartBeat 0.38s ease;
+}
+
+/* ── Light mode ── */
+html.light .feed-card { background: #fff; }
+html.light .feed-card-img-box { border-color: rgba(0,0,0,0.1); background: #f1f1f1; }
+html.light .feed-card-title { color: #0b0b0b; }
+html.light .feed-card-summary { color: rgba(0,0,0,0.55); }
+html.light .feed-card-link { color: #2563eb; background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.3); }
+
+/* ── bg-surface custom token ── */
+.bg-surface { background-color: var(--color-surface); }

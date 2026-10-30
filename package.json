@@ -11,6 +11,7 @@
     "admin:start": "node src/adminServer.js",
     "build:css": "tailwindcss -i src/input.css -o public/dist/styles.css --minify",
     "build:css:admin": "tailwindcss -i admin/input.css -o admin/dist/styles.css --minify",
+    "build:css:pwa": "tailwindcss -i pwa/input.css -o pwa/style.css --minify --content './pwa/**/*.{html,js}'",
     "build:js": "esbuild src/client.js --bundle --outfile=public/dist/app.js --minify --format=esm --target=es2020",
     "build:js:admin": "esbuild admin/src/app.js --bundle --outfile=admin/dist/app.js --minify --format=esm --target=es2020",
     "build": "npm run build:css && npm run build:css:admin && npm run build:js && npm run build:js:admin",
