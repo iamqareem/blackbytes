@@ -41,9 +41,17 @@
 </head>
 <body class="bg-black text-white min-h-screen font-sans antialiased overflow-hidden">
 
-    <!-- Telegram WebApp detection banner (appears only in Telegram) -->
+    <!-- Telegram WebApp banner (appears only in Telegram) -->
     <div id="tg-banner" class="hidden fixed top-0 left-0 right-0 px-4 py-2 bg-blue-600 text-white text-center text-xs font-medium z-50">
-        Open in Telegram for the full Mini App experience
+        <span id="tg-banner-text">Open in Telegram for the full Mini App experience</span>
+        <button id="tg-banner-close" class="ml-2 text-xs underline hover:text-blue-200">Dismiss</button>
+    </div>
+
+    <!-- Telegram Stars / premium upsell (Telegram context only) -->
+    <div id="tg-premium" class="hidden fixed bottom-[calc(120px+env(safe-area-inset-bottom))] left-2 right-2 z-40 flex items-center gap-2 px-4 py-2 bg-amber-900/90 backdrop-blur border border-amber-500/30 rounded-lg text-amber-100 text-xs shadow-lg">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        <span id="tg-premium-text">Go ad-free with Telegram Stars</span>
+        <button id="tg-premium-btn" class="ml-auto px-3 py-1 bg-amber-500 text-amber-900 text-xs font-bold rounded hover:bg-amber-400">Stars</button>
     </div>
 
     <!-- Header -->
@@ -110,11 +118,12 @@
     <!-- Toast -->
     <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-black/90 text-white rounded-full text-sm border border-white/10 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
 
-    <!-- AdSense placeholder (injected every 5th card) -->
+    <!-- Ad template (cloned every 5th card) -->
     <template id="ad-template">
         <div class="flex justify-center my-4">
-            <div class="w-full max-w-[300px] h-[250px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs">
-                Ad
+            <div class="w-full max-w-[300px] h-[250px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs relative overflow-hidden">
+                <div class="absolute top-1 left-1 text-[10px] text-white/40 bg-black/60 px-1 py-0.5 rounded">Ad</div>
+                <div id="ad-content" class="w-full h-full flex items-center justify-center"></div>
             </div>
         </div>
     </template>
@@ -124,9 +133,17 @@
 
         // ── Config ──
         const TURSO_URL = 'libsql://snapfeed-mwanja.aws-ap-south-1.turso.io';
-        // In production, this token is set by Cloudflare (Wrangler secrets).
-        // For local dev, the admin portal proxies or you set it via localStorage override.
         const TURSO_AUTH_TOKEN = localStorage.getItem('snapfeed_turso_token') || '';
+
+        // ── Ad / Monetization config (from Turso site_config, cached in localStorage) ──
+        let adConfig = {
+            enable_ads: false,
+            adsense_client_id: '',
+            adsense_slot_feed: '',
+            monetag_zone_id: '',
+            affiliate_aliexpress: false,
+            affiliate_aliexpress_tag: '',
+        };
 
         // ── State ──
         let posts = [];
@@ -136,6 +153,8 @@
         let viewed = new Set(JSON.parse(localStorage.getItem('snapfeed_viewed') || '[]'));
         let interactions = {}; // { [postId]: { like, save, share } }
         let theme = localStorage.getItem('snapfeed_theme') || 'dark';
+        let isTelegram = false;
+        let isAdFree = false;
 
         // ── DOM ──
         const feed = document.getElementById('feed');
@@ -150,6 +169,8 @@
         const emojiPicker = document.getElementById('emoji-picker');
         const toastEl = document.getElementById('toast');
         const tgBanner = document.getElementById('tg-banner');
+        const tgPremium = document.getElementById('tg-premium');
+        const tgPremiumBtn = document.getElementById('tg-premium-btn');
 
         // ── Init ──
         function init() {
@@ -170,13 +191,30 @@
         }
 
         function detectTelegram() {
-            if (window.Telegram?.WebApp) {
+            isTelegram = !!window.Telegram?.WebApp;
+            if (isTelegram) {
                 tgBanner.classList.remove('hidden');
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
-                // Hide browser-style elements that don't make sense in Telegram
-                actionBar.style.transform = 'translateY(10px)';
-                actionBar.style.opacity = '0.5';
+                Telegram.WebApp.MainButton.text = 'Go Ad-Free (Stars)';
+                Telegram.WebApp.MainButton.onClick(() => {
+                    if (Telegram.WebApp.openInvoice) {
+                        Telegram.WebApp.openInvoice({
+                            title: 'Snapfeed Ad-Free',
+                            description: 'Remove ads for 30 days',
+                            payload: 'snapfeed_adfree_30d',
+                            provider_token: '',
+                            currency: 'XTR',
+                            prices: [{ label: 'Ad-Free 30 Days', amount: 99 }], // 0.99 USD in cents
+                        });
+                    }
+                });
+                // Show premium upsell if not ad-free
+                if (!isAdFree) {
+                    tgPremium.classList.remove('hidden');
+                    actionBar.style.transform = 'translateY(10px)';
+                    actionBar.style.opacity = '0.5';
+                }
             }
         }
 
@@ -196,6 +234,19 @@
             prefsSave.addEventListener('click', () => {
                 prefsModal.classList.add('hidden');
                 fetchAndRender();
+            });
+
+            tgPremiumBtn.addEventListener('click', () => {
+                if (Telegram.WebApp.openInvoice) {
+                    Telegram.WebApp.openInvoice({
+                        title: 'Snapfeed Ad-Free',
+                        description: 'Remove ads for 30 days',
+                        payload: 'snapfeed_adfree_30d',
+                        provider_token: '',
+                        currency: 'XTR',
+                        prices: [{ label: 'Ad-Free 30 Days', amount: 99 }],
+                    });
+                }
             });
 
             // HUD tuck on scroll
@@ -239,8 +290,10 @@
         // ── Data ──
         async function fetchAndRender() {
             try {
-                const raw = await fetchFromTurso();
+                const [raw, config] = await Promise.all([fetchFromTurso(), fetchConfigFromTurso()]);
                 posts = raw;
+                adConfig = config;
+                isAdFree = localStorage.getItem('snapfeed_adfree') === 'true' || (isTelegram && adConfig.enable_ads === false);
                 ranked = rankAndFilter(posts);
                 renderCard(activeIndex);
             } catch (err) {
@@ -250,21 +303,16 @@
         }
 
         async function fetchFromTurso() {
-            // Option A: Direct Turso HTTP (read-only token)
-            // Option B: Via Cloudflare Worker proxy (production)
             const url = `${TURSO_URL}/v1/pipeline`;
             const body = JSON.stringify({
                 statements: [
                     `SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at, indexed_at FROM posts ORDER BY indexed_at DESC LIMIT 100;`
                 ]
             });
-
             const headers = { 'Content-Type': 'application/json' };
             if (TURSO_AUTH_TOKEN) headers.Authorization = `Bearer ${TURSO_AUTH_TOKEN}`;
-
             const res = await fetch(url, { method: 'POST', headers, body });
             if (!res.ok) throw new Error(`Turso HTTP ${res.status}`);
-
             const data = await res.json();
             return (data.results?.[0]?.rows || []).map(row => ({
                 id: row[0], title: row[1], summary: row[2], media_url: row[3],
@@ -274,8 +322,31 @@
             }));
         }
 
+        async function fetchConfigFromTurso() {
+            try {
+                const url = `${TURSO_URL}/v1/pipeline`;
+                const body = JSON.stringify({
+                    statements: [`SELECT key, value FROM site_config;`]
+                });
+                const headers = { 'Content-Type': 'application/json' };
+                if (TURSO_AUTH_TOKEN) headers.Authorization = `Bearer ${TURSO_AUTH_TOKEN}`;
+                const res = await fetch(url, { method: 'POST', headers, body });
+                if (!res.ok) return adConfig;
+                const data = await res.json();
+                const rows = data.results?.[0]?.rows || [];
+                const cfg = { ...adConfig };
+                rows.forEach(([key, value]) => {
+                    if (key in cfg) cfg[key] = value === 'true' ? true : value;
+                });
+                localStorage.setItem('snapfeed_adconfig', JSON.stringify(cfg));
+                return cfg;
+            } catch (e) {
+                const cached = localStorage.getItem('snapfeed_adconfig');
+                return cached ? JSON.parse(cached) : adConfig;
+            }
+        }
+
         function rankAndFilter(items) {
-            // Use the shared ranking logic
             const now = new Date();
             const FRESHNESS_WINDOW_DAYS = 3;
             const FRESH_WEIGHT = 30;
@@ -290,22 +361,18 @@
                 const postTime = new Date(post.created_at);
                 const ageDays = isNaN(postTime) ? 0 : Math.max(0, (now - postTime) / 86400000);
                 if (ageDays > FRESHNESS_WINDOW_DAYS) return null;
-
                 const engagement = (post.likes||0)*1 + (post.shares||0)*2 + (post.saves||0)*3 + (post.views||0)*0.0001;
                 const recency = FRESH_WEIGHT * Math.exp(-FRESH_DECAY * ageDays);
                 const score = engagement + recency + (CATEGORY_BOOST[post.category] || 0);
-
                 return { ...post, score };
             }).filter(Boolean);
 
             scored.sort((a, b) => b.score - a.score);
 
-            // Category filter (favorites)
             if (favorites.length) {
                 scored = scored.filter(p => favorites.includes(p.category));
             }
 
-            // Diversity window: source cap
             const window = scored.slice(0, DIVERSITY_WINDOW);
             const tail = scored.slice(DIVERSITY_WINDOW);
             const kept = [], dropped = [];
@@ -319,7 +386,6 @@
                 }
             }
 
-            // Category cap (favorites only)
             if (favorites.length) {
                 const catKept = [], catDropped = [];
                 const catCounts = {};
@@ -357,6 +423,83 @@
             return out;
         }
 
+        // ── Affiliate link rewriting ──
+        function affiliateUrl(url) {
+            if (!adConfig.affiliate_aliexpress || !adConfig.affiliate_aliexpress_tag) return url;
+            try {
+                const u = new URL(url);
+                if (u.hostname.includes('aliexpress.com')) {
+                    u.searchParams.set('aff_platform', 'mws');
+                    u.searchParams.set('aff_ext_fingerprint', adConfig.affiliate_aliexpress_tag);
+                    u.searchParams.set('aff_short_key', adConfig.affiliate_aliexpress_tag);
+                    u.searchParams.set('utm_source', 'snapfeed');
+                    u.searchParams.set('utm_medium', 'affiliate');
+                    u.searchParams.set('utm_campaign', 'snapfeed_app');
+                    return u.toString();
+                }
+            } catch (_) {}
+            return url;
+        }
+
+        // ── Ad rendering ──
+        function renderAdSlot() {
+            if (!adConfig.enable_ads || isAdFree) return `<div class="my-4"></div>`;
+
+            const adId = `snapfeed-ad-${Date.now()}`;
+            const html = `
+                <div class="flex justify-center my-4">
+                    <div class="w-full max-w-[320px] h-[280px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs relative overflow-hidden">
+                        <div class="absolute top-1 left-1 text-[10px] text-white/40 bg-black/60 px-1 py-0.5 rounded">Ad</div>
+                        <div id="${adId}" class="w-full h-full"></div>
+                    </div>
+                </div>
+            `;
+
+            // Try AdSense
+            if (adConfig.adsense_client_id && adConfig.adsense_slot_feed && !isTelegram) {
+                setTimeout(() => {
+                    const el = document.getElementById(adId);
+                    if (!el) return;
+                    el.innerHTML = `
+                        <ins class="adsbygoogle" style="display:inline-block;width:320px;height:280px"
+                             data-ad-client="${escapeHtml(adConfig.adsense_client_id)}"
+                             data-ad-slot="${escapeHtml(adConfig.adsense_slot_feed)}"></ins>
+                    `;
+                    if (window.adsbygoogle) window.adsbygoogle.push({});
+                }, 100);
+                return html;
+            }
+
+            // Try Monetag
+            if (adConfig.monetag_zone_id) {
+                setTimeout(() => {
+                    const el = document.getElementById(adId);
+                    if (!el) return;
+                    el.innerHTML = `
+                        <iframe src="https://www.monetag.com/serve/${escapeHtml(adConfig.monetag_zone_id)}"
+                                width="320" height="280" style="border:0;" scrolling="no"></iframe>
+                    `;
+                }, 100);
+                return html;
+            }
+
+            // Telegram Adsgram placeholder
+            if (isTelegram && Telegram.WebApp) {
+                setTimeout(() => {
+                    const el = document.getElementById(adId);
+                    if (!el) return;
+                    el.innerHTML = `
+                        <div class="w-full h-full bg-white/5 rounded flex items-center justify-center text-[10px] text-white/40 border border-white/10">
+                            Sponsored
+                        </div>
+                    `;
+                }, 100);
+                return html;
+            }
+
+            return html;
+        }
+
         // ── Render ──
         function renderCard(index) {
             if (index < 0 || index >= ranked.length) {
@@ -370,8 +513,8 @@
             const viewedCls = viewed.has(String(post.id)) ? 'opacity-50' : '';
 
             const mediaHtml = isVideo
-                ? `<iframe class="w-full aspect-video rounded-lg" src="${post.media_url}" frameborder="0" allowfullscreen></iframe>`
-                : `<img class="w-full h-72 object-cover rounded-lg" src="${post.media_url || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${escapeHtml(post.title)}">`;
+                ? `<iframe class="w-full aspect-video rounded-lg" src="${escapeHtml(post.media_url)}" frameborder="0" allowfullscreen></iframe>`
+                : `<img class="w-full h-72 object-cover rounded-lg" src="${escapeHtml(post.media_url || 'https://via.placeholder.com/400x300?text=No+Image')}" alt="${escapeHtml(post.title)}">`;
 
             const summaryHtml = post.summary ? `<p class="text-sm text-white/60 mt-2 line-clamp-3">${escapeHtml(post.summary)}</p>` : '';
 
@@ -379,6 +522,8 @@
             const likeActive = state.like ? 'text-red-500' : 'text-white';
             const saveActive = state.save ? 'text-yellow-400' : 'text-white';
             const shareActive = state.share ? 'text-green-400' : 'text-white';
+
+            const sourceUrl = affiliateUrl(post.source_url);
 
             feed.innerHTML = `
                 <article class="max-w-[400px] mx-auto flex flex-col gap-3 ${viewedCls}">
@@ -392,22 +537,19 @@
                     <h2 class="text-xl font-bold leading-tight mb-2">${escapeHtml(post.title)}</h2>
                     ${summaryHtml}
                     <div class="mt-4 flex items-center justify-between">
-                        <a href="${post.source_url}" target="_blank" rel="noopener" class="text-xs text-blue-400 underline hover:text-blue-300">Read on ${escapeHtml(post.source_name)}</a>
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="text-xs text-blue-400 underline hover:text-blue-300">
+                            Read on ${escapeHtml(post.source_name)}
+                            ${adConfig.affiliate_aliexpress ? '<span class="text-[10px] ml-1">→</span>' : ''}
+                        </a>
                     </div>
                 </article>
-                ${index % 5 === 4 ? adHtml() : ''}
+                ${index % 5 === 4 ? renderAdSlot() : ''}
             `;
 
             updateActionCounts(post);
         }
 
-        function adHtml() {
-            return document.getElementById('ad-template').innerHTML;
-        }
-
         function updateActionCounts(post) {
-            const id = String(post.id);
-            const state = interactions[id] || {};
             document.getElementById('count-like').textContent = post.likes;
             document.getElementById('count-save').textContent = post.saves;
             document.getElementById('count-share').textContent = post.shares;
@@ -425,7 +567,7 @@
             if (action === 'share') post.shares += interactions[id].share ? 1 : -1;
 
             localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
-            ranked = rankAndFilter(posts); // re-rank with new engagement
+            ranked = rankAndFilter(posts);
             renderCard(Math.min(activeIndex, ranked.length - 1));
             showToast(action.charAt(0).toUpperCase() + action.slice(1) + (interactions[id][action] ? '' : 'd'));
         }
@@ -456,7 +598,6 @@
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
 
-            // Vertical swipe = next/prev card
             if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
                 if (diffY > 0 && activeIndex > 0) {
                     activeIndex--;
