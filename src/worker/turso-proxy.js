@@ -16,7 +16,7 @@ export default {
         if (path === '/api/posts' && request.method === 'POST') {
             try {
                 const body = await request.json();
-                const tursoRes = await fetch(`${env.TURSO_URL}/v1/pipeline`, {
+                const tursoRes = await fetch(`${env.TURSO_URL}/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
