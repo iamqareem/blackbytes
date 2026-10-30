@@ -8,7 +8,7 @@ import { summarize } from './summarizer.js';
 
 const db = getDb();
 
-const OG_USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
+const OG_USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Snapfeed/1.0 (+https://gossip.ugaplex.com)';
 
 // Fetch og:image (or first <img>) from an article page for posts missing media
 let ogErrLogged = 0;

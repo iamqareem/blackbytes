@@ -10,6 +10,7 @@ import { spawn } from 'child_process';
 import { getDb } from './db.js';
 import { requireAuth } from './auth.js';
 import { generateJsonLd } from './seo.js';
+import { syncToTurso } from './sync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,6 +124,23 @@ function generateSessionId() {
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Sync local SQLite → Turso (admin-only, triggered from admin portal)
+app.post('/api/sync', requireAuth, async (req, res) => {
+    try {
+        const result = await syncToTurso();
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+app.get('/api/sync/status', requireAuth, (req, res) => {
+    res.json({
+        turso_configured: Boolean(process.env.TURSO_URL && process.env.TURSO_AUTH_TOKEN),
+        local_db: process.env.LOCAL_DB_PATH || './database.sqlite',
+    });
 });
 
 app.get('/api/feed', async (req, res) => {
@@ -440,7 +458,7 @@ app.get('/post/:id', (req, res) => {
     }
     
     const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-    const siteName = 'Blackbytes';
+    const siteName = 'Snapfeed';
     const siteDesc = 'Your daily dose of Afrocentric memes, culture & tech';
     const postUrl = `${siteUrl}/post/${post.id}`;
     const imageUrl = post.media_url || `${siteUrl}/icons/og-image.png`;
@@ -521,7 +539,7 @@ app.get('/post/:id', (req, res) => {
                 </button>
                 <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="btn-secondary text-sm">View Source</a>
             </div>
-            <p class="text-xs text-ig-400">Curated by Blackbytes · AI-summarized</p>
+            <p class="text-xs text-ig-400">Curated by Snapfeed · AI-summarized</p>
         </footer>
     </article>
     

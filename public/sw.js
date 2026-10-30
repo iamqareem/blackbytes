@@ -1,4 +1,4 @@
-const CACHE_NAME = 'afro-aggregator-v1';
+const CACHE_NAME = 'snapfeed-v1';
 const STATIC_CACHE = 'afro-static-v1';
 const API_CACHE = 'afro-api-v1';
 const IMAGE_CACHE = 'afro-images-v1';

@@ -288,6 +288,24 @@ async function triggerScrape() {
     }
 }
 
+async function triggerSync() {
+    const btn = document.getElementById('trigger-sync');
+    const logs = document.getElementById('scraper-logs');
+    btn.disabled = true;
+    btn.textContent = 'Syncing...';
+    logs.textContent += '\nStarting Turso sync...\n';
+    
+    try {
+        const result = await api('/sync', { method: 'POST' });
+        logs.textContent += `Synced: ${result.synced || 0}/${result.total || 0} posts to Turso${result.errors > 0 ? ` (${result.errors} errors)` : ''}\n`;
+    } catch (err) {
+        logs.textContent += `Sync error: ${err.message}\n`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sync to Turso';
+    }
+}
+
 async function saveConfig() {
     const config = {};
     document.querySelectorAll('[id^="cfg-"]').forEach(el => {
@@ -344,6 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('close-modal')?.addEventListener('click', closePostModal);
     document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
     document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
+    document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
     document.getElementById('save-config')?.addEventListener('click', saveConfig);
     document.getElementById('cron-schedule')?.addEventListener('change', saveCronSchedule);
     document.getElementById('logout-btn')?.addEventListener('click', logout);

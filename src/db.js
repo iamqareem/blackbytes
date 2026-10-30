@@ -126,7 +126,7 @@ function seedDefaults() {
         ['site_name', 'Afro Aggregator', 'Site name for SEO/meta'],
         ['site_description', 'Curated Afrocentric memes, culture, tech & entertainment with AI summaries', 'Meta description'],
         ['scraper_cron', '*/30 * * * *', 'Cron schedule for scraper (default: every 30 min)'],
-        ['scraper_user_agent', 'AfroAggregator/0.1 (+https://gossip.ugaplex.com)', 'User agent for scraping'],
+        ['scraper_user_agent', 'Snapfeed/1.0 (+https://gossip.ugaplex.com)', 'User agent for scraping'],
         ['posts_per_page', '20', 'Default pagination limit'],
         ['summary_max_words', '60', 'Max words for AI summaries'],
         ['enable_ads', 'false', 'Toggle ad injection in feed'],

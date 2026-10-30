@@ -9,7 +9,7 @@ const YOUTUBE_CHANNELS = [
     { id: 'UCQmZ9BIYOBSkxL-eqqg5z-g', category: 'Memes', name: 'Mark Angel Comedy' },
 ];
 
-const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
+const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Snapfeed/1.0 (+https://gossip.ugaplex.com)';
 
 async function fetchYouTubeRSS(channel) {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`;

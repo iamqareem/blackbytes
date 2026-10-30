@@ -1,25 +1,22 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { takeNewestBySource } from '../feedUtils.js';
+import { fetchRSSFeed } from '../rssParser.js';
+import { RSS_SOURCES } from '../config/rss-sources.js';
 
 // Big European clubs — curated focus (PL elite + European giants)
 const BIG_CLUB_RE = /(manchester\s+united|man\s+united|manchester\s+city|man\s+city|liverpool|arsenal|chelsea|tottenham|spurs|newcastle|aston\s+villa|west\s+ham|everton|leicester|leeds|barcelona|real\s+madrid|atletico|bayern|dortmund|juventus|ac\s+milan|inter\s+milan|psg|paris\s+saint)/i;
 
-const FOOTBALL_SOURCES = [
-    { name: 'BBC Football Gossip', url: 'https://feeds.bbci.co.uk/sport/football/gossip/rss.xml' },
-    { name: 'BBC Sport Football', url: 'https://feeds.bbci.co.uk/sport/football/rss.xml' },
-    { name: 'The Guardian Football', url: 'https://www.theguardian.com/football/rss' },
-    { name: 'Sky Sports Football', url: 'https://www.skysports.com/rss/12040' },
-];
+// Sports RSS sources come from the shared config (category == 'Sports')
+const FOOTBALL_SOURCES = RSS_SOURCES.filter(s => s.category === 'Sports');
 
 const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard';
 const ESPN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36';
 // Per-match share card (team crests + fixture) — same image ESPN uses for og:image
 const matchShareCard = (eventId) =>
     `https://s.secure.espncdn.com/stitcher/sports/soccer/eng.1/events/${eventId}.png?templateId=espn.com.share.1`;
-// Score updates kept simple: yesterday's results + today only (as user requested)
+// Score updates kept simple: yesterday's results + today only
 const MATCH_DAY_OFFSETS = [-1, 0];
-const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Blackbytes/1.0 (+https://gossip.ugaplex.com)';
 
 async function fetchXml(url) {
     try {

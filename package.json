@@ -1,7 +1,7 @@
 {
-  "name": "afro-aggregator",
+  "name": "snapfeed",
   "version": "0.1.0",
-  "description": "Afrocentric Media & Meme Aggregator - Low-overhead, mobile-first content aggregator with AI summaries",
+  "description": "Snapfeed - Afrocentric Media & Meme Aggregator. Local scraper backend + Cloudflare PWA frontend with Turso sync.",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -29,6 +29,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.14.1",
+    "@libsql/client": "^0.18.0",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.4.3",

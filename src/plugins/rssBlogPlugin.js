@@ -1,117 +1,9 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
 import { takeNewestBySource } from '../feedUtils.js';
+import { fetchRSSFeed, parseRSSFeed } from '../rssParser.js';
+import { RSS_SOURCES } from '../config/rss-sources.js';
 
-const RSS_SOURCES = [
-    {
-        name: 'BellaNaija',
-        url: 'https://www.bellanaija.com/feed/',
-        category: 'Entertainment',
-    },
-    {
-        name: 'Africanews',
-        url: 'https://www.africanews.com/feed/rss',
-        category: 'News',
-    },
-    {
-        name: 'TechCabal',
-        url: 'https://techcabal.com/feed/',
-        category: 'Tech',
-    },
-    {
-        name: 'Disrupt Africa',
-        url: 'https://disrupt-africa.com/feed/',
-        category: 'Tech',
-    },
-    {
-        name: 'WeeTracker',
-        url: 'https://weetracker.com/feed/',
-        category: 'Tech',
-    },
-];
-
-const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'AfroAggregator/0.1';
-
-async function fetchRSSFeed(source) {
-    try {
-        const response = await axios.get(source.url, {
-            headers: { 'User-Agent': USER_AGENT },
-            timeout: 15000,
-        });
-        return response.data;
-    } catch (err) {
-        console.error(`RSS fetch failed for ${source.name}:`, err.message);
-        return null;
-    }
-}
-
-function extractFirstImage(html) {
-    if (!html) return null;
-    const $ = cheerio.load(html);
-    const img = $('img').first();
-    if (img.length) {
-        return img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src') || null;
-    }
-    return null;
-}
-
-function parseRSSFeed(xml, source) {
-    const items = [];
-    const itemMatches = xml.matchAll(/<item>[\s\S]*?<\/item>/g);
-
-    for (const match of itemMatches) {
-        const itemXml = match[0];
-        
-        const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || 
-                          itemXml.match(/<title>([\s\S]*?)<\/title>/);
-        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-        
-        const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
-        const sourceUrl = linkMatch ? linkMatch[1].trim() : '';
-        
-        let contentHtml = '';
-        const contentEncodedMatch = itemXml.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/);
-        if (contentEncodedMatch) {
-            contentHtml = contentEncodedMatch[1];
-        } else {
-            const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ||
-                             itemXml.match(/<description>([\s\S]*?)<\/description>/);
-            contentHtml = descMatch ? descMatch[1] : '';
-        }
-        
-        let content = contentHtml.replace(/<[^>]+>/g, ' ').trim();
-        content = content.replace(/\[\s*\.\.\.\s*\]/g, '').trim();
-        
-        const mediaUrl = extractFirstImage(contentHtml);
-        
-        const fallbackMediaMatch = itemXml.match(/<media:content[^>]*url="([^"]+)"/) ||
-                                  itemXml.match(/<media:thumbnail[^>]*url="([^"]+)"/) ||
-                                  itemXml.match(/<enclosure[^>]*url="([^"]+)"/);
-        const finalMediaUrl = mediaUrl || (fallbackMediaMatch ? fallbackMediaMatch[1] : null);
-        
-        const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/) ||
-                            itemXml.match(/<published>(.*?)<\/published>/);
-        const publishedAt = pubDateMatch ? pubDateMatch[1] : new Date().toISOString();
-        
-        const guidMatch = itemXml.match(/<guid[^>]*>(.*?)<\/guid>/);
-        const guid = guidMatch ? guidMatch[1] : sourceUrl;
-
-        if (sourceUrl && title) {
-            items.push({
-                title,
-                content: content || title,
-                media_url: finalMediaUrl,
-                media_type: finalMediaUrl ? (finalMediaUrl.includes('.mp4') || finalMediaUrl.includes('video') ? 'video' : 'image') : 'text',
-                source_url: sourceUrl,
-                source_name: source.name,
-                category: source.category,
-                published_at: publishedAt,
-            });
-        }
-    }
-
-    return items;
-}
+// Entertainment/blog RSS sources are filtered from the shared config by category != 'News' and != 'Sports'
+const BLOG_SOURCES = RSS_SOURCES.filter(s => s.category !== 'News' && s.category !== 'Sports');
 
 export default {
     name: 'rss-blogs',
@@ -119,8 +11,8 @@ export default {
     async fetch() {
         const allItems = [];
 
-        for (const source of RSS_SOURCES) {
-            const xml = await fetchRSSFeed(source);
+        for (const source of BLOG_SOURCES) {
+            const xml = await fetchRSSFeed(source.url);
             if (xml) {
                 const items = parseRSSFeed(xml, source);
                 console.log(`[rss-blogs] ${source.name}: ${items.length} items`);

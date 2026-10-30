@@ -593,7 +593,7 @@ async function sharePost(postId) {
     if (navigator.share) {
         try {
             await navigator.share({
-                title: post.title || 'Blackbytes',
+                title: post.title || 'Snapfeed',
                 text: post.summary || '',
                 url: shareUrl,
             });

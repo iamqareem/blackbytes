@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { getDb, initDb } from './db.js';
 import { requireAdmin, generateToken, verifyToken, setAuthCookie, clearAuthCookie, hashPassword, verifyPassword } from './auth.js';
 import { triggerScrape } from './scraper.js';
+import { syncToTurso } from './sync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -192,6 +193,22 @@ app.post('/admin/api/scrape/trigger', requireAdmin, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+app.post('/admin/api/sync', requireAdmin, async (req, res) => {
+    try {
+        const result = await syncToTurso();
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/admin/api/sync/status', requireAdmin, (req, res) => {
+    res.json({
+        turso_configured: Boolean(process.env.TURSO_URL && process.env.TURSO_AUTH_TOKEN),
+        local_db: process.env.LOCAL_DB_PATH || './database.sqlite',
+    });
 });
 
 app.get('/admin/api/analytics', requireAdmin, (req, res) => {
