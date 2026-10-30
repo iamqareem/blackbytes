@@ -13,7 +13,7 @@ async function api(path, options = {}) {
     });
     
     if (res.status === 401) {
-        window.location.href = '/admin/';
+        // Session expired or not authenticated — return null, let caller decide
         return null;
     }
     
