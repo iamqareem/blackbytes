@@ -3,289 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afro Aggregator - Admin Dashboard</title>
+    <title>Snapfeed Admin</title>
     <link rel="stylesheet" href="/dist/styles.css">
+    <style>
+        /* Frost Glass Utilities */
+        .glass-panel {
+            background: rgba(17, 17, 17, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .glass-panel-light {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .glass-input-light {
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #111;
+        }
+        .glass-input:focus {
+            border-color: #3B82F6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #FCA5A5;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: rgba(107, 114, 128, 0.9);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        .nav-link.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%);
+            color: #3B82F6;
+            border-right: 3px solid #3B82F6;
+        }
+        .nav-link svg {
+            flex-shrink: 0;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-news { background: rgba(59, 130, 246, 0.15); color: #93C5FD; }
+        .badge-sports { background: rgba(34, 197, 94, 0.15); color: #86EFAC; }
+        .badge-memes { background: rgba(234, 179, 8, 0.15); color: #FDE047; }
+        .badge-entertainment { background: rgba(168, 85, 247, 0.15); color: #D8B4FE; }
+        .badge-culture { background: rgba(236, 72, 153, 0.15); color: #F472B6; }
+        .badge-tech { background: rgba(96, 165, 250, 0.15); color: #93C5FD; }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online { background: #34D399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.5); }
+        .status-offline { background: #F87171; }
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-pulse 1.5s infinite;
+        }
+        @keyframes skeleton-pulse {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6B7280;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .toggle-password:hover { color: #3B82F6; }
+        .skeleton-text {
+            height: 16px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .skeleton-text.w-3/4 { width: 75%; }
+        .skeleton-text.w-1/2 { width: 50%; }
+    </style>
 </head>
-<body class="admin-layout">
-    <div id="app">
-        <!-- Login form (shown when not authenticated) -->
-        <div id="login-form" class="fixed inset-0 bg-ig-surface dark:bg-ig-bg z-50 flex items-center justify-center hidden">
-            <div class="bg-ig-surface dark:bg-ig-surface p-8 rounded-2xl border border-ig-200 dark:border-ig-border w-full max-w-md shadow-2xl">
-                <h2 class="text-2xl font-bold text-ig-900 dark:text-ig-text mb-6 text-center">Snapfeed Admin Login</h2>
-                <form id="login-form-el" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-1">Username</label>
-                        <input type="text" id="login-username" class="admin-input" required placeholder="admin">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-1">Password</label>
-                        <input type="password" id="login-password" class="admin-input" required placeholder="••••••••">
-                    </div>
-                    <button type="submit" id="login-btn" class="btn-primary w-full">Sign In</button>
-                    <p id="login-error" class="text-sm text-ig-danger text-center hidden"></p>
-                </form>
-            </div>
-        </div>
+<body class="admin-layout min-h-screen">
 
-        <div id="dashboard-app" class="flex min-h-screen hidden">
-            <aside id="sidebar" class="admin-sidebar">
-                <div class="p-4 border-b border-ig-200 dark:border-ig-border">
-                    <a href="/" class="flex items-center gap-2 text-ig-primary">
-                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-                        <span class="font-bold text-xl">Snapfeed</span>
-                    </a>
-                    <p class="text-xs text-ig-400 mt-1">Admin Dashboard</p>
+    <!-- Login Form (Frost Glass) -->
+    <div id="login-form" class="fixed inset-0 z-50 flex items-center justify-center hidden px-4">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14a2 2 0 11-4 0 2 2 0 004 0z"/></svg>
                 </div>
-                <nav class="p-4 space-y-1" id="nav-menu">
-                    <a href="#posts" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-ig-600 dark:text-ig-muted hover:bg-ig-100 dark:hover:bg-ig-elevated transition-colors active" data-tab="posts">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span>Posts</span>
-                    </a>
-                    <a href="#scraper" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-ig-600 dark:text-ig-muted hover:bg-ig-100 dark:hover:bg-ig-elevated transition-colors" data-tab="scraper">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <span>Scraper</span>
-                    </a>
-                    <a href="#analytics" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-ig-600 dark:text-ig-muted hover:bg-ig-100 dark:hover:bg-ig-elevated transition-colors" data-tab="analytics">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        <span>Analytics</span>
-                    </a>
-                    <a href="#settings" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-ig-600 dark:text-ig-muted hover:bg-ig-100 dark:hover:bg-ig-elevated transition-colors" data-tab="settings">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span>Settings</span>
-                    </a>
-                    <a href="#users" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-ig-600 dark:text-ig-muted hover:bg-ig-100 dark:hover:bg-ig-elevated transition-colors" data-tab="users">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                        <span>Users</span>
-                    </a>
-                </nav>
-                <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-ig-200 dark:border-ig-border">
-                    <button id="logout-btn" class="btn-secondary w-full">Logout</button>
-                </div>
-            </aside>
-
-            <div class="admin-main flex flex-col min-h-screen">
-                <header class="bg-ig-surface dark:bg-ig-surface border-b border-ig-200 dark:border-ig-border px-6 py-4 flex items-center justify-between">
-                    <h1 class="text-xl font-semibold text-ig-900 dark:text-ig-text" id="page-title">Posts</h1>
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm text-ig-400 hidden sm:block" id="user-display">Admin</span>
-                    </div>
-                </header>
-
-                <main class="flex-1 p-6 overflow-auto">
-                    <section id="tab-posts" class="tab-content">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-lg font-medium text-ig-900 dark:text-ig-text">Content Management</h2>
-                            <button id="add-post-btn" class="btn-primary">Add Post</button>
-                        </div>
-                        <div class="admin-card overflow-x-auto">
-                            <table class="admin-table" id="posts-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Title</th>
-                                        <th>Source</th>
-                                        <th>Category</th>
-                                        <th>Engagement</th>
-                                        <th>Views</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="posts-tbody"></tbody>
-                            </table>
-                        </div>
-                        <div class="flex items-center justify-between mt-4" id="posts-pagination">
-                            <span class="text-sm text-ig-400" id="posts-pagination-info"></span>
-                            <div class="flex gap-2">
-                                <button id="prev-page" class="btn-secondary text-sm py-1 px-3" disabled>Previous</button>
-                                <button id="next-page" class="btn-secondary text-sm py-1 px-3" disabled>Next</button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="tab-scraper" class="tab-content hidden">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-lg font-medium text-ig-900 dark:text-ig-text">Scraper Control</h2>
-                            <div class="flex gap-2">
-                                <button id="trigger-scrape" class="btn-primary">Run Scraper Now</button>
-                                <button id="trigger-sync" class="btn-primary">Sync to Turso</button>
-                            </div>
-                        </div>
-                        <div class="admin-card">
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Cron Schedule</label>
-                                <input type="text" id="cron-schedule" class="admin-input" placeholder="*/30 * * * *" value="*/30 * * * *">
-                                <p class="text-xs text-ig-400 mt-1">Standard cron format. Current: Every 30 minutes</p>
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Scraper Logs</label>
-                                <pre id="scraper-logs" class="bg-ig-50 dark:bg-ig-elevated p-4 rounded-lg text-sm text-ig-700 dark:text-ig-muted max-h-96 overflow-auto font-mono"></pre>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="tab-analytics" class="tab-content hidden">
-                        <h2 class="text-lg font-medium text-ig-900 dark:text-ig-text mb-6">Analytics Overview</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <div class="admin-card text-center">
-                                <p class="text-3xl font-bold text-ig-primary" id="stat-sessions">0</p>
-                                <p class="text-sm text-ig-400">Sessions (30d)</p>
-                            </div>
-                            <div class="admin-card text-center">
-                                <p class="text-3xl font-bold text-ig-primary" id="stat-interactions">0</p>
-                                <p class="text-sm text-ig-400">Interactions (30d)</p>
-                            </div>
-                            <div class="admin-card text-center">
-                                <p class="text-3xl font-bold text-ig-primary" id="stat-posts">0</p>
-                                <p class="text-sm text-ig-400">Total Posts</p>
-                            </div>
-                            <div class="admin-card text-center">
-                                <p class="text-3xl font-bold text-ig-primary" id="stat-engagement">0</p>
-                                <p class="text-sm text-ig-400">Total Engagement</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div class="admin-card">
-                                <h3 class="font-medium text-ig-900 dark:text-ig-text mb-4">Daily Activity (30 days)</h3>
-                                <div id="analytics-daily" class="space-y-2"></div>
-                            </div>
-                            <div class="admin-card">
-                                <h3 class="font-medium text-ig-900 dark:text-ig-text mb-4">Top Posts</h3>
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr><th>Title</th><th>Category</th><th>Views</th><th>Likes</th><th>Shares</th><th>Saves</th><th>Score</th></tr>
-                                    </thead>
-                                    <tbody id="top-posts-tbody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="admin-card mt-6">
-                            <h3 class="font-medium text-ig-900 dark:text-ig-text mb-4">Posts by Category</h3>
-                            <div id="category-stats" class="grid grid-cols-2 md:grid-cols-6 gap-4"></div>
-                        </div>
-                    </section>
-
-                    <section id="tab-settings" class="tab-content hidden">
-                        <h2 class="text-lg font-medium text-ig-900 dark:text-ig-text mb-6">Site Configuration</h2>
-                        <div class="admin-card space-y-6 max-w-2xl">
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Site Name</label>
-                                <input type="text" id="cfg-site_name" class="admin-input">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Site Description</label>
-                                <textarea id="cfg-site_description" class="admin-input" rows="3"></textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Google Analytics (GA4) ID</label>
-                                <input type="text" id="cfg-ga4_id" class="admin-input" placeholder="G-XXXXXXXXXX">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">AdSense Client ID</label>
-                                <input type="text" id="cfg-adsense_client_id" class="admin-input" placeholder="ca-pub-XXXXXXXXXXXXXXXX">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">AdSense Feed Slot ID</label>
-                                <input type="text" id="cfg-adsense_slot_feed" class="admin-input" placeholder="1234567890">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">AdSense Sidebar Slot ID</label>
-                                <input type="text" id="cfg-adsense_slot_sidebar" class="admin-input" placeholder="0987654321">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Posts Per Page</label>
-                                <input type="number" id="cfg-posts_per_page" class="admin-input" value="20" min="10" max="100">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Summary Max Words</label>
-                                <input type="number" id="cfg-summary_max_words" class="admin-input" value="60" min="30" max="150">
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" id="cfg-enable_ads" class="w-4 h-4 text-ig-primary rounded border-ig-200 dark:border-ig-border">
-                                <label class="text-sm text-ig-700 dark:text-ig-muted">Enable Ads</label>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" id="cfg-enable_analytics" class="w-4 h-4 text-ig-primary rounded border-ig-200 dark:border-ig-border">
-                                <label class="text-sm text-ig-700 dark:text-ig-muted">Enable Analytics</label>
-                            </div>
-                            <button id="save-config" class="btn-primary">Save Configuration</button>
-                        </div>
-                    </section>
-
-                    <section id="tab-users" class="tab-content hidden">
-                        <h2 class="text-lg font-medium text-ig-900 dark:text-ig-text mb-6">Admin Users</h2>
-                        <div class="admin-card overflow-x-auto">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr><th>ID</th><th>Username</th><th>Role</th><th>Created</th><th>Last Login</th></tr>
-                                </thead>
-                                <tbody id="users-tbody"></tbody>
-                            </table>
-                        </div>
-                    </section>
-                </main>
+                <h2 class="text-2xl font-bold text-white mb-2">Snapfeed Admin</h2>
+                <p class="text-gray-400 text-sm">Sign in to manage your content</p>
             </div>
+            <form id="login-form-el" class="space-y-5">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Username</label>
+                    <input type="text" id="login-username" class="glass-input w-full px-4 py-3 rounded-xl text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" required placeholder="admin">
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
+                    <input type="password" id="login-password" class="glass-input w-full px-4 py-3 pr-12 rounded-xl text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" required placeholder="••••••••">
+                    <button type="button" id="toggle-password" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-400 transition-colors" aria-label="Toggle password visibility">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.483 7.25 8.031 4.081 12 4.081c8.829 0 12.364 6.368 12.364 7.919 0 1.551-3.535 7.918-12.364 7.918-3.97 0-8.517-3.169-9.543-7.918z"/></svg>
+                    </button>
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary w-full py-3 text-lg font-semibold">Sign In</button>
+                <p id="login-error" class="text-sm text-red-400 text-center hidden font-medium"></p>
+            </form>
         </div>
     </div>
 
-    <div id="post-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="bg-ig-surface dark:bg-ig-surface rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-auto m-4 animate-fade-in">
-            <div class="p-6 border-b border-ig-200 dark:border-ig-border flex items-center justify-between sticky top-0 bg-ig-surface dark:bg-ig-surface z-10">
-                <h3 class="text-lg font-semibold text-ig-900 dark:text-ig-text" id="modal-title">Add Post</h3>
-                <button id="close-modal" class="p-2 text-ig-400 hover:text-ig-600 dark:hover:text-ig-300 rounded-lg hover:bg-ig-100 dark:hover:bg-ig-elevated">
+    <!-- Dashboard App (Frost Glass) -->
+    <div id="dashboard-app" class="flex min-h-screen hidden">
+        <!-- Sidebar (Frost Glass) -->
+        <aside id="sidebar" class="w-64 glass-panel border-r border-white/10 z-30 flex flex-col">
+            <div class="p-6 border-b border-white/10">
+                <a href="/" class="flex items-center gap-3 text-white">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14a2 2 0 11-4 0 2 2 0 004 0z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-sm tracking-tight">Snapfeed</h3>
+                        <p class="text-xs text-gray-400">Admin Dashboard</p>
+                    </div>
+                </a>
+            </div>
+            <nav class="p-3 space-y-1" id="nav-menu">
+                <a href="#posts" class="nav-link active flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all" data-tab="posts">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="font-medium">Posts</span>
+                </a>
+                <a href="#scraper" class="nav-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all" data-tab="scraper">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span class="font-medium">Scraper</span>
+                </a>
+                <a href="#analytics" class="nav-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all" data-tab="analytics">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span class="font-medium">Analytics</span>
+                </a>
+                <a href="#settings" class="nav-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all" data-tab="settings">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="font-medium">Settings</span>
+                </a>
+                <a href="#users" class="nav-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all" data-tab="users">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <span class="font-medium">Users</span>
+                </a>
+            </nav>
+            <div class="mt-auto p-6 border-t border-white/10">
+                <button id="logout-btn" class="flex items-center gap-3 w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 rounded-xl font-medium transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-h-0 bg-black/20 border-l border-white/5">
+            <header class="glass-panel-light h-16 border-b border-white/10 px-6 flex items-center justify-between z-10 sticky top-0">
+                <h1 class="text-xl font-bold text-gray-900 tracking-tight" id="page-title">Posts</h1>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-medium bg-green-500/10 text-green-700 px-2 py-1 rounded-full border border-green-500/20 flex items-center gap-1.5">
+                        <span class="status-indicator status-online"></span>
+                        Online
+                    </span>
+                    <span id="user-display" class="text-sm font-medium text-gray-700">Admin</span>
+                </div>
+            </header>
+
+            <main class="flex-1 p-6 overflow-y-auto">
+                <!-- Posts Tab -->
+                <section id="tab-posts" class="tab-content">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">Content Management</h2>
+                            <p class="text-sm text-gray-500">Manage your Snapfeed content and posts</p>
+                        </div>
+                        <button id="add-post-btn" class="btn-primary px-6 py-2.5 text-sm font-semibold flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add Post
+                        </button>
+                    </div>
+                    <div class="glass-panel-light rounded-2xl overflow-hidden border border-gray-200">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50/50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Engagement</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Views</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="posts-tbody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex items-center justify-between mt-6" id="posts-pagination">
+                        <div class="flex -space-x-2">
+                            <button id="prev-page" class="btn-secondary px-4 py-2 text-sm disabled:opacity-50 disabled:pointer-events-none">Previous</button>
+                            <button id="next-page" class="btn-secondary px-4 py-2 text-sm disabled:opacity-50 disabled:pointer-events-none">Next</button>
+                        </div>
+                        <span class="text-sm text-gray-500" id="posts-pagination-info">Page 1 of 1</span>
+                    </div>
+                </section>
+
+                <!-- Scraper Tab -->
+                <section id="tab-scraper" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">Scraper Control</h2>
+                            <p class="text-sm text-gray-500">Run scraping cycles and sync to Turso</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="trigger-scrape" class="btn-primary px-6 py-2.5 text-sm font-semibold flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.014m0 0l4.586-4.586a2 2 0 012.828 0L20 8m-2-2l1.586-1.586a2 2 0 012.828 0L20 6m-6-6h.014m0 0l4.586-4.586a2 2 0 012.828 0L20 4m-2-2l1.586-1.586a2 2 0 012.828 0L20 2m-10 10l-4.586 4.586a2 2 0 00-2.828 0L4 8m-2-2l1.586-1.586a2 2 0 00-2.828 0L4 6m-2-2l1.586-1.586a2 2 0 00-2.828 0L4 2z"/></svg>
+                                Run Scraper
+                            </button>
+                            <button id="trigger-sync" class="btn-primary px-6 py-2.5 text-sm font-semibold flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                Sync to Turso
+                            </button>
+                        </div>
+                    </div>
+                    <div class="glass-panel-light rounded-xl border border-gray-200 overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <span class="text-sm font-semibold text-gray-700">Cron Schedule</span>
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Every 30 minutes</span>
+                        </div>
+                        <div class="p-4 border-b border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Scraper Logs</label>
+                            <pre id="scraper-logs" class="bg-gray-900 text-green-400 p-4 rounded-lg text-sm font-mono max-h-96 overflow-auto"></pre>
+                        </div>
+                        <div class="p-4 bg-gray-50/50">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600">Sync Status</span>
+                                <span id="sync-status" class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                                    <span class="text-gray-500">Idle</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics Tab -->
+                <section id="tab-analytics" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Sessions</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-sessions">0</span>
+                            <p class="text-xs text-gray-400 mt-1">Last 30 days</p>
+                        </div>
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Interactions</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-interactions">0</span>
+                            <p class="text-xs text-gray-400 mt-1">Last 30 days</p>
+                        </div>
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Posts</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-posts">0</span>
+                            <p class="text-xs text-gray-400 mt-1">In database</p>
+                        </div>
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Engagement</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-engagement">0</span>
+                            <p class="text-xs text-gray-400 mt-1">Likes + Shares + Saves</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <h3 class="font-bold text-gray-900 mb-4">Daily Activity (30 days)</h3>
+                            <div id="analytics-daily" class="space-y-3"></div>
+                        </div>
+                        <div class="glass-panel-light rounded-xl p-6 border border-gray-200">
+                            <h3 class="font-bold text-gray-900 mb-4">Top Posts</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">Title</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">Category</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500">Views</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500">Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-posts-tbody" class="divide-y divide-gray-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel-light rounded-xl p-6 border border-gray-200 mt-8">
+                        <h3 class="font-bold text-gray-900 mb-4">Posts by Category</h3>
+                        <div id="category-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                    </div>
+                </section>
+
+                <!-- Settings Tab -->
+                <section id="tab-settings" class="tab-content hidden">
+                    <div class="max-w-3xl">
+                        <div class="glass-panel-light rounded-xl p-8 border border-gray-200">
+                            <h2 class="text-lg font-bold text-gray-900 mb-6">Site Configuration</h2>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Site Name</label>
+                                    <input type="text" id="cfg-site_name" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Site Description</label>
+                                    <textarea id="cfg-site_description" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" rows="3"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">GA4 Measurement ID</label>
+                                    <input type="text" id="cfg-ga4_id" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="G-XXXXXXXXXX">
+                                </div>
+                                <div class="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">AdSense Client ID</label>
+                                        <input type="text" id="cfg-adsense_client_id" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="ca-pub-...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">AdSense Feed Slot</label>
+                                        <input type="text" id="cfg-adsense_slot_feed" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="1234567890">
+                                    </div>
+                                </div>
+                                <div class="pt-4 border-t border-gray-200">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Monetization</h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center gap-3">
+                                            <input type="checkbox" id="cfg-enable_ads" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label class="text-sm font-medium text-gray-700 cursor-pointer">Enable Ads on PWA</label>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <input type="checkbox" id="cfg-affiliate_aliexpress" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label class="text-sm font-medium text-gray-700 cursor-pointer">AliExpress Affiliate Links</label>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <input type="checkbox" id="cfg-telegram_mini_app" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <label class="text-sm font-medium text-gray-700 cursor-pointer">Telegram Mini App Mode</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end pt-6">
+                                    <button id="save-config" class="btn-primary px-6 py-2.5 text-sm font-semibold">Save Configuration</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Users Tab -->
+                <section id="tab-users" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">Admin Users</h2>
+                            <p class="text-sm text-gray-500">Manage administrator accounts</p>
+                        </div>
+                    </div>
+                    <div class="glass-panel-light rounded-xl overflow-hidden border border-gray-200">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50/50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Username</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Login</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Post Modal (Frost Glass) -->
+    <div id="post-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="glass-panel-light rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col border border-gray-200 shadow-2xl animate-fade-in">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900" id="modal-title">Add Post</h3>
+                <button id="close-modal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <form id="post-form" class="p-6 space-y-4">
+            <form id="post-form" class="p-6 space-y-5">
                 <input type="hidden" id="post-id">
                 <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Title *</label>
-                    <input type="text" id="post-title" class="admin-input" required>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Title *</label>
+                    <input type="text" id="post-title" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Summary *</label>
-                    <textarea id="post-summary" class="admin-input" rows="3" required></textarea>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Summary *</label>
+                    <textarea id="post-summary" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" rows="3" required></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Media URL</label>
+                        <input type="url" id="post-media_url" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="https://...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Media Type</label>
+                        <select id="post-media_type" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="video">Video</option>
+                            <option value="embed">Embed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Source URL *</label>
+                        <input type="url" id="post-source_url" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required placeholder="https://...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Source Name *</label>
+                        <input type="text" id="post-source_name" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required placeholder="@username or Site Name">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Media URL</label>
-                    <input type="url" id="post-media_url" class="admin-input" placeholder="https://...">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Media Type</label>
-                    <select id="post-media_type" class="admin-select">
-                        <option value="text">Text</option>
-                        <option value="image">Image</option>
-                        <option value="video">Video</option>
-                        <option value="embed">Embed</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Source URL *</label>
-                    <input type="url" id="post-source_url" class="admin-input" required placeholder="https://...">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Source Name *</label>
-                    <input type="text" id="post-source_name" class="admin-input" required placeholder="@username or Site Name">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-2">Category *</label>
-                    <select id="post-category" class="admin-select" required>
-                        <option value="Memes">Memes</option>
-                        <option value="Culture">Culture</option>
-                        <option value="Tech">Tech</option>
-                        <option value="Entertainment">Entertainment</option>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Category *</label>
+                    <select id="post-category" class="glass-input-light w-full px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                         <option value="News">News</option>
                         <option value="Sports">Sports</option>
+                        <option value="Memes">Memes</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Culture">Culture</option>
+                        <option value="Tech">Tech</option>
                     </select>
                 </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-ig-200 dark:border-ig-border">
-                    <button type="button" id="cancel-modal" class="btn-secondary">Cancel</button>
-                    <button type="submit" class="btn-primary">Save</button>
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button type="button" id="cancel-modal" class="btn-secondary px-6 py-2.5">Cancel</button>
+                    <button type="submit" class="btn-primary px-6 py-2.5">Save Post</button>
                 </div>
             </form>
         </div>
     </div>
-</div>
 
     <script type="module" src="/dist/app.js"></script>
 </body>

@@ -382,6 +382,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         login();
     });
     
+    // Password visibility toggle
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('login-password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            const eye = togglePassword.querySelector('path');
+            if (type === 'text') {
+                eye.setAttribute('d', 'M1.754 12.25c.846-1.468 3.116-4.203 10.246-4.203 7.045 0 9.901 5.151 10.246 6.129.025.074.053.151.053.226 0 1.412-.95 2.858-2.321 3.816-1.372.957-3.15 1.472-5.214 1.472-1.92 0-3.722-.45-5.366-1.446-1.302-.774-2.083-1.871-2.184-2.953a4 4 0 0 1-.076-.432m0-4.022c-.748-.772-1.178-1.596-1.335-2.185a4 4 0 0 1 .076-.432c.352-.93 1.188-2.049 2.343-2.878A9.96 9.96 0 0 1 12 2c4.094 0 7.562 2.496 8.978 5.742a9.98 9.98 0 0 1 1.171 2.185c.112.41.191.847.191 1.284 0 1.609-1.156 3.186-2.827 4.018-1.339.68-3.092 1.051-4.779 1.051-1.687 0-3.44-.371-5.063-1.069-1.671-.832-2.506-2.409-2.625-3.531a3 3 0 0 1-.076-.422z');
+            } else {
+                eye.setAttribute('d', 'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.483 7.25 8.031 4.081 12 4.081c8.829 0 12.364 6.368 12.364 7.919 0 1.551-3.535 7.918-12.364 7.918-3.97 0-8.517-3.169-9.543-7.918z');
+            }
+        });
+    }
+    
     logoutBtn?.addEventListener('click', logout);
     
     const authed = await checkAuth();
