@@ -132,8 +132,9 @@
         import { rankPosts } from './ranking.js';
 
         // ── Config ──
-        const TURSO_URL = 'libsql://snapfeed-mwanja.aws-ap-south-1.turso.io';
-        const TURSO_AUTH_TOKEN = localStorage.getItem('snapfeed_turso_token') || '';
+        // Worker proxy URL — deploy the Worker and set this to its URL
+        // Example: https://snapfeed.your-subdomain.workers.dev
+        const WORKER_URL = 'https://snapfeed.your-subdomain.workers.dev';
 
         // ── Ad / Monetization config (from Turso site_config, cached in localStorage) ──
         let adConfig = {
@@ -303,16 +304,16 @@
         }
 
         async function fetchFromTurso() {
-            const url = `${TURSO_URL}/v1/pipeline`;
-            const body = JSON.stringify({
-                statements: [
-                    `SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at, indexed_at FROM posts ORDER BY indexed_at DESC LIMIT 100;`
-                ]
+            const res = await fetch(`${WORKER_URL}/api/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    statements: [
+                        `SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at, indexed_at FROM posts ORDER BY indexed_at DESC LIMIT 100;`
+                    ]
+                }),
             });
-            const headers = { 'Content-Type': 'application/json' };
-            if (TURSO_AUTH_TOKEN) headers.Authorization = `Bearer ${TURSO_AUTH_TOKEN}`;
-            const res = await fetch(url, { method: 'POST', headers, body });
-            if (!res.ok) throw new Error(`Turso HTTP ${res.status}`);
+            if (!res.ok) throw new Error(`Worker HTTP ${res.status}`);
             const data = await res.json();
             return (data.results?.[0]?.rows || []).map(row => ({
                 id: row[0], title: row[1], summary: row[2], media_url: row[3],
@@ -324,13 +325,13 @@
 
         async function fetchConfigFromTurso() {
             try {
-                const url = `${TURSO_URL}/v1/pipeline`;
-                const body = JSON.stringify({
-                    statements: [`SELECT key, value FROM site_config;`]
+                const res = await fetch(`${WORKER_URL}/api/posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        statements: [`SELECT key, value FROM site_config;`]
+                    }),
                 });
-                const headers = { 'Content-Type': 'application/json' };
-                if (TURSO_AUTH_TOKEN) headers.Authorization = `Bearer ${TURSO_AUTH_TOKEN}`;
-                const res = await fetch(url, { method: 'POST', headers, body });
                 if (!res.ok) return adConfig;
                 const data = await res.json();
                 const rows = data.results?.[0]?.rows || [];

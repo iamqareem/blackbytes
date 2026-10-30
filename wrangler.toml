@@ -1,24 +1,33 @@
-# Cloudflare Pages / Workers config for Snapfeed PWA
-# No build step — static files deployed directly
+# Cloudflare Pages + Workers config for Snapfeed
+# Deploy with: npx wrangler deploy (Worker) + npx wrangler pages deploy pwa/ (Pages)
+# Or connect this GitHub repo to Cloudflare Pages in the web dashboard
 
 name = "snapfeed"
 compatibility_date = "2026-10-30"
+main = "src/worker/turso-proxy.js"
 
+# Workers deployment
+[workers]
+  # Deployed separately via: wrangler deploy
+
+# Pages deployment (static frontend)
 [pages]
-  # Static site served from pwa/ directory
-  # Deploy with: npx wrangler pages deploy pwa/
+  # Deployed via: wrangler pages deploy pwa/
+  # Or connect GitHub repo to Cloudflare Pages dashboard
 
 [build]
-  # No build command needed — static files
   command = ""
   dir = "pwa"
 
+# Secrets — set via CLI or Cloudflare dashboard:
+#   npx wrangler secret put TURSO_URL
+#   npx wrangler secret put TURSO_AUTH_TOKEN
+# Values:
+#   TURSO_URL=https://snapfeed-mwanja.aws-ap-south-1.turso.io
+#   TURSO_AUTH_TOKEN=<from Turso dashboard Settings > Auth tokens>
+
 [[d1_databases]]
-  # Optional: if you later want D1 instead of direct Turso reads
+  # Optional: if you later migrate from Turso to Cloudflare D1
   # binding = "DB"
   # database_name = "snapfeed"
   # database_id = ""
-
-# Turso auth token — set via Cloudflare dashboard or CLI:
-#   npx wrangler secret put TURSO_AUTH_TOKEN
-#   npx wrangler secret put TURSO_URL
