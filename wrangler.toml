@@ -1,0 +1,24 @@
+# Cloudflare Pages / Workers config for Snapfeed PWA
+# No build step — static files deployed directly
+
+name = "snapfeed"
+compatibility_date = "2026-10-30"
+
+[pages]
+  # Static site served from pwa/ directory
+  # Deploy with: npx wrangler pages deploy pwa/
+
+[build]
+  # No build command needed — static files
+  command = ""
+  dir = "pwa"
+
+[[d1_databases]]
+  # Optional: if you later want D1 instead of direct Turso reads
+  # binding = "DB"
+  # database_name = "snapfeed"
+  # database_id = ""
+
+# Turso auth token — set via Cloudflare dashboard or CLI:
+#   npx wrangler secret put TURSO_AUTH_TOKEN
+#   npx wrangler secret put TURSO_URL

@@ -4,16 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Afro Aggregator - Admin Dashboard</title>
-    <link rel="stylesheet" href="/admin/dist/styles.css">
+    <link rel="stylesheet" href="/dist/styles.css">
 </head>
 <body class="admin-layout">
     <div id="app">
-        <div class="flex min-h-screen">
+        <!-- Login form (shown when not authenticated) -->
+        <div id="login-form" class="fixed inset-0 bg-ig-surface dark:bg-ig-bg z-50 flex items-center justify-center hidden">
+            <div class="bg-ig-surface dark:bg-ig-surface p-8 rounded-2xl border border-ig-200 dark:border-ig-border w-full max-w-md shadow-2xl">
+                <h2 class="text-2xl font-bold text-ig-900 dark:text-ig-text mb-6 text-center">Snapfeed Admin Login</h2>
+                <form id="login-form-el" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-1">Username</label>
+                        <input type="text" id="login-username" class="admin-input" required placeholder="admin">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-ig-700 dark:text-ig-muted mb-1">Password</label>
+                        <input type="password" id="login-password" class="admin-input" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" id="login-btn" class="btn-primary w-full">Sign In</button>
+                    <p id="login-error" class="text-sm text-ig-danger text-center hidden"></p>
+                </form>
+            </div>
+        </div>
+
+        <div id="dashboard-app" class="flex min-h-screen hidden">
             <aside id="sidebar" class="admin-sidebar">
                 <div class="p-4 border-b border-ig-200 dark:border-ig-border">
                     <a href="/" class="flex items-center gap-2 text-ig-primary">
                         <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-                        <span class="font-bold text-xl">Afro Aggregator</span>
+                        <span class="font-bold text-xl">Snapfeed</span>
                     </a>
                     <p class="text-xs text-ig-400 mt-1">Admin Dashboard</p>
                 </div>
@@ -266,7 +285,8 @@
             </form>
         </div>
     </div>
+</div>
 
-    <script type="module" src="/admin/dist/app.js"></script>
+    <script type="module" src="/dist/app.js"></script>
 </body>
 </html>

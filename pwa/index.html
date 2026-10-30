@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Snapfeed - Your daily dose of Afrocentric memes, culture &amp; tech">
+    <title>Snapfeed</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+
+    <!-- Tailwind CSS via CDN (no build step) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#000000',
+                        surface: '#111111',
+                        brand: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Theme toggle (runs before body renders) -->
+    <script>
+        (() => {
+            const saved = localStorage.getItem('snapfeed_theme');
+            if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.documentElement.classList.add('light');
+            }
+        })();
+    </script>
+</head>
+<body class="bg-black text-white min-h-screen font-sans antialiased overflow-hidden">
+
+    <!-- Telegram WebApp detection banner (appears only in Telegram) -->
+    <div id="tg-banner" class="hidden fixed top-0 left-0 right-0 px-4 py-2 bg-blue-600 text-white text-center text-xs font-medium z-50">
+        Open in Telegram for the full Mini App experience
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 h-14 px-4 flex items-center justify-between z-40 bg-black/80 backdrop-blur border-b border-white/10">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='/'">
+            <div class="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold">S</div>
+            <span class="font-bold text-lg tracking-tight">Snapfeed</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="theme-toggle" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors" aria-label="Toggle theme">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>
+            </button>
+            <button id="prefs-btn" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors" aria-label="Preferences">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Feed -->
+    <main class="pt-16 pb-24 px-2 overflow-y-auto h-[100svh] -mx-2" id="feed" role="main" aria-label="Flashcard feed">
+        <!-- Cards injected here -->
+    </main>
+
+    <!-- Bottom action bar (hidden while swiping, reappears on tap) -->
+    <div id="action-bar" class="fixed left-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 flex gap-2 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-full pointer-events-auto transition-all duration-300">
+        <!-- Like -->
+        <button id="btn-like" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Like">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            <span id="count-like" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        </button>
+        <!-- Save -->
+        <button id="btn-save" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Save">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+            <span id="count-save" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        </button>
+        <!-- Share -->
+        <button id="btn-share" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Share">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            <span id="count-share" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        </button>
+    </div>
+
+    <!-- Floating emoji trigger (bottom-right, colinear with action bar) -->
+    <button id="emoji-trigger" class="fixed right-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20 transition-all pointer-events-auto" aria-label="Reactions">
+        😊
+    </button>
+
+    <!-- Emoji picker (hidden by default) -->
+    <div id="emoji-picker" class="hidden fixed right-2 bottom-[calc(116px+env(safe-area-inset-bottom))] z-50 w-64 p-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex-wrap gap-2"></div>
+
+    <!-- Preferences modal -->
+    <div id="prefs-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-surface dark:bg-surface rounded-2xl border border-white/10 p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">Preferences</h2>
+            <p class="text-sm text-white/60 mb-6">Select your favorite categories</p>
+            <div id="prefs-chips" class="flex flex-wrap gap-2 mb-6"></div>
+            <div class="flex justify-end gap-2">
+                <button id="prefs-close" class="px-4 py-2 text-white/60 hover:text-white">Cancel</button>
+                <button id="prefs-save" class="px-4 py-2 bg-brand text-white rounded-lg hover:bg-blue-600">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-black/90 text-white rounded-full text-sm border border-white/10 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+
+    <!-- AdSense placeholder (injected every 5th card) -->
+    <template id="ad-template">
+        <div class="flex justify-center my-4">
+            <div class="w-full max-w-[300px] h-[250px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs">
+                Ad
+            </div>
+        </div>
+    </template>
+
+    <script type="module">
+        import { rankPosts } from './ranking.js';
+
+        // ── Config ──
+        const TURSO_URL = 'libsql://snapfeed-mwanja.aws-ap-south-1.turso.io';
+        // In production, this token is set by Cloudflare (Wrangler secrets).
+        // For local dev, the admin portal proxies or you set it via localStorage override.
+        const TURSO_AUTH_TOKEN = localStorage.getItem('snapfeed_turso_token') || '';
+
+        // ── State ──
+        let posts = [];
+        let ranked = [];
+        let activeIndex = 0;
+        let favorites = JSON.parse(localStorage.getItem('snapfeed_favorites') || '[]');
+        let viewed = new Set(JSON.parse(localStorage.getItem('snapfeed_viewed') || '[]'));
+        let interactions = {}; // { [postId]: { like, save, share } }
+        let theme = localStorage.getItem('snapfeed_theme') || 'dark';
+
+        // ── DOM ──
+        const feed = document.getElementById('feed');
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefsBtn = document.getElementById('prefs-btn');
+        const prefsModal = document.getElementById('prefs-modal');
+        const prefsClose = document.getElementById('prefs-close');
+        const prefsSave = document.getElementById('prefs-save');
+        const prefsChips = document.getElementById('prefs-chips');
+        const actionBar = document.getElementById('action-bar');
+        const emojiTrigger = document.getElementById('emoji-trigger');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const toastEl = document.getElementById('toast');
+        const tgBanner = document.getElementById('tg-banner');
+
+        // ── Init ──
+        function init() {
+            applyTheme();
+            detectTelegram();
+            setupEventListeners();
+            fetchAndRender();
+        }
+
+        function applyTheme() {
+            if (theme === 'light') {
+                document.documentElement.classList.add('light');
+                themeToggle.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"></path></svg>';
+            } else {
+                document.documentElement.classList.remove('light');
+                themeToggle.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>';
+            }
+        }
+
+        function detectTelegram() {
+            if (window.Telegram?.WebApp) {
+                tgBanner.classList.remove('hidden');
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+                // Hide browser-style elements that don't make sense in Telegram
+                actionBar.style.transform = 'translateY(10px)';
+                actionBar.style.opacity = '0.5';
+            }
+        }
+
+        function setupEventListeners() {
+            themeToggle.addEventListener('click', () => {
+                theme = theme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('snapfeed_theme', theme);
+                applyTheme();
+            });
+
+            prefsBtn.addEventListener('click', () => {
+                prefsModal.classList.remove('hidden');
+                renderPrefsChips();
+            });
+
+            prefsClose.addEventListener('click', () => prefsModal.classList.add('hidden'));
+            prefsSave.addEventListener('click', () => {
+                prefsModal.classList.add('hidden');
+                fetchAndRender();
+            });
+
+            // HUD tuck on scroll
+            feed.addEventListener('scroll', () => {
+                actionBar.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+                emojiTrigger.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+                emojiPicker.classList.add('hidden');
+            }, { passive: true });
+
+            // Tap to toggle HUD
+            feed.addEventListener('click', (e) => {
+                if (e.target.closest('button, a')) return;
+                const tucked = actionBar.classList.contains('opacity-0');
+                actionBar.classList.toggle('opacity-0');
+                actionBar.classList.toggle('translate-y-2');
+                actionBar.classList.toggle('pointer-events-none');
+                emojiTrigger.classList.toggle('opacity-0');
+                emojiTrigger.classList.toggle('translate-y-2');
+                emojiTrigger.classList.toggle('pointer-events-none');
+            });
+
+            // Action buttons
+            document.getElementById('btn-like').addEventListener('click', () => toggleInteraction('like'));
+            document.getElementById('btn-save').addEventListener('click', () => toggleInteraction('save'));
+            document.getElementById('btn-share').addEventListener('click', () => toggleInteraction('share'));
+
+            // Emoji trigger
+            emojiTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                emojiPicker.classList.toggle('hidden');
+            });
+
+            // Close picker on outside click
+            document.addEventListener('click', (e) => {
+                if (!emojiTrigger.contains(e.target) && !emojiPicker.contains(e.target)) {
+                    emojiPicker.classList.add('hidden');
+                }
+            });
+        }
+
+        // ── Data ──
+        async function fetchAndRender() {
+            try {
+                const raw = await fetchFromTurso();
+                posts = raw;
+                ranked = rankAndFilter(posts);
+                renderCard(activeIndex);
+            } catch (err) {
+                console.error('Fetch failed:', err);
+                showToast('Failed to load feed');
+            }
+        }
+
+        async function fetchFromTurso() {
+            // Option A: Direct Turso HTTP (read-only token)
+            // Option B: Via Cloudflare Worker proxy (production)
+            const url = `${TURSO_URL}/v1/pipeline`;
+            const body = JSON.stringify({
+                statements: [
+                    `SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at, indexed_at FROM posts ORDER BY indexed_at DESC LIMIT 100;`
+                ]
+            });
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (TURSO_AUTH_TOKEN) headers.Authorization = `Bearer ${TURSO_AUTH_TOKEN}`;
+
+            const res = await fetch(url, { method: 'POST', headers, body });
+            if (!res.ok) throw new Error(`Turso HTTP ${res.status}`);
+
+            const data = await res.json();
+            return (data.results?.[0]?.rows || []).map(row => ({
+                id: row[0], title: row[1], summary: row[2], media_url: row[3],
+                media_type: row[4], source_url: row[5], source_name: row[6],
+                category: row[7], likes: row[8], shares: row[9], saves: row[10],
+                views: row[11], created_at: row[12], indexed_at: row[13]
+            }));
+        }
+
+        function rankAndFilter(items) {
+            // Use the shared ranking logic
+            const now = new Date();
+            const FRESHNESS_WINDOW_DAYS = 3;
+            const FRESH_WEIGHT = 30;
+            const FRESH_DECAY = 1.5;
+            const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
+            const CATEGORY_BOOST = { Memes: 6.0, Entertainment: 2.0 };
+            const SOURCE_CAP = 3;
+            const CATEGORY_CAP = 6;
+            const DIVERSITY_WINDOW = 25;
+
+            const scored = items.map(post => {
+                const postTime = new Date(post.created_at);
+                const ageDays = isNaN(postTime) ? 0 : Math.max(0, (now - postTime) / 86400000);
+                if (ageDays > FRESHNESS_WINDOW_DAYS) return null;
+
+                const engagement = (post.likes||0)*1 + (post.shares||0)*2 + (post.saves||0)*3 + (post.views||0)*0.0001;
+                const recency = FRESH_WEIGHT * Math.exp(-FRESH_DECAY * ageDays);
+                const score = engagement + recency + (CATEGORY_BOOST[post.category] || 0);
+
+                return { ...post, score };
+            }).filter(Boolean);
+
+            scored.sort((a, b) => b.score - a.score);
+
+            // Category filter (favorites)
+            if (favorites.length) {
+                scored = scored.filter(p => favorites.includes(p.category));
+            }
+
+            // Diversity window: source cap
+            const window = scored.slice(0, DIVERSITY_WINDOW);
+            const tail = scored.slice(DIVERSITY_WINDOW);
+            const kept = [], dropped = [];
+            const srcCounts = {};
+            for (const item of window) {
+                if ((srcCounts[item.source_name] || 0) < SOURCE_CAP) {
+                    kept.push(item);
+                    srcCounts[item.source_name] = (srcCounts[item.source_name] || 0) + 1;
+                } else {
+                    dropped.push(item);
+                }
+            }
+
+            // Category cap (favorites only)
+            if (favorites.length) {
+                const catKept = [], catDropped = [];
+                const catCounts = {};
+                for (const item of kept) {
+                    if ((catCounts[item.category] || 0) < CATEGORY_CAP) {
+                        catKept.push(item);
+                        catCounts[item.category] = (catCounts[item.category] || 0) + 1;
+                    } else {
+                        catDropped.push(item);
+                    }
+                }
+                return interleaveVideos([...catKept, ...catDropped, ...dropped, ...tail]);
+            }
+
+            return interleaveVideos([...kept, ...dropped, ...tail]);
+        }
+
+        function interleaveVideos(items) {
+            const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
+            const videos = items.filter(i => VIDEO_TYPES.has(i.media_type));
+            if (!videos.length) return items;
+            const others = items.filter(i => !VIDEO_TYPES.has(i.media_type));
+            const out = [];
+            let vi = 0;
+            for (let pos = 0; pos < items.length; pos++) {
+                const target = Math.floor(((pos + 1) * videos.length) / items.length);
+                if (vi < videos.length && target > vi) {
+                    out.push(videos[vi]);
+                    vi++;
+                } else if (others.length) {
+                    out.push(others.shift());
+                }
+            }
+            while (vi < videos.length) { out.push(videos[vi]); vi++; }
+            return out;
+        }
+
+        // ── Render ──
+        function renderCard(index) {
+            if (index < 0 || index >= ranked.length) {
+                feed.innerHTML = '<div class="text-center py-20 text-white/40">No more content</div>';
+                return;
+            }
+
+            const post = ranked[index];
+            const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
+            const isVertical = post.media_type === 'shorts';
+            const viewedCls = viewed.has(String(post.id)) ? 'opacity-50' : '';
+
+            const mediaHtml = isVideo
+                ? `<iframe class="w-full aspect-video rounded-lg" src="${post.media_url}" frameborder="0" allowfullscreen></iframe>`
+                : `<img class="w-full h-72 object-cover rounded-lg" src="${post.media_url || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${escapeHtml(post.title)}">`;
+
+            const summaryHtml = post.summary ? `<p class="text-sm text-white/60 mt-2 line-clamp-3">${escapeHtml(post.summary)}</p>` : '';
+
+            const state = interactions[String(post.id)] || {};
+            const likeActive = state.like ? 'text-red-500' : 'text-white';
+            const saveActive = state.save ? 'text-yellow-400' : 'text-white';
+            const shareActive = state.share ? 'text-green-400' : 'text-white';
+
+            feed.innerHTML = `
+                <article class="max-w-[400px] mx-auto flex flex-col gap-3 ${viewedCls}">
+                    <div class="${isVideo ? 'aspect-video' : 'aspect-[4/3]'} rounded-lg bg-surface overflow-hidden relative">
+                        ${mediaHtml}
+                    </div>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">${escapeHtml(post.source_name)}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-500/30">${escapeHtml(post.category)}</span>
+                    </div>
+                    <h2 class="text-xl font-bold leading-tight mb-2">${escapeHtml(post.title)}</h2>
+                    ${summaryHtml}
+                    <div class="mt-4 flex items-center justify-between">
+                        <a href="${post.source_url}" target="_blank" rel="noopener" class="text-xs text-blue-400 underline hover:text-blue-300">Read on ${escapeHtml(post.source_name)}</a>
+                    </div>
+                </article>
+                ${index % 5 === 4 ? adHtml() : ''}
+            `;
+
+            updateActionCounts(post);
+        }
+
+        function adHtml() {
+            return document.getElementById('ad-template').innerHTML;
+        }
+
+        function updateActionCounts(post) {
+            const id = String(post.id);
+            const state = interactions[id] || {};
+            document.getElementById('count-like').textContent = post.likes;
+            document.getElementById('count-save').textContent = post.saves;
+            document.getElementById('count-share').textContent = post.shares;
+        }
+
+        function toggleInteraction(action) {
+            const post = ranked[activeIndex];
+            if (!post) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            interactions[id][action] = !interactions[id][action];
+            if (action === 'like') post.likes += interactions[id].like ? 1 : -1;
+            if (action === 'save') post.saves += interactions[id].save ? 1 : -1;
+            if (action === 'share') post.shares += interactions[id].share ? 1 : -1;
+
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            ranked = rankAndFilter(posts); // re-rank with new engagement
+            renderCard(Math.min(activeIndex, ranked.length - 1));
+            showToast(action.charAt(0).toUpperCase() + action.slice(1) + (interactions[id][action] ? '' : 'd'));
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove('opacity-0');
+            setTimeout(() => toastEl.classList.add('opacity-0'), 2000);
+        }
+
+        // ── Swipe navigation ──
+        let touchStartX = 0, touchStartY = 0;
+        feed.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        feed.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+
+            // Vertical swipe = next/prev card
+            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+                if (diffY > 0 && activeIndex > 0) {
+                    activeIndex--;
+                } else if (diffY < 0 && activeIndex < ranked.length - 1) {
+                    activeIndex++;
+                }
+                renderCard(activeIndex);
+            }
+        }, { passive: true });
+
+        // Keyboard nav
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowDown' && activeIndex < ranked.length - 1) {
+                activeIndex++;
+                renderCard(activeIndex);
+            }
+            if (e.key === 'ArrowUp' && activeIndex > 0) {
+                activeIndex--;
+                renderCard(activeIndex);
+            }
+        });
+
+        // ── Preferences ──
+        function renderPrefsChips() {
+            const cats = ['News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
+            prefsChips.innerHTML = cats.map(cat => `
+                <button class="px-3 py-1 rounded-full text-sm border transition-colors ${favorites.includes(cat) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/10 text-white/60 border-white/10 hover:bg-white/20'}" data-cat="${cat}">
+                    ${cat}
+                </button>
+            `).join('');
+            prefsChips.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cat = btn.dataset.cat;
+                    if (favorites.includes(cat)) favorites = favorites.filter(c => c !== cat);
+                    else favorites.push(cat);
+                    renderPrefsChips();
+                });
+            });
+        }
+
+        // ── Boot ──
+        init();
+    </script>
+</body>
+</html>

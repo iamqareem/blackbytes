@@ -333,7 +333,7 @@ async function saveCronSchedule() {
 
 async function logout() {
     await api('/auth/logout', { method: 'POST' });
-    window.location.href = '/admin/';
+    window.location.reload();
 }
 
 function checkAuth() {
@@ -346,32 +346,75 @@ function checkAuth() {
     }).catch(() => false);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const authed = await checkAuth();
-    if (!authed) return;
+async function login() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
     
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            showTab(link.dataset.tab);
+    errorEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    
+    try {
+        const result = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password }),
         });
+        if (result) {
+            window.location.reload();
+        }
+    } catch (err) {
+        errorEl.textContent = err.message || 'Login failed';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const loginForm = document.getElementById('login-form-el');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    loginForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        login();
     });
     
-    document.getElementById('add-post-btn')?.addEventListener('click', () => openPostModal());
-    document.getElementById('post-form')?.addEventListener('submit', savePost);
-    document.getElementById('close-modal')?.addEventListener('click', closePostModal);
-    document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
-    document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
-    document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
-    document.getElementById('save-config')?.addEventListener('click', saveConfig);
-    document.getElementById('cron-schedule')?.addEventListener('change', saveCronSchedule);
-    document.getElementById('logout-btn')?.addEventListener('click', logout);
-    document.getElementById('prev-page')?.addEventListener('click', () => loadPosts(postsPage - 1));
-    document.getElementById('next-page')?.addEventListener('click', () => loadPosts(postsPage + 1));
+    logoutBtn?.addEventListener('click', logout);
     
-    document.getElementById('post-modal')?.addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) closePostModal();
-    });
+    const authed = await checkAuth();
     
-    showTab('posts');
+    if (authed) {
+        document.getElementById('login-form')?.classList.add('hidden');
+        document.getElementById('dashboard-app')?.classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab(link.dataset.tab);
+            });
+        });
+        
+        document.getElementById('add-post-btn')?.addEventListener('click', () => openPostModal());
+        document.getElementById('post-form')?.addEventListener('submit', savePost);
+        document.getElementById('close-modal')?.addEventListener('click', closePostModal);
+        document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
+        document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
+        document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
+        document.getElementById('save-config')?.addEventListener('click', saveConfig);
+        document.getElementById('cron-schedule')?.addEventListener('change', saveCronSchedule);
+        document.getElementById('prev-page')?.addEventListener('click', () => loadPosts(postsPage - 1));
+        document.getElementById('next-page')?.addEventListener('click', () => loadPosts(postsPage + 1));
+        
+        document.getElementById('post-modal')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closePostModal();
+        });
+        
+        showTab('posts');
+    } else {
+        document.getElementById('login-form')?.classList.remove('hidden');
+        document.getElementById('dashboard-app')?.classList.add('hidden');
+    }
 });
