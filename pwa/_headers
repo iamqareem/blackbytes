@@ -1,0 +1,20 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/style.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+/sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/ranking.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=86400
