@@ -12,6 +12,9 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 
+    <!-- Telegram Mini App SDK (must load before app script) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <!-- Self-contained CSS (no external CDN) -->
     <link rel="stylesheet" href="/style.css">
 
@@ -25,7 +28,7 @@
         })();
     </script>
 </head>
-<body class="bg-black text-white min-h-screen font-sans antialiased overflow-hidden">
+<body class="text-white min-h-screen font-sans antialiased overflow-hidden">
 
     <!-- Telegram WebApp banner (appears only in Telegram) -->
     <div id="tg-banner" class="hidden fixed top-0 left-0 right-0 px-4 py-2 bg-blue-600 text-white text-center text-xs font-medium z-50">
@@ -507,35 +510,38 @@
         // ── Render ──
         function renderCard(index) {
             if (index < 0 || index >= ranked.length) {
-                feed.innerHTML = '<div class="text-center py-20 text-white/40">No more content</div>';
+                feed.innerHTML = '<div class="flex items-center justify-center h-full text-white/40 text-sm">No more content</div>';
                 return;
             }
 
             const post = ranked[index];
             const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
-            const viewedCls = viewed.has(String(post.id)) ? 'opacity-50' : '';
+            const viewedCls = viewed.has(String(post.id)) ? 'opacity-60' : '';
+            const ratioClass = isVideo ? 'ratio-16-9' : 'ratio-4-3';
+            const imgSrc = escapeHtml(post.media_url || 'https://placehold.co/400x300/111/555?text=No+Image');
 
             const mediaHtml = isVideo
-                ? `<iframe class="w-full aspect-video rounded-lg" src="${escapeHtml(post.media_url)}" frameborder="0" allowfullscreen></iframe>`
-                : `<img class="w-full h-72 object-cover rounded-lg" src="${escapeHtml(post.media_url || 'https://via.placeholder.com/400x300?text=No+Image')}" alt="${escapeHtml(post.title)}">`;
+                ? `<iframe src="${escapeHtml(post.media_url)}" frameborder="0" allowfullscreen loading="lazy"></iframe>`
+                : `<img src="${imgSrc}" alt="${escapeHtml(post.title)}" loading="lazy">`;
 
-            const summaryHtml = post.summary ? `<p class="text-sm text-white/60 mt-2 line-clamp-3">${escapeHtml(post.summary)}</p>` : '';
+            const summaryHtml = post.summary
+                ? `<p class="feed-card-summary">${escapeHtml(post.summary)}</p>` : '';
 
             const sourceUrl = affiliateUrl(post.source_url);
 
             feed.innerHTML = `
-                <article class="max-w-[400px] mx-auto flex flex-col gap-3 ${viewedCls}">
-                    <div class="${isVideo ? 'aspect-video' : 'aspect-[4/3]'} rounded-lg bg-surface overflow-hidden relative">
+                <article class="w-full max-w-[440px] mx-auto flex flex-col gap-3 px-3 pt-16 pb-28 ${viewedCls}" style="min-height:100svh;min-height:100vh;">
+                    <div class="media-box ${ratioClass}">
                         ${mediaHtml}
                     </div>
-                    <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="flex items-center justify-between gap-2">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">${escapeHtml(post.source_name)}</span>
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-500/30">${escapeHtml(post.category)}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30">${escapeHtml(post.category)}</span>
                     </div>
-                    <h2 class="text-xl font-bold leading-tight mb-2">${escapeHtml(post.title)}</h2>
+                    <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
                     ${summaryHtml}
-                    <div class="mt-4 flex items-center justify-between">
-                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="text-xs text-blue-400 underline hover:text-blue-300">
+                    <div class="mt-2">
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="feed-card-link">
                             Read on ${escapeHtml(post.source_name)}
                             ${adConfig.affiliate_aliexpress ? '<span class="text-[10px] ml-1">→</span>' : ''}
                         </a>

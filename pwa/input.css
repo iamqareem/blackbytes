@@ -1,168 +1,234 @@
-/* Snapfeed PWA input — scanned by Tailwind for pwa/index.html */
+/* Snapfeed PWA — Tailwind input for pwa/ directory */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Colors ── */
-:root {
-  --color-bg: #000000;
-  --color-surface: #111111;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: hsla(0, 0%, 100%, 0.75);
-  --color-text-muted: hsla(0, 0%, 100%, 0.45);
-  --color-brand: #3B82F6;
-  --color-brand-hover: #60A5FA;
-  --radius-full: 9999px;
-  --radius-lg: 20px;
-  --radius-md: 16px;
+/* ─────────────────────────────────────────────
+   BASE LAYER OVERRIDES
+   Must stay in @layer base so Tailwind utilities
+   (h-4, h-5, w-4, w-5) can override them
+───────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-bg: #000000;
+    --color-surface: #111111;
+    --color-text-primary: #ffffff;
+    --color-brand: #3B82F6;
+    --color-brand-hover: #60A5FA;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html.light {
+    --color-bg: #f8f8f8;
+    --color-surface: #ffffff;
+    --color-text-primary: #0b0b0b;
+    --color-brand: #2563eb;
+    --color-brand-hover: #3b82f6;
+  }
+
+  /* Explicit SVG sizing resets so our w-4/h-4 utilities win */
+  svg {
+    display: inline-block;
+    vertical-align: middle;
+    /* NOTE: do NOT set height:auto here — that breaks w-4/h-4 utility classes */
+  }
+
+  /* Scope height:auto only to img/video, NOT svg */
+  img, video {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  iframe {
+    display: block;
+  }
+
+  /* Image inside feed box must fill its container */
+  .media-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .media-box iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
 }
 
-html.light {
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-text-primary: #0b0b0b;
-  --color-text-secondary: rgba(0, 0, 0, 0.68);
-  --color-text-muted: rgba(0, 0, 0, 0.45);
-  --color-brand: #2563eb;
-  --color-brand-hover: #3b82f6;
+/* ─────────────────────────────────────────────
+   COMPONENT CLASSES
+   Semantic classes for feed cards, HUD, etc.
+───────────────────────────────────────────── */
+@layer components {
+
+  /* ── Light mode body ── */
+  html.light body {
+    background-color: var(--color-bg) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  /* bg-surface token */
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+
+  /* ── Media box (image / video container inside cards) ── */
+  .media-box {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #141414;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .media-box.ratio-16-9 { aspect-ratio: 16/9; }
+  .media-box.ratio-4-3  { aspect-ratio: 4/3; }
+
+  html.light .media-box {
+    background: #f0f0f0;
+    border-color: rgba(0,0,0,0.1);
+  }
+
+  /* ── Feed card ── */
+  .feed-card-title {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    margin: 0 0 6px;
+  }
+
+  .feed-card-summary {
+    font-size: 0.83rem;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  html.light .feed-card-summary { color: rgba(0,0,0,0.55); }
+
+  .feed-card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #60A5FA;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.35);
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .feed-card-link:hover {
+    background: rgba(59,130,246,0.24);
+    border-color: rgba(59,130,246,0.6);
+    color: #93C5FD;
+  }
+
+  html.light .feed-card-link {
+    color: #2563eb;
+    background: rgba(37,99,235,0.1);
+    border-color: rgba(37,99,235,0.3);
+  }
+
+  /* ── HUD tucked state ── */
+  .hud-tucked {
+    opacity: 0 !important;
+    transform: translateY(16px) !important;
+    pointer-events: none !important;
+  }
 }
 
-html.light body {
-  background: var(--color-bg);
-  color: var(--color-text-primary);
+/* ─────────────────────────────────────────────
+   DESKTOP: phone-column layout
+   On screens wider than 520px, centre the app
+   in a phone-width column so it looks intentional
+   rather than elements scattered at screen edges.
+───────────────────────────────────────────── */
+@media (min-width: 520px) {
+  /* Constrain and centre the feed */
+  #feed {
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+
+  html.light #feed {
+    border-color: rgba(0,0,0,0.08);
+  }
+
+  /* Header stays full-width but content centred */
+  header {
+    display: flex;
+    justify-content: center;
+  }
+
+  header > div.flex {
+    width: 100%;
+    max-width: 440px;
+  }
+
+  /* Re-anchor action bar to the column, not the viewport left edge */
+  #action-bar {
+    left: 50%;
+    transform: translateX(calc(-220px + 8px));
+  }
+
+  /* Re-anchor emoji trigger to the column right edge */
+  #emoji-trigger {
+    left: 50%;
+    transform: translateX(calc(220px - 50px - 8px));
+    right: auto;
+  }
+
+  /* Re-anchor emoji picker similarly */
+  #emoji-picker {
+    left: 50%;
+    transform: translateX(calc(220px - 256px - 8px));
+    right: auto;
+  }
+
+  /* Toast centred within column */
+  #toast {
+    left: 50%;
+  }
+
+  /* TG premium banner */
+  #tg-premium {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 440px;
+    right: auto;
+  }
 }
 
-body {
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* ── Feed card semantic classes ── */
-.feed-card {
-  width: 100%;
-  height: 100svh;
-  height: 100vh;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 64px 16px 108px;
-  overflow: hidden;
-}
-
-.feed-card-img-box {
-  width: 100%;
-  max-width: 440px;
-  border-radius: 16px;
-  border: 1.5px solid hsla(0, 0%, 100%, 0.1);
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
-  background: #141414;
-  aspect-ratio: 16/9;
-}
-
-.feed-card-img-box img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  display: block;
-}
-
-.feed-card-img-box iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: block;
-}
-
-.feed-card-content {
-  width: 100%;
-  max-width: 440px;
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  flex-shrink: 1;
-  min-height: 0;
-}
-
-.feed-card-title {
-  font-size: clamp(0.975rem, 4.5vw, 1.3rem);
-  font-weight: 800;
-  line-height: 1.25;
-  color: var(--color-text-primary);
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
-}
-
-.feed-card-summary {
-  font-size: 0.825rem;
-  line-height: 1.55;
-  color: hsla(0, 0%, 100%, 0.52);
-  margin: 0 0 14px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.feed-card-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #60A5FA;
-  padding: 7px 14px;
-  border-radius: var(--radius-full);
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  transition: all 0.15s;
-  text-decoration: none;
-}
-
-.feed-card-link:hover {
-  background: rgba(59, 130, 246, 0.24);
-  border-color: rgba(59, 130, 246, 0.6);
-  color: #93C5FD;
-}
-
-/* ── Tucked HUD state ── */
-.hud-tucked {
-  opacity: 0 !important;
-  transform: translateY(16px) !important;
-  pointer-events: none !important;
-}
-
-/* ── Animations ── */
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────── */
 @keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  0%  { opacity: 0; transform: translateY(14px); }
+  to  { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes heartBeat {
   0%, to { transform: scale(1); }
-  40% { transform: scale(1.45); }
-  65% { transform: scale(1.2); }
+  40%    { transform: scale(1.45); }
+  65%    { transform: scale(1.2); }
 }
 
-.heart-beat {
-  animation: heartBeat 0.38s ease;
-}
-
-/* ── Light mode ── */
-html.light .feed-card { background: #fff; }
-html.light .feed-card-img-box { border-color: rgba(0,0,0,0.1); background: #f1f1f1; }
-html.light .feed-card-title { color: #0b0b0b; }
-html.light .feed-card-summary { color: rgba(0,0,0,0.55); }
-html.light .feed-card-link { color: #2563eb; background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.3); }
-
-/* ── bg-surface custom token ── */
-.bg-surface { background-color: var(--color-surface); }
+.heart-beat { animation: heartBeat 0.38s ease; }
