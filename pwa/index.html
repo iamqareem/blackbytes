@@ -12,8 +12,10 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 
+    <!-- Self-contained CSS (no external CDN) -->
     <link rel="stylesheet" href="/style.css">
 
+    <!-- Theme toggle (runs before body renders) -->
     <script>
         (() => {
             const saved = localStorage.getItem('snapfeed_theme');
@@ -41,7 +43,7 @@
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 h-14 px-4 flex items-center justify-between z-40 bg-black/80 backdrop-blur border-b border-white/10">
         <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='/'">
-            <div class="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold">S</div>
+            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">S</div>
             <span class="font-bold text-lg tracking-tight">Snapfeed</span>
         </div>
         <div class="flex items-center gap-2">
@@ -59,7 +61,7 @@
         <!-- Cards injected here -->
     </main>
 
-    <!-- Bottom action bar (hidden while swiping, reappears on tap) -->
+    <!-- Bottom action pill (hidden while swiping, reappears on tap) -->
     <div id="action-bar" class="fixed left-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 flex gap-2 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-full pointer-events-auto transition-all duration-300">
         <!-- Like -->
         <button id="btn-like" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Like">
@@ -78,23 +80,25 @@
         </button>
     </div>
 
-    <!-- Floating emoji trigger (bottom-right, colinear with action bar) -->
+    <!-- Floating emoji trigger (bottom-right, colinear with action pill) -->
     <button id="emoji-trigger" class="fixed right-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20 transition-all pointer-events-auto" aria-label="Reactions">
         😊
     </button>
 
     <!-- Emoji picker (hidden by default) -->
-    <div id="emoji-picker" class="hidden fixed right-2 bottom-[calc(116px+env(safe-area-inset-bottom))] z-50 w-64 p-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex-wrap gap-2"></div>
+    <div id="emoji-picker" class="hidden fixed right-2 bottom-[calc(116px+env(safe-area-inset-bottom))] z-50 w-64 p-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex-wrap gap-2">
+        😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤨🧐🤓😎🥸🤩🥳😏😒😞😔😟😕🙁😮😯😲😳😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈👿💀💩🤡👹👺🤡👻👽🤖🎃😺😸😹😻😼😽🙀😿😾
+    </div>
 
     <!-- Preferences modal -->
     <div id="prefs-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="bg-surface dark:bg-surface rounded-2xl border border-white/10 p-6 w-full max-w-md">
+        <div class="bg-black/95 rounded-2xl border border-white/10 p-6 w-full max-w-md">
             <h2 class="text-xl font-bold mb-4">Preferences</h2>
             <p class="text-sm text-white/60 mb-6">Select your favorite categories</p>
             <div id="prefs-chips" class="flex flex-wrap gap-2 mb-6"></div>
             <div class="flex justify-end gap-2">
                 <button id="prefs-close" class="px-4 py-2 text-white/60 hover:text-white">Cancel</button>
-                <button id="prefs-save" class="px-4 py-2 bg-brand text-white rounded-lg hover:bg-blue-600">Save</button>
+                <button id="prefs-save" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save</button>
             </div>
         </div>
     </div>
@@ -178,22 +182,23 @@
             isTelegram = !!window.Telegram?.WebApp;
             if (isTelegram) {
                 tgBanner.classList.remove('hidden');
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                Telegram.WebApp.MainButton.text = 'Go Ad-Free (Stars)';
-                Telegram.WebApp.MainButton.onClick(() => {
-                    if (Telegram.WebApp.openInvoice) {
-                        Telegram.WebApp.openInvoice({
-                            title: 'Snapfeed Ad-Free',
-                            description: 'Remove ads for 30 days',
-                            payload: 'snapfeed_adfree_30d',
-                            provider_token: '',
-                            currency: 'XTR',
-                            prices: [{ label: 'Ad-Free 30 Days', amount: 99 }], // 0.99 USD in cents
-                        });
-                    }
-                });
-                // Show premium upsell if not ad-free
+                if (window.Telegram.WebApp) {
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
+                    Telegram.WebApp.MainButton.text = 'Go Ad-Free (Stars)';
+                    Telegram.WebApp.MainButton.onClick(() => {
+                        if (Telegram.WebApp.openInvoice) {
+                            Telegram.WebApp.openInvoice({
+                                title: 'Snapfeed Ad-Free',
+                                description: 'Remove ads for 30 days',
+                                payload: 'snapfeed_adfree_30d',
+                                provider_token: '',
+                                currency: 'XTR',
+                                prices: [{ label: 'Ad-Free 30 Days', amount: 99 }],
+                            });
+                        }
+                    });
+                }
                 if (!isAdFree) {
                     tgPremium.classList.remove('hidden');
                     actionBar.style.transform = 'translateY(10px)';
@@ -353,10 +358,12 @@
 
             scored.sort((a, b) => b.score - a.score);
 
+            // Category filter (favorites)
             if (favorites.length) {
                 scored = scored.filter(p => favorites.includes(p.category));
             }
 
+            // Diversity window: source cap
             const window = scored.slice(0, DIVERSITY_WINDOW);
             const tail = scored.slice(DIVERSITY_WINDOW);
             const kept = [], dropped = [];
@@ -370,6 +377,7 @@
                 }
             }
 
+            // Category cap (favorites only)
             if (favorites.length) {
                 const catKept = [], catDropped = [];
                 const catCounts = {};
@@ -493,7 +501,6 @@
 
             const post = ranked[index];
             const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
-            const isVertical = post.media_type === 'shorts';
             const viewedCls = viewed.has(String(post.id)) ? 'opacity-50' : '';
 
             const mediaHtml = isVideo
@@ -501,11 +508,6 @@
                 : `<img class="w-full h-72 object-cover rounded-lg" src="${escapeHtml(post.media_url || 'https://via.placeholder.com/400x300?text=No+Image')}" alt="${escapeHtml(post.title)}">`;
 
             const summaryHtml = post.summary ? `<p class="text-sm text-white/60 mt-2 line-clamp-3">${escapeHtml(post.summary)}</p>` : '';
-
-            const state = interactions[String(post.id)] || {};
-            const likeActive = state.like ? 'text-red-500' : 'text-white';
-            const saveActive = state.save ? 'text-yellow-400' : 'text-white';
-            const shareActive = state.share ? 'text-green-400' : 'text-white';
 
             const sourceUrl = affiliateUrl(post.source_url);
 
