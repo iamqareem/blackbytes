@@ -928,12 +928,18 @@
         }
 
         // ── Boot ──
-        // Cleanup: unregister any legacy service worker + clear all caches.
-        // An older SW cached stale assets (old Tailwind markup); this runs on
-        // every load to guarantee fresh HTML/CSS/JS from the network.
+        // Legacy cleanup (scoped): an older SW cached stale assets (old
+        // Tailwind markup). Clear only OUR leftover caches — a blanket
+        // unregister/delete would kill Monetag's /sw.js worker, which the
+        // Monetag tag registers once enable_ads is on.
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())).catch(() => {});
-            if (window.caches && caches.keys) caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(() => {});
+            if (window.caches && caches.keys) {
+                caches.keys()
+                    .then((keys) => Promise.all(
+                        keys.filter((k) => k.startsWith('snapfeed')).map((k) => caches.delete(k))
+                    ))
+                    .catch(() => {});
+            }
         }
 
         init();

@@ -1,19 +1,26 @@
-// Snapfeed service worker — cleanup only, NO caching.
-// A previous version cached index.html/style.css aggressively and served
-// stale assets (old Tailwind-based markup) from cache on Cloudflare Pages.
-// This version deletes every cache and unregisters itself on activate.
+// Snapfeed service worker — Monetag worker (must live at site root /sw.js)
+// + legacy cache cleanup. Replaces the old cleanup-only SW: the stale-cache
+// pipeline is already dead (_headers serves everything no-cache), so this
+// file now doubles as Monetag's push/rewards worker.
+self.options = {
+    "domain": "5gvci.com",
+    "zoneId": 12159495
+}
+self.lary = ""
+importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
 
-self.addEventListener('install', () => self.skipWaiting());
-
+// Clear the legacy 'snapfeed-v1' cache left by an earlier SW. Scoped to
+// snapfeed* so Monetag's own caches are never touched.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-      const regs = await self.registration.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
+      await Promise.all(
+        keys.filter((k) => k.startsWith('snapfeed')).map((k) => caches.delete(k))
+      );
     })()
   );
 });
 
-// No fetch handler → network-only for everything.
+// No fetch handler of our own → network-only for app assets; Monetag's
+// imported script owns whatever it registers.
