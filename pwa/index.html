@@ -83,9 +83,16 @@
         </div>
     </div>
 
-    <!-- Floating Review Trigger — opens our Google Business Profile review page -->
+    <!-- Floating Review Trigger — manga speech balloon + rating star -->
     <button id="review-trigger" class="review-trigger" aria-label="Leave a review" title="Review us">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- tilted manga speech balloon with tail -->
+            <path d="M5.2 4.2 H17.3 a2.6 2.6 0 0 1 2.6 2.6 V13.7 a2.6 2.6 0 0 1 -2.6 2.6 H11.6 l-4.2 3.3 0.6 -3.3 H5.2 a2.6 2.6 0 0 1 -2.6 -2.6 V6.8 a2.6 2.6 0 0 1 2.6 -2.6 Z"/>
+            <!-- rating star inside -->
+            <path fill="currentColor" stroke="none" transform="translate(4.76 3.09) scale(0.57)" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+            <!-- kira sparkle accent (twinkles) -->
+            <path class="review-spark" d="M21.3 1.4 c0.3 1.4 0.7 1.8 2.1 2.1 c-1.4 0.3 -1.8 0.7 -2.1 2.1 c-0.3 -1.4 -0.7 -1.8 -2.1 -2.1 c1.4 -0.3 1.8 -0.7 2.1 -2.1 Z"/>
+        </svg>
     </button>
 
     <!-- Preferences Modal (Conforms to Theme) -->
@@ -114,10 +121,22 @@
             adsense_client_id: '',
             adsense_slot_feed: '',
             monetag_zone_id: '',
+            monetag_tag_url: '',
+            adsgram_blocks: '{}',
+            ad_rail_interval: 6,
             affiliate_aliexpress: false,
             affiliate_aliexpress_tag: '',
             google_review_url: '',
         };
+
+        // ── Ad rails — Monetag (site-wide overlay formats) + Adsgram (Telegram,
+        // category-railed in-feed cards). Everything stays off until
+        // enable_ads=true in Turso site_config. ──
+        const MONETAG_TAG_SRC = 'https://alwingulla.com/88/tag.min.js';
+        const AD_PREVIEW = new URLSearchParams(location.search).get('ads') === 'preview';
+        let monetagInjected = false;
+        let adsgramInjected = false;
+        const adControllers = new Map(); // Adsgram blockId -> controller
 
         // ── State ──
         const CAT_TABS = ['Feed', 'News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
@@ -161,7 +180,7 @@
             activeCategory = cat;
             activeIndex = 0;
             renderCatTabs();
-            ranked = rankAndFilter(posts);
+            rerank();
             document.body.classList.remove('hud-tucked');
             renderCard(0);
         }
@@ -198,22 +217,21 @@
         }
 
         function detectTelegram() {
-            if (window.Telegram?.WebApp) {
-                document.documentElement.classList.add('is-telegram');
-                try {
-                    window.Telegram.WebApp.ready();
-                    window.Telegram.WebApp.expand();
-                } catch (_) {}
-                // Telegram captures vertical swipes to close the Mini App, which
-                // blocks swipe-down -> previous post. Disable that capture.
-                try {
-                    if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
-                        window.Telegram.WebApp.disableVerticalSwipes();
-                    } else {
-                        window.Telegram.WebApp.isVerticalSwipesEnabled = false;
-                    }
-                } catch (_) {}
-            }
+            if (!isTelegramEnv()) return;
+            document.documentElement.classList.add('is-telegram');
+            try {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            } catch (_) {}
+            // Telegram captures vertical swipes to close the Mini App, which
+            // blocks swipe-down -> previous post. Disable that capture.
+            try {
+                if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+                    window.Telegram.WebApp.disableVerticalSwipes();
+                } else {
+                    window.Telegram.WebApp.isVerticalSwipesEnabled = false;
+                }
+            } catch (_) {}
         }
 
         // ── Reviews — opens our Google Business Profile review page ──
@@ -254,7 +272,7 @@
             prefsSave.addEventListener('click', () => {
                 localStorage.setItem('snapfeed_favorites', JSON.stringify(favorites));
                 prefsModal.classList.remove('open');
-                ranked = rankAndFilter(posts);
+                rerank();
                 activeIndex = 0;
                 renderCard(0);
                 showToast('Preferences updated');
@@ -288,6 +306,11 @@
                     if (action === 'share') handleShare();
                     else toggleInteraction(action);
                 });
+            });
+
+            // Sponsored rail CTA — delegated (feed HTML is replaced per card)
+            feed.addEventListener('click', (e) => {
+                if (e.target.closest('[data-ad-cta]')) handleAdTap();
             });
 
             // Review trigger
@@ -392,7 +415,8 @@
                 ]);
                 posts = rawPosts;
                 adConfig = config;
-                ranked = rankAndFilter(posts);
+                maybeInjectAds();
+                rerank();
                 renderCard(activeIndex);
             } catch (err) {
                 console.error('Fetch failed:', err);
@@ -446,12 +470,161 @@
                 const rows = Array.isArray(data) ? (data[0]?.results?.rows || []) : (data.results?.[0]?.rows || []);
                 const cfg = { ...adConfig };
                 rows.forEach(([key, value]) => {
-                    if (key in cfg) cfg[key] = value === 'true' ? true : value;
+                    if (!(key in cfg)) return;
+                    // site_config values are strings — coerce back to the
+                    // default's type ('false' must NOT be truthy!)
+                    if (typeof cfg[key] === 'boolean') cfg[key] = value === 'true';
+                    else cfg[key] = value;
                 });
                 return cfg;
             } catch (_) {
                 return adConfig;
             }
+        }
+
+        // ── Ads: category-railed rails (Adsgram, Telegram) + Monetag overlays ──
+        const TG_PLATFORMS = ['ios', 'android', 'macos', 'tdesktop', 'weba', 'webk'];
+
+        function isTelegramEnv() {
+            const tg = window.Telegram?.WebApp;
+            if (!tg) return false;
+            // The Telegram SDK also loads in regular browsers (platform
+            // "unknown", empty initData) — only a real Mini App context counts.
+            return !!(tg.initData
+                || (tg.initDataUnsafe && tg.initDataUnsafe.user)
+                || TG_PLATFORMS.includes(tg.platform));
+        }
+
+        function adBlocks() {
+            try {
+                const map = JSON.parse(adConfig.adsgram_blocks || '{}');
+                return (map && typeof map === 'object') ? map : {};
+            } catch (_) {
+                return {};
+            }
+        }
+
+        function blockForCategory(cat) {
+            const map = adBlocks();
+            return String(map[cat] || map.default || '').trim();
+        }
+
+        function railsAvailable() {
+            if (AD_PREVIEW) return true;
+            if (!adConfig.enable_ads) return false;
+            return isTelegramEnv() && !!blockForCategory(activeCategory);
+        }
+
+        // Sponsored cards woven into the ranked list every N posts — the slot
+        // resolves the Adsgram block for the ACTIVE category (its own rail).
+        function withAdRails(list) {
+            if (!railsAvailable()) return list;
+            const interval = Math.min(20, Math.max(3, Number(adConfig.ad_rail_interval) || 6));
+            const out = [];
+            let sinceAd = 0;
+            for (const post of list) {
+                out.push(post);
+                sinceAd++;
+                if (sinceAd >= interval) {
+                    out.push({ __ad: true, id: `ad-${activeCategory}` });
+                    sinceAd = 0;
+                }
+            }
+            return out;
+        }
+
+        function rerank() {
+            ranked = withAdRails(rankAndFilter(posts));
+        }
+
+        function maybeInjectAds() {
+            if (!adConfig.enable_ads) return;
+            injectMonetag();
+            if (isTelegramEnv()) injectAdsgram();
+        }
+
+        function injectMonetag() {
+            if (monetagInjected) return;
+            const zone = String(adConfig.monetag_zone_id || '').trim();
+            const src = String(adConfig.monetag_tag_url || '').trim() || (zone ? MONETAG_TAG_SRC : '');
+            if (!src) return;
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.setAttribute('data-cfasync', 'false');
+            if (zone && !src.includes('zone')) s.setAttribute('zone', zone);
+            document.head.appendChild(s);
+            monetagInjected = true;
+        }
+
+        function injectAdsgram() {
+            if (adsgramInjected || window.Adsgram) { adsgramInjected = true; return; }
+            const s = document.createElement('script');
+            s.src = 'https://sad.adsgram.ai/js/sad.min.js';
+            s.async = true;
+            document.head.appendChild(s);
+            adsgramInjected = true;
+        }
+
+        async function handleAdTap() {
+            // Outside Telegram (or preview mode) — show the design, no ad call
+            if (!adConfig.enable_ads || !isTelegramEnv()) {
+                showToast('Ad preview — goes live inside Telegram');
+                return;
+            }
+            const blockId = blockForCategory(activeCategory);
+            if (!blockId) {
+                showToast('Sponsored spot coming soon');
+                return;
+            }
+            injectAdsgram();
+            if (!window.Adsgram) {
+                showToast('Ad is warming up — tap again in a sec');
+                return;
+            }
+            let ctrl = adControllers.get(blockId);
+            if (!ctrl) {
+                try {
+                    ctrl = window.Adsgram.init({ blockId });
+                    adControllers.set(blockId, ctrl);
+                } catch (_) {
+                    showToast('Ad is warming up — tap again in a sec');
+                    return;
+                }
+            }
+            try {
+                await ctrl.show();
+                showToast('Boost received — thank you!');
+            } catch (_) {
+                showToast('No worries — skipped it');
+            }
+        }
+
+        const AD_ART_SVG = `
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <path class="ad-spark ad-spark-main" d="M50 14 C55 37 63 45 86 50 C63 55 55 63 50 86 C45 63 37 55 14 50 C37 45 45 37 50 14 Z"/>
+                <path class="ad-spark" d="M24 20 C25.4 26.4 27.6 28.6 34 30 C27.6 31.4 25.4 33.6 24 40 C22.6 33.6 20.4 31.4 14 30 C20.4 28.6 22.6 26.4 24 20 Z"/>
+                <path class="ad-spark" d="M74 66 C75.4 72.4 77.6 74.6 84 76 C77.6 77.4 75.4 79.6 74 86 C72.6 79.6 70.4 77.4 64 76 C70.4 74.6 72.6 72.4 74 66 Z"/>
+                <path class="ad-tick" d="M66 24 C70.5 21.5 75.5 21 80 22"/>
+                <path class="ad-tick" d="M26 76 C21.5 78.5 16.5 79 12 78"/>
+            </svg>`;
+
+        function renderAdCard() {
+            const where = activeCategory === 'Feed' ? 'the feed' : activeCategory;
+            return `
+                <article class="feed-card is-ad">
+                    <div class="ad-card">
+                        <span class="ad-badge">Sponsored</span>
+                        <div class="ad-art">${AD_ART_SVG}</div>
+                        <h2 class="ad-title">A quick boost for Snapfeed</h2>
+                        <p class="ad-sub">One short ad keeps ${escapeHtml(where)} clean, free &amp; flowing.</p>
+                        <button class="ad-cta" data-ad-cta>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+                            Watch &amp; boost
+                        </button>
+                    </div>
+                </article>
+            `;
         }
 
         function rankAndFilter(items) {
@@ -598,6 +771,17 @@
             }
 
             const post = ranked[index];
+
+            // Sponsored rail card — category-railed ad slot
+            if (post.__ad) {
+                document.body.classList.add('ad-active');
+                feed.innerHTML = renderAdCard();
+                updateActionCounts({ likes: 0, saves: 0 });
+                updateButtonVisualState('__ad__');
+                return;
+            }
+            document.body.classList.remove('ad-active');
+
             const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
             const fallbackImg = 'https://placehold.co/600x400/181818/888888?text=Snapfeed';
 
@@ -658,7 +842,7 @@
 
         function toggleInteraction(action) {
             const post = ranked[activeIndex];
-            if (!post) return;
+            if (!post || post.__ad) return;
             const id = String(post.id);
             if (!interactions[id]) interactions[id] = {};
 
@@ -676,7 +860,7 @@
 
         function handleShare() {
             const post = ranked[activeIndex];
-            if (!post) return;
+            if (!post || post.__ad) return;
             const id = String(post.id);
             if (!interactions[id]) interactions[id] = {};
 

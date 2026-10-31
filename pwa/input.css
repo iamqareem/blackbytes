@@ -444,6 +444,148 @@
     line-height: 1;
   }
 
+  /* ─── Sponsored rail card (category-railed ads) ─── */
+  .feed-card.is-ad {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .ad-card {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .ad-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8A8A8E;
+    margin-bottom: 10px;
+  }
+
+  .ad-art {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 16px;
+    border: 1.5px solid rgba(0, 166, 194, 0.35);
+    background: radial-gradient(120% 130% at 18% 8%, rgba(0, 166, 194, 0.14), rgba(255, 255, 255, 0.02) 60%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  html.light .ad-art {
+    border-color: rgba(0, 166, 194, 0.45);
+    background: radial-gradient(120% 130% at 18% 8%, rgba(0, 166, 194, 0.12), rgba(0, 0, 0, 0.02) 60%);
+  }
+
+  .ad-art svg {
+    width: 84px;
+    height: 84px;
+    animation: ad-float 3.6s ease-in-out infinite;
+  }
+
+  .ad-art .ad-spark {
+    fill: none;
+    stroke: var(--logo-neon);
+    stroke-width: 2.4;
+    stroke-linejoin: round;
+    opacity: 0.5;
+  }
+
+  .ad-art .ad-spark-main {
+    fill: rgba(0, 166, 194, 0.1);
+    stroke-width: 2.8;
+    opacity: 1;
+    filter: drop-shadow(0 0 8px var(--logo-neon-glow));
+  }
+
+  .ad-art .ad-tick {
+    fill: none;
+    stroke: var(--logo-neon);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    opacity: 0.4;
+  }
+
+  @keyframes ad-float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-7px) rotate(2.5deg); }
+  }
+
+  .ad-title {
+    font-size: clamp(1rem, 4.5vw, 1.25rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary, #fff);
+    margin: 16px 0 6px;
+  }
+
+  .ad-sub {
+    font-size: 0.825rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.52));
+    margin: 0 0 16px;
+  }
+
+  html.light .ad-title {
+    color: #0B0B0B;
+  }
+
+  html.light .ad-sub {
+    color: rgba(0, 0, 0, 0.55);
+  }
+
+  .ad-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: 1.5px solid var(--logo-neon);
+    color: var(--logo-neon);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 0 14px var(--logo-neon-glow);
+    transition: transform 0.15s ease, background 0.15s ease;
+    touch-action: manipulation;
+  }
+
+  .ad-cta svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+  }
+
+  .ad-cta:hover {
+    background: rgba(0, 166, 194, 0.12);
+  }
+
+  .ad-cta:active {
+    transform: scale(0.96);
+  }
+
+  html.light .ad-cta {
+    box-shadow: 0 0 10px rgba(0, 166, 194, 0.3);
+  }
+
+  /* Ad card takes over — like/save/share don't apply to it */
+  body.ad-active .action-pill {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+  }
+
   /* ─── Bottom Action Pill — monolithic, neon outline ─── */
   .action-pill {
     position: fixed;
@@ -640,6 +782,18 @@
 
   .review-trigger:active {
     transform: scale(0.92);
+  }
+
+  /* Manga sparkle on the review balloon — playful twinkle */
+  .review-trigger .review-spark {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: review-twinkle 2.6s ease-in-out infinite;
+  }
+
+  @keyframes review-twinkle {
+    0%, 100% { transform: scale(0.82); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
   }
 
   html.light .review-trigger {

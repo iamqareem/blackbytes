@@ -131,6 +131,12 @@ function seedDefaults() {
         ['summary_max_words', '60', 'Max words for AI summaries'],
         ['enable_ads', 'false', 'Toggle ad injection in feed'],
         ['enable_analytics', 'true', 'Toggle analytics tracking'],
+        ['monetag_zone_id', '', 'Monetag multitag zone id (site-wide overlay formats)'],
+        ['monetag_tag_url', '', 'Full Monetag tag script src from dashboard (overrides built-in tag template)'],
+        ['adsgram_blocks', '{}', 'JSON map category -> Adsgram blockId, e.g. {"default":"123","Memes":"456"} — Telegram in-feed rails'],
+        ['ad_rail_interval', '6', 'Show a sponsored rail every N cards in the feed'],
+        ['affiliate_aliexpress', 'false', 'Enable AliExpress affiliate link wrapping'],
+        ['affiliate_aliexpress_tag', '', 'AliExpress affiliate tag'],
         ['google_review_url', '', 'Google Business Profile review link (g.page/r/.../review) shown by the PWA review button'],
         ['telegram_stars_invoice', '', 'Telegram Stars invoice link for the boost-with-Stars flow (createInvoiceLink, currency XTR) — optional'],
     ];
