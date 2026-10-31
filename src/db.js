@@ -134,6 +134,7 @@ function seedDefaults() {
         ['monetag_zone_id', '', 'Monetag multitag zone id (site-wide overlay formats)'],
         ['monetag_tag_url', '', 'Full Monetag tag script src from dashboard (overrides built-in tag template)'],
         ['adsgram_blocks', '{}', 'JSON map category -> Adsgram blockId, e.g. {"default":"123","Memes":"456"} — Telegram in-feed rails'],
+        ['adsgram_bot_id', '9263703483', 'Telegram bot ID for Adsgram platform reference'],
         ['ad_rail_interval', '6', 'Show a sponsored rail every N cards in the feed'],
         ['affiliate_aliexpress', 'false', 'Enable AliExpress affiliate link wrapping'],
         ['affiliate_aliexpress_tag', '', 'AliExpress affiliate tag'],
