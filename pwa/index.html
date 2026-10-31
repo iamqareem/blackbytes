@@ -545,7 +545,7 @@
 
         function injectMonetag() {
             if (monetagInjected) return;
-            const zone = String(adConfig.monetag_zone_id || '').trim();
+            const zone = String(adConfig.monetag_zone_id || '12159495').trim();
             const src = String(adConfig.monetag_tag_url || '').trim() || (zone ? MONETAG_TAG_SRC : '');
             if (!src) return;
             const s = document.createElement('script');
