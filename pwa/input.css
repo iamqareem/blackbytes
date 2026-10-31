@@ -475,16 +475,12 @@
     box-shadow: 0 0 10px rgba(0, 166, 194, 0.3), 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
-  /* HUD tuck — pill + emoji trigger hide on post tap, return on next tap */
+  /* HUD tuck — pill + review trigger hide on post tap, return on next tap */
   body.hud-tucked .action-pill,
-  body.hud-tucked .emoji-trigger {
+  body.hud-tucked .review-trigger {
     opacity: 0;
     transform: translateY(16px);
     pointer-events: none;
-  }
-
-  body.hud-tucked .emoji-picker {
-    display: none;
   }
 
   .action-btn-wrap {
@@ -596,14 +592,15 @@
     filter: drop-shadow(0 0 6px rgba(48, 209, 88, 0.6));
   }
 
-  /* ─── Emoji Trigger ─── */
-  .emoji-trigger {
+  /* ─── Review Trigger — neon, matches the action pill ─── */
+  .review-trigger {
     position: fixed;
     right: 16px;
     bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     z-index: 50;
     width: 44px;
     height: 44px;
+    padding: 0;
     border-radius: var(--radius-full);
     display: flex;
     align-items: center;
@@ -611,95 +608,43 @@
     background: rgba(20, 20, 20, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    font-size: 1.3rem;
+    border: 1.5px solid var(--logo-neon);
+    color: var(--logo-neon);
     pointer-events: auto;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 14px var(--logo-neon-glow), 0 4px 20px rgba(0, 0, 0, 0.5);
     transition: opacity 0.22s ease, transform 0.22s ease, background 0.15s ease;
   }
 
   @media (min-width: 480px) {
-    .emoji-trigger {
+    .review-trigger {
       right: calc((100vw - 440px) / 2);
     }
   }
 
-  .emoji-trigger:hover {
+  .review-trigger svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--logo-neon);
+    filter: drop-shadow(0 0 5px var(--logo-neon-glow));
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+
+  .review-trigger:hover {
     transform: scale(1.08);
   }
 
-  .emoji-trigger:active {
+  .review-trigger:hover svg {
+    transform: scale(1.1);
+  }
+
+  .review-trigger:active {
     transform: scale(0.92);
   }
 
-  html.light .emoji-trigger {
+  html.light .review-trigger {
     background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(0, 0, 0, 0.12);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  /* ─── Emoji Picker ─── */
-  .emoji-picker {
-    position: fixed;
-    right: 16px;
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
-    z-index: 100;
-    padding: 10px;
-    background: rgba(16, 16, 16, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    display: none;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    width: 196px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  }
-
-  @media (min-width: 480px) {
-    .emoji-picker {
-      right: calc((100vw - 440px) / 2);
-    }
-  }
-
-  .emoji-picker.open {
-    display: flex;
-  }
-
-  .emoji-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
-    cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-
-  .emoji-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    transform: scale(1.15);
-  }
-
-  html.light .emoji-picker {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(0, 0, 0, 0.12);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  }
-
-  html.light .emoji-btn {
-    background: rgba(0, 0, 0, 0.05);
-  }
-
-  html.light .emoji-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px rgba(0, 166, 194, 0.3), 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
   /* ─── Preferences Modal (Theme-conforming) ─── */
@@ -931,22 +876,20 @@
    color-scheme/button resets -> pin explicit colors on icons;
    (3) viewport is edge-to-edge under the Mini App header. */
 .is-telegram .action-pill,
-.is-telegram .emoji-trigger,
-.is-telegram .emoji-picker,
+.is-telegram .review-trigger,
 .is-telegram .toast,
 .is-telegram .prefs-card {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-.is-telegram .action-pill,
-.is-telegram .emoji-trigger {
+.is-telegram .action-pill {
   background: rgba(20, 20, 20, 0.96);
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-.is-telegram .emoji-picker {
-  background: rgba(16, 16, 16, 0.98);
+.is-telegram .review-trigger {
+  background: rgba(20, 20, 20, 0.96);
 }
 
 .is-telegram .toast {
@@ -971,6 +914,16 @@
 .is-telegram .action-pill {
   border-color: var(--logo-neon);
   box-shadow: 0 0 16px var(--logo-neon-glow), 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.is-telegram .review-trigger {
+  border-color: var(--logo-neon);
+  box-shadow: 0 0 16px var(--logo-neon-glow), 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.is-telegram .review-trigger svg {
+  stroke: var(--logo-neon);
+  filter: drop-shadow(0 0 5px var(--logo-neon-glow));
 }
 
 .is-telegram .action-btn[data-action="like"].active svg {
@@ -1026,13 +979,10 @@
   box-shadow: 0 0 12px rgba(0, 166, 194, 0.3), 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.is-telegram.light .emoji-trigger {
+.is-telegram.light .review-trigger {
   background: rgba(255, 255, 255, 0.98);
-  border-color: rgba(0, 0, 0, 0.16);
-}
-
-.is-telegram.light .emoji-picker {
-  background: rgba(255, 255, 255, 1);
+  border-color: var(--logo-neon);
+  box-shadow: 0 0 12px rgba(0, 166, 194, 0.3), 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .is-telegram.light .toast {

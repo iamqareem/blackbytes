@@ -131,6 +131,8 @@ function seedDefaults() {
         ['summary_max_words', '60', 'Max words for AI summaries'],
         ['enable_ads', 'false', 'Toggle ad injection in feed'],
         ['enable_analytics', 'true', 'Toggle analytics tracking'],
+        ['google_review_url', '', 'Google Business Profile review link (g.page/r/.../review) shown by the PWA review button'],
+        ['telegram_stars_invoice', '', 'Telegram Stars invoice link for the boost-with-Stars flow (createInvoiceLink, currency XTR) — optional'],
     ];
 
     const configStmt = db.prepare('INSERT OR IGNORE INTO site_config (key, value, description) VALUES (?, ?, ?)');

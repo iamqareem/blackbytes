@@ -9,8 +9,10 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <link rel="preload" href="/fonts/zen-kurenaido-latin.woff2" as="font" type="font/woff2" crossorigin>
 
     <!-- Telegram Mini App SDK (initializes Telegram WebApp if opened in Telegram) -->
@@ -81,13 +83,10 @@
         </div>
     </div>
 
-    <!-- Floating Emoji Reaction Trigger -->
-    <button id="emoji-trigger" class="emoji-trigger" aria-label="Reactions" title="React">
-        😊
+    <!-- Floating Review Trigger — opens our Google Business Profile review page -->
+    <button id="review-trigger" class="review-trigger" aria-label="Leave a review" title="Review us">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
     </button>
-
-    <!-- Floating Emoji Picker -->
-    <div id="emoji-picker" class="emoji-picker" role="menu" aria-label="Choose reaction"></div>
 
     <!-- Preferences Modal (Conforms to Theme) -->
     <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
@@ -110,8 +109,6 @@
         // ── Config ──
         const WORKER_URL = 'https://wrangler-auth.abdukarrim6.workers.dev';
 
-        const EMOJIS = ['😂', '🔥', '😭', '💀', '💅', '🤝', '🫡', '✨', '👀', '❤️'];
-
         let adConfig = {
             enable_ads: false,
             adsense_client_id: '',
@@ -119,6 +116,7 @@
             monetag_zone_id: '',
             affiliate_aliexpress: false,
             affiliate_aliexpress_tag: '',
+            google_review_url: '',
         };
 
         // ── State ──
@@ -140,8 +138,7 @@
         const prefsCancel = document.getElementById('prefs-cancel');
         const prefsSave = document.getElementById('prefs-save');
         const prefsChips = document.getElementById('prefs-chips');
-        const emojiTrigger = document.getElementById('emoji-trigger');
-        const emojiPicker = document.getElementById('emoji-picker');
+        const reviewTrigger = document.getElementById('review-trigger');
         const toastEl = document.getElementById('toast');
         const catTabs = document.getElementById('cat-tabs');
 
@@ -181,7 +178,6 @@
             detectTelegram();
             renderCatTabs();
             setupEventListeners();
-            initEmojiPicker();
             fetchAndRender();
         }
 
@@ -220,25 +216,22 @@
             }
         }
 
-        function initEmojiPicker() {
-            emojiPicker.innerHTML = EMOJIS.map(em => `
-                <button class="emoji-btn" data-emoji="${em}" title="${em}">${em}</button>
-            `).join('');
-
-            emojiPicker.querySelectorAll('.emoji-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const em = btn.dataset.emoji;
-                    reactWithEmoji(em);
-                    emojiPicker.classList.remove('open');
-                });
-            });
-        }
-
-        function reactWithEmoji(emoji) {
-            const post = ranked[activeIndex];
-            if (!post) return;
-            showToast(`Reacted ${emoji}`);
+        // ── Reviews — opens our Google Business Profile review page ──
+        // URL comes from Turso site_config key `google_review_url`
+        // (set it via the Turso dashboard; shows a toast until then).
+        function openReview() {
+            const url = String(adConfig.google_review_url || '').trim();
+            if (!url) {
+                showToast('Reviews are opening soon');
+                return;
+            }
+            try {
+                const tg = window.Telegram?.WebApp;
+                if (tg?.openLink) tg.openLink(url);
+                else window.open(url, '_blank', 'noopener');
+            } catch (_) {
+                window.open(url, '_blank', 'noopener');
+            }
         }
 
         function setupEventListeners() {
@@ -297,17 +290,10 @@
                 });
             });
 
-            // Emoji trigger
-            emojiTrigger.addEventListener('click', (e) => {
+            // Review trigger
+            reviewTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
-                emojiPicker.classList.toggle('open');
-            });
-
-            // Close picker on outside click
-            document.addEventListener('click', (e) => {
-                if (!emojiTrigger.contains(e.target) && !emojiPicker.contains(e.target)) {
-                    emojiPicker.classList.remove('open');
-                }
+                openReview();
             });
 
             // ─── Swipe & Navigation Gestures (No scrollbar needed) ───
@@ -340,9 +326,9 @@
                     }
                     document.body.classList.remove('hud-tucked');
                 } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                    // Clean tap on the post — toggle pill + emoji trigger visibility
+                    // Clean tap on the post — toggle pill + review trigger visibility
                     const tapTarget = e.target;
-                    if (!tapTarget.closest('a, button, iframe, .action-pill, .emoji-trigger')) {
+                    if (!tapTarget.closest('a, button, iframe, .action-pill, .review-trigger')) {
                         document.body.classList.toggle('hud-tucked');
                     }
                 }
@@ -355,7 +341,7 @@
             feed.addEventListener('touchend', () => { lastTouchEnd = Date.now(); }, { passive: true, capture: true });
             feed.addEventListener('click', (e) => {
                 if (Date.now() - lastTouchEnd < 600) return;
-                if (e.target.closest('a, button, iframe, .action-pill, .emoji-trigger')) return;
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
                 document.body.classList.toggle('hud-tucked');
             });
 
