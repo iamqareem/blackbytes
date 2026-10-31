@@ -707,7 +707,8 @@
         // posts store a THUMBNAIL in media_url. Both must be converted to real
         // player iframes here, or embeds render as dead images.
         function extractYouTubeId(url) {
-            return url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1] || null;
+            if (!url) return null;
+            return url.match(/(?:shorts\/|v=|youtu\.be\/|vi\/)([^&\n?#/]+)/)?.[1] || null;
         }
 
         function renderMedia(post, fallbackImg) {
@@ -728,10 +729,12 @@
                 }
             }
 
-            // YouTube — embed player from source_url (media_url only has a thumbnail)
-            if (media_type === 'embed' && source_url &&
-                (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) {
-                const ytId = extractYouTubeId(source_url);
+            // YouTube — embed player from source_url or thumbnail media_url
+            // Renders wide 16:9 frame (vertical: false) matching DevBytes mobile app YouTube shorts embedding
+            const isYouTube = (source_url && (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) ||
+                              (media_url && media_url.includes('ytimg.com'));
+            if ((media_type === 'embed' || media_type === 'shorts') && isYouTube) {
+                const ytId = extractYouTubeId(source_url) || extractYouTubeId(media_url);
                 if (ytId) {
                     return {
                         vertical: false,
@@ -744,9 +747,11 @@
                 }
             }
 
-            // Generic video with a real player URL in media_url
+            // Generic video with a real player URL in media_url (exclude static image files)
             if (['shorts', 'embed', 'video'].includes(media_type) &&
-                media_url && /^https?:\/\//.test(media_url)) {
+                media_url && /^https?:\/\//.test(media_url) &&
+                !/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(media_url) &&
+                !media_url.includes('ytimg.com')) {
                 return {
                     vertical: media_type === 'shorts',
                     html: `<iframe src="${escapeHtml(media_url)}"
