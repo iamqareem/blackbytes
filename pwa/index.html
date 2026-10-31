@@ -11,6 +11,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="preload" href="/fonts/zen-kurenaido-latin.woff2" as="font" type="font/woff2" crossorigin>
 
     <!-- Telegram Mini App SDK (initializes Telegram WebApp if opened in Telegram) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -30,7 +31,7 @@
 </head>
 <body>
 
-    <!-- Header — fully transparent, name left / theme + prefs right -->
+    <!-- Header — transparent, name + actions, then minimal sideways category tabs -->
     <header class="header" role="banner">
         <div class="header-inner">
             <a href="/" class="logo" aria-label="Snapfeed Home">
@@ -45,6 +46,8 @@
                 </button>
             </div>
         </div>
+        <!-- Sideways category navigation: first tab = main feed -->
+        <nav class="cat-tabs" id="cat-tabs" aria-label="Categories"></nav>
     </header>
 
     <!-- Swipe / Flashcard Feed Container -->
@@ -119,6 +122,8 @@
         };
 
         // ── State ──
+        const CAT_TABS = ['Feed', 'News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
+        let activeCategory = 'Feed';
         let posts = [];
         let ranked = [];
         let activeIndex = 0;
@@ -138,11 +143,43 @@
         const emojiTrigger = document.getElementById('emoji-trigger');
         const emojiPicker = document.getElementById('emoji-picker');
         const toastEl = document.getElementById('toast');
+        const catTabs = document.getElementById('cat-tabs');
+
+        // ── Category tabs (sideways navigation) ──
+        function renderCatTabs() {
+            catTabs.innerHTML = CAT_TABS.map(cat => `
+                <button class="cat-tab${cat === activeCategory ? ' active' : ''}" data-cat="${cat}"
+                        role="tab" aria-selected="${cat === activeCategory}">${cat}</button>
+            `).join('');
+            catTabs.querySelectorAll('.cat-tab').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setCategory(btn.dataset.cat);
+                });
+            });
+        }
+
+        function setCategory(cat) {
+            if (cat === activeCategory) return;
+            activeCategory = cat;
+            activeIndex = 0;
+            renderCatTabs();
+            ranked = rankAndFilter(posts);
+            document.body.classList.remove('hud-tucked');
+            renderCard(0);
+        }
+
+        function stepCategory(dir) {
+            const i = CAT_TABS.indexOf(activeCategory);
+            const next = Math.min(CAT_TABS.length - 1, Math.max(0, i + dir));
+            if (next !== i) setCategory(CAT_TABS[next]);
+        }
 
         // ── Init ──
         function init() {
             applyTheme();
             detectTelegram();
+            renderCatTabs();
             setupEventListeners();
             initEmojiPicker();
             fetchAndRender();
@@ -229,6 +266,26 @@
                 renderCard(0);
                 showToast('Preferences updated');
             });
+
+            // ─── Sideways category navigation (swipe the tab strip) ───
+            let tabTouchX = 0, tabTouchY = 0, tabSwiped = false;
+            catTabs.addEventListener('touchstart', (e) => {
+                tabTouchX = e.touches[0].clientX;
+                tabTouchY = e.touches[0].clientY;
+                tabSwiped = true;
+            }, { passive: true });
+            catTabs.addEventListener('touchend', (e) => {
+                if (!tabSwiped) return;
+                tabSwiped = false;
+                const dx = e.changedTouches[0].clientX - tabTouchX;
+                const dy = e.changedTouches[0].clientY - tabTouchY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                    stepCategory(dx < 0 ? 1 : -1);
+                }
+            }, { passive: true });
+
+            // Keyboard: left/right arrows also step categories when at feed edges
+            // (handled in the keydown block below)
 
             // Action buttons (via data-action selectors — no hardcoded IDs)
             document.querySelectorAll('.action-pill .action-btn').forEach(btn => {
@@ -332,6 +389,10 @@
                         activeIndex--;
                         renderCard(activeIndex);
                     }
+                } else if (e.key === 'ArrowRight') {
+                    stepCategory(1);
+                } else if (e.key === 'ArrowLeft') {
+                    stepCategory(-1);
                 }
             });
         }
@@ -416,6 +477,11 @@
             const SOURCE_CAP = 3;
             const CATEGORY_CAP = 6;
             const DIVERSITY_WINDOW = 25;
+
+            // Category tab filter — "Feed" shows everything
+            if (activeCategory !== 'Feed') {
+                items = items.filter(p => p.category === activeCategory);
+            }
 
             let scored = items.map(post => {
                 const postTime = new Date(post.created_at);
@@ -565,15 +631,10 @@
                         ${mediaHtml}
                     </div>
                     <div class="feed-card-content">
-                        <div class="feed-card-source-row">
-                            <span class="feed-card-source">${escapeHtml(post.source_name)}</span>
-                            <div class="feed-card-dot"></div>
-                            <span class="feed-card-category">${escapeHtml(post.category)}</span>
-                        </div>
                         <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
                         ${summaryHtml}
                         <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
-                            Read on ${escapeHtml(post.source_name)} &rarr;
+                            ${escapeHtml(post.source_name)} <span class="feed-card-link-arrow" aria-hidden="true">&#8599;</span>
                         </a>
                     </div>
                 </article>
