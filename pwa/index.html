@@ -166,6 +166,7 @@
 
         function detectTelegram() {
             if (window.Telegram?.WebApp) {
+                document.documentElement.classList.add('is-telegram');
                 try {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
