@@ -30,19 +30,18 @@
 </head>
 <body>
 
-    <!-- Header -->
-    <header class="header">
+    <!-- Header — fully transparent, name left / theme + prefs right -->
+    <header class="header" role="banner">
         <div class="header-inner">
-            <div class="logo" onclick="window.location.href='/'">
-                <div class="logo-icon">S</div>
+            <a href="/" class="logo" aria-label="Snapfeed Home">
                 <span class="logo-text">Snapfeed</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button id="theme-toggle" class="header-btn" aria-label="Toggle theme">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>
+            </a>
+            <div class="header-actions">
+                <button id="prefs-toggle" aria-label="Content preferences" title="Preferences">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                 </button>
-                <button id="prefs-btn" class="header-btn" aria-label="Preferences">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573z"></path></svg>
+                <button id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"/></svg>
                 </button>
             </div>
         </div>
@@ -53,23 +52,30 @@
         <div style="color: rgba(255,255,255,0.4); font-size: 0.9rem;">Loading feed...</div>
     </main>
 
-    <!-- Bottom Action Pill: Like / Save / Share -->
+    <!-- Bottom Action Pill: Like / Save / Share — one monolithic unit -->
     <div id="action-bar" class="action-pill" role="group" aria-label="Post actions">
         <!-- Like -->
-        <button id="btn-like" class="action-btn" aria-label="Like" title="Like">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-            <span id="count-like" class="action-btn-count">0</span>
-        </button>
+        <div class="action-btn-wrap">
+            <button class="action-btn" data-action="like" aria-label="Like" title="Like">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            </button>
+            <span class="action-btn-count hidden" id="count-like"></span>
+        </div>
+
         <!-- Save -->
-        <button id="btn-save" class="action-btn" aria-label="Save" title="Save">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-            <span id="count-save" class="action-btn-count">0</span>
-        </button>
-        <!-- Share -->
-        <button id="btn-share" class="action-btn" aria-label="Share" title="Share">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-            <span id="count-share" class="action-btn-count">0</span>
-        </button>
+        <div class="action-btn-wrap">
+            <button class="action-btn" data-action="save" aria-label="Save" title="Save">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+            </button>
+            <span class="action-btn-count hidden" id="count-save"></span>
+        </div>
+
+        <!-- Share (no count in frontend — counted in admin backend only) -->
+        <div class="action-btn-wrap">
+            <button class="action-btn" data-action="share" aria-label="Share" title="Share">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            </button>
+        </div>
     </div>
 
     <!-- Floating Emoji Reaction Trigger -->
@@ -123,7 +129,7 @@
         // ── DOM Elements ──
         const feed = document.getElementById('feed');
         const themeToggle = document.getElementById('theme-toggle');
-        const prefsBtn = document.getElementById('prefs-btn');
+        const prefsBtn = document.getElementById('prefs-toggle');
         const prefsModal = document.getElementById('prefs-modal');
         const prefsClose = document.getElementById('prefs-close');
         const prefsCancel = document.getElementById('prefs-cancel');
@@ -142,14 +148,20 @@
             fetchAndRender();
         }
 
+        // Same SVGs as the local reference (public/) — sun for light, simple moon for dark
+        const ICON_SUN = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"/></svg>';
+        const ICON_MOON = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>';
+
         function applyTheme() {
             if (theme === 'light') {
                 document.documentElement.classList.add('light');
-                themeToggle.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"></path></svg>';
+                themeToggle.innerHTML = ICON_SUN;
             } else {
                 document.documentElement.classList.remove('light');
-                themeToggle.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>';
+                themeToggle.innerHTML = ICON_MOON;
             }
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', theme === 'light' ? '#FFFFFF' : '#000000');
         }
 
         function detectTelegram() {
@@ -157,6 +169,15 @@
                 try {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
+                } catch (_) {}
+                // Telegram captures vertical swipes to close the Mini App, which
+                // blocks swipe-down -> previous post. Disable that capture.
+                try {
+                    if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+                        window.Telegram.WebApp.disableVerticalSwipes();
+                    } else {
+                        window.Telegram.WebApp.isVerticalSwipesEnabled = false;
+                    }
                 } catch (_) {}
             }
         }
@@ -208,20 +229,14 @@
                 showToast('Preferences updated');
             });
 
-            // Action buttons
-            document.getElementById('btn-like').addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleInteraction('like');
-            });
-
-            document.getElementById('btn-save').addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleInteraction('save');
-            });
-
-            document.getElementById('btn-share').addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleShare();
+            // Action buttons (via data-action selectors — no hardcoded IDs)
+            document.querySelectorAll('.action-pill .action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = btn.dataset.action;
+                    if (action === 'share') handleShare();
+                    else toggleInteraction(action);
+                });
             });
 
             // Emoji trigger
@@ -490,21 +505,30 @@
             updateButtonVisualState(String(post.id));
         }
 
+        function formatCount(n) {
+            n = Number(n) || 0;
+            if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return String(n);
+        }
+
         function updateActionCounts(post) {
-            document.getElementById('count-like').textContent = post.likes || 0;
-            document.getElementById('count-save').textContent = post.saves || 0;
-            document.getElementById('count-share').textContent = post.shares || 0;
+            // Counts hidden when zero — and shares are never numbered in the
+            // frontend (tracked in the admin backend only).
+            const likeEl = document.getElementById('count-like');
+            const saveEl = document.getElementById('count-save');
+            likeEl.textContent = post.likes > 0 ? formatCount(post.likes) : '';
+            likeEl.classList.toggle('hidden', !(post.likes > 0));
+            saveEl.textContent = post.saves > 0 ? formatCount(post.saves) : '';
+            saveEl.classList.toggle('hidden', !(post.saves > 0));
         }
 
         function updateButtonVisualState(postId) {
             const act = interactions[postId] || {};
-            const likeBtn = document.getElementById('btn-like');
-            const saveBtn = document.getElementById('btn-save');
-            const shareBtn = document.getElementById('btn-share');
-
-            if (likeBtn) likeBtn.classList.toggle('active-like', !!act.like);
-            if (saveBtn) saveBtn.classList.toggle('active-save', !!act.save);
-            if (shareBtn) shareBtn.classList.toggle('active-share', !!act.share);
+            document.querySelectorAll('.action-pill .action-btn').forEach(btn => {
+                const action = btn.dataset.action;
+                btn.classList.toggle('active', !!act[action]);
+            });
         }
 
         function toggleInteraction(action) {

@@ -82,15 +82,9 @@
     align-items: center;
     justify-content: center;
     padding: 0 16px;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  html.light .header {
-    background: rgba(255, 255, 255, 0.88);
-    border-bottom-color: rgba(0, 0, 0, 0.08);
+    background: transparent;
+    border-bottom: none;
+    pointer-events: none;
   }
 
   .header-inner {
@@ -99,6 +93,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    pointer-events: auto;
   }
 
   .logo {
@@ -110,23 +105,10 @@
     cursor: pointer;
   }
 
-  .logo-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 800;
-    font-size: 0.85rem;
-  }
-
   .logo-text {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: #fff;
   }
 
@@ -134,31 +116,48 @@
     color: #0B0B0B;
   }
 
-  .header-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  #prefs-toggle,
+  #theme-toggle {
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    border-radius: var(--radius-full);
+    color: rgba(255, 255, 255, 0.7);
+    background: transparent;
     border: none;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
   }
 
-  .header-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+  #prefs-toggle:hover,
+  #theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 
-  html.light .header-btn {
-    background: rgba(0, 0, 0, 0.06);
+  #prefs-toggle svg,
+  #theme-toggle svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  html.light #prefs-toggle,
+  html.light #theme-toggle {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  html.light #prefs-toggle:hover,
+  html.light #theme-toggle:hover {
+    background: rgba(0, 0, 0, 0.08);
     color: #0B0B0B;
-  }
-
-  html.light .header-btn:hover {
-    background: rgba(0, 0, 0, 0.12);
   }
 
   /* ─── Swipe Flashcard Feed Container (No Scrollbars) ─── */
@@ -361,7 +360,7 @@
     border-color: rgba(37, 99, 235, 0.3);
   }
 
-  /* ─── Bottom Action Pill (Phone-reach aligned on Desktop) ─── */
+  /* ─── Bottom Action Pill — monolithic, consistent (matches local reference) ─── */
   .action-pill {
     position: fixed;
     left: 16px;
@@ -370,7 +369,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    padding: 5px 8px;
+    padding: 5px;
     border-radius: var(--radius-full);
     background: rgba(20, 20, 20, 0.85);
     backdrop-filter: blur(16px);
@@ -378,6 +377,7 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     pointer-events: auto;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.22s ease, transform 0.22s ease;
   }
 
   @media (min-width: 480px) {
@@ -392,11 +392,31 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
+  .action-btn-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    pointer-events: auto;
+  }
+
+  .action-btn-wrap:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding-right: 2px;
+  }
+
+  html.light .action-btn-wrap:not(:last-child) {
+    border-right-color: rgba(0, 0, 0, 0.1);
+  }
+
   .action-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    padding: 6px 10px;
+    height: 40px;
+    width: auto;
+    padding: 0 10px;
     border-radius: var(--radius-full);
     background: transparent;
     border: none;
@@ -425,38 +445,55 @@
   }
 
   .action-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
+    transition: fill 0.2s ease, stroke 0.2s ease, transform 0.2s ease;
   }
 
   .action-btn-count {
     min-width: 12px;
     text-align: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: -0.01em;
+    transition: color 0.2s ease;
   }
 
-  /* Active states */
-  .action-btn.active-like {
+  .action-btn-count.hidden {
+    display: none;
+  }
+
+  html.light .action-btn-count {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  /* Active states (data-action based) */
+  .action-btn[data-action="like"].active {
     color: #FF3B30;
   }
-  .action-btn.active-like svg {
+  .action-btn[data-action="like"].active svg {
     fill: #FF3B30;
     stroke: #FF3B30;
+    transform: scale(1.15);
   }
 
-  .action-btn.active-save {
+  .action-btn[data-action="save"].active {
     color: #FFD60A;
   }
-  .action-btn.active-save svg {
+  .action-btn[data-action="save"].active svg {
     fill: #FFD60A;
     stroke: #FFD60A;
+    transform: scale(1.12);
   }
 
-  .action-btn.active-share {
+  .action-btn[data-action="share"].active {
     color: #30D158;
   }
-  .action-btn.active-share svg {
+  .action-btn[data-action="share"].active svg {
     fill: #30D158;
     stroke: #30D158;
+    transform: scale(1.15);
   }
 
   /* ─── Emoji Trigger ─── */
