@@ -271,6 +271,7 @@
                 const diffY = e.changedTouches[0].clientY - touchStartY;
 
                 if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
+                    // Swipe — navigate; HUD returns on card change
                     if (diffY < 0 && activeIndex < ranked.length - 1) {
                         // Swipe UP -> Next post
                         activeIndex++;
@@ -280,8 +281,26 @@
                         activeIndex--;
                         renderCard(activeIndex);
                     }
+                    document.body.classList.remove('hud-tucked');
+                } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+                    // Clean tap on the post — toggle pill + emoji trigger visibility
+                    const tapTarget = e.target;
+                    if (!tapTarget.closest('a, button, iframe, .action-pill, .emoji-trigger')) {
+                        document.body.classList.toggle('hud-tucked');
+                    }
                 }
             }, { passive: true });
+
+            // Desktop click on the post (non-interactive area) — same HUD toggle.
+            // Skipped when the click is the synthetic one following a touch tap
+            // (otherwise touchend + click would toggle twice and cancel out).
+            let lastTouchEnd = 0;
+            feed.addEventListener('touchend', () => { lastTouchEnd = Date.now(); }, { passive: true, capture: true });
+            feed.addEventListener('click', (e) => {
+                if (Date.now() - lastTouchEnd < 600) return;
+                if (e.target.closest('a, button, iframe, .action-pill, .emoji-trigger')) return;
+                document.body.classList.toggle('hud-tucked');
+            });
 
             // Desktop Mouse Wheel / Trackpad Gesture
             let wheelTimer = null;
@@ -458,6 +477,67 @@
             return out;
         }
 
+        // ── Media renderer — mirrors local server (src/client.js) ──
+        // TikTok posts store media_url=NULL (URL is in source_url), and YouTube
+        // posts store a THUMBNAIL in media_url. Both must be converted to real
+        // player iframes here, or embeds render as dead images.
+        function extractYouTubeId(url) {
+            return url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1] || null;
+        }
+
+        function renderMedia(post, fallbackImg) {
+            const { media_type, media_url, source_url, title } = post;
+
+            // TikTok — official player, vertical (works with /video/ID and vm.tiktok.com/ID)
+            if ((media_type === 'embed' || media_type === 'shorts') && source_url && source_url.includes('tiktok.com')) {
+                const videoId = source_url.match(/\/video\/(\d+)/)?.[1] || source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
+                if (videoId) {
+                    return {
+                        vertical: true,
+                        html: `<iframe src="https://www.tiktok.com/player/v1/${videoId}"
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen loading="lazy"
+                                title="${escapeHtml(title)}"></iframe>`
+                    };
+                }
+            }
+
+            // YouTube — embed player from source_url (media_url only has a thumbnail)
+            if (media_type === 'embed' && source_url &&
+                (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) {
+                const ytId = extractYouTubeId(source_url);
+                if (ytId) {
+                    return {
+                        vertical: false,
+                        html: `<iframe src="https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen loading="lazy"
+                                title="${escapeHtml(title)}"></iframe>`
+                    };
+                }
+            }
+
+            // Generic video with a real player URL in media_url
+            if (['shorts', 'embed', 'video'].includes(media_type) &&
+                media_url && /^https?:\/\//.test(media_url)) {
+                return {
+                    vertical: media_type === 'shorts',
+                    html: `<iframe src="${escapeHtml(media_url)}"
+                            allow="autoplay; encrypted-media; picture-in-picture"
+                            allowfullscreen loading="lazy"
+                            title="${escapeHtml(title)}"></iframe>`
+                };
+            }
+
+            // Plain image (or thumbnail fallback for unresolvable video)
+            return {
+                vertical: false,
+                html: `<img src="${escapeHtml(media_url || fallbackImg)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" onerror="this.src='${fallbackImg}'">`
+            };
+        }
+
         // ── Single Card Flashcard Renderer ──
         function renderCard(index) {
             if (index < 0 || index >= ranked.length) {
@@ -467,13 +547,10 @@
 
             const post = ranked[index];
             const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
-            const isVertical = post.media_type === 'shorts';
-            const boxClass = `feed-card-img-box${isVertical ? ' is-vertical' : (isVideo ? '' : ' ratio-4-3')}`;
             const fallbackImg = 'https://placehold.co/600x400/181818/888888?text=Snapfeed';
 
-            const mediaHtml = isVideo
-                ? `<iframe src="${escapeHtml(post.media_url)}" frameborder="0" allowfullscreen loading="lazy"></iframe>`
-                : `<img src="${escapeHtml(post.media_url || fallbackImg)}" alt="${escapeHtml(post.title)}" loading="lazy" onerror="this.src='${fallbackImg}'">`;
+            const { html: mediaHtml, vertical } = renderMedia(post, fallbackImg);
+            const boxClass = `feed-card-img-box${vertical ? ' is-vertical' : (isVideo ? '' : ' ratio-4-3')}`;
 
             // Headings for ALL posts, summaries for everything except videos that don't need summaries
             const summaryHtml = (!isVideo && post.summary)

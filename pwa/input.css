@@ -13,6 +13,9 @@
     --radius-full: 9999px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Logo: single neon color — electric cyan reads on black; glow in dark only */
+    --logo-neon: #2BE8FF;
+    --logo-neon-glow: rgba(43, 232, 255, 0.45);
   }
 
   html.light {
@@ -21,6 +24,9 @@
     --color-text-primary: #0B0B0B;
     --color-brand: #2563EB;
     --color-brand-hover: #3B82F6;
+    /* Same neon hue, darkened for contrast on white */
+    --logo-neon: #00A6C2;
+    --logo-neon-glow: transparent;
   }
 
   *, *::before, *::after {
@@ -115,17 +121,12 @@
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1;
-    background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 45%, #ED4956 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+    color: var(--logo-neon);
+    text-shadow: 0 0 18px var(--logo-neon-glow);
   }
 
   html.light .logo-text {
-    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 45%, #DC2626 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    text-shadow: none;
   }
 
   .header-actions {
@@ -397,11 +398,22 @@
       left: calc((100vw - 440px) / 2);
     }
   }
-
   html.light .action-pill {
     background: rgba(255, 255, 255, 0.92);
     border-color: rgba(0, 0, 0, 0.12);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  /* HUD tuck — pill + emoji trigger hide on post tap, return on next tap */
+  body.hud-tucked .action-pill,
+  body.hud-tucked .emoji-trigger {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+  }
+
+  body.hud-tucked .emoji-picker {
+    display: none;
   }
 
   .action-btn-wrap {
@@ -528,7 +540,7 @@
     pointer-events: auto;
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    transition: transform 0.15s ease, background 0.15s ease;
+    transition: opacity 0.22s ease, transform 0.22s ease, background 0.15s ease;
   }
 
   @media (min-width: 480px) {
