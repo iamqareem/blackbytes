@@ -1,20 +1,19 @@
-// Snapfeed Service Worker — minimal, cache-first for static assets
-const CACHE_NAME = 'snapfeed-v1';
-const ASSETS = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/ranking.js',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png',
-];
+// Snapfeed service worker — cleanup only, NO caching.
+// A previous version cached index.html/style.css aggressively and served
+// stale assets (old Tailwind-based markup) from cache on Cloudflare Pages.
+// This version deletes every cache and unregisters itself on activate.
 
-self.addEventListener('install', (e) => {
-    e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      const regs = await self.registration.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    })()
+  );
 });
 
-self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then(resp => resp || fetch(e.request))
-    );
-});
+// No fetch handler → network-only for everything.

@@ -1,234 +1,789 @@
-/* Snapfeed PWA — Tailwind input for pwa/ directory */
+/* Snapfeed PWA input — pure, self-contained, responsive flashcard feed */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────
-   BASE LAYER OVERRIDES
-   Must stay in @layer base so Tailwind utilities
-   (h-4, h-5, w-4, w-5) can override them
-───────────────────────────────────────────── */
 @layer base {
   :root {
     --color-bg: #000000;
     --color-surface: #111111;
-    --color-text-primary: #ffffff;
+    --color-text-primary: #FFFFFF;
     --color-brand: #3B82F6;
     --color-brand-hover: #60A5FA;
+    --radius-full: 9999px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   html.light {
-    --color-bg: #f8f8f8;
-    --color-surface: #ffffff;
-    --color-text-primary: #0b0b0b;
-    --color-brand: #2563eb;
-    --color-brand-hover: #3b82f6;
+    --color-bg: #FFFFFF;
+    --color-surface: #F5F5F5;
+    --color-text-primary: #0B0B0B;
+    --color-brand: #2563EB;
+    --color-brand-hover: #3B82F6;
   }
 
-  /* Explicit SVG sizing resets so our w-4/h-4 utilities win */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html.light body {
+    background: #FFFFFF !important;
+    color: #0B0B0B !important;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
   svg {
     display: inline-block;
     vertical-align: middle;
-    /* NOTE: do NOT set height:auto here — that breaks w-4/h-4 utility classes */
+    flex-shrink: 0;
+  }
+}
+
+@layer components {
+  /* ─── Transparent Floating Header ─── */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  /* Scope height:auto only to img/video, NOT svg */
-  img, video {
-    display: block;
+  html.light .header {
+    background: rgba(255, 255, 255, 0.88);
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .header-inner {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+  }
+
+  .logo-text {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  html.light .logo-text {
+    color: #0B0B0B;
+  }
+
+  .header-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .header-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  html.light .header-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #0B0B0B;
+  }
+
+  html.light .header-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+  }
+
+  /* ─── Swipe Flashcard Feed Container (No Scrollbars) ─── */
+  .feed {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .feed::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ─── Single Flashcard ─── */
+  .feed-card {
+    width: 100%;
+    max-width: 440px;
+    height: 100%;
+    max-height: calc(100svh - 56px);
+    max-height: calc(100vh - 56px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 92px;
+    box-sizing: border-box;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+
+  .feed-card-img-box {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    background: #141414;
+    aspect-ratio: 16 / 9;
+    position: relative;
+  }
+
+  .feed-card-img-box.ratio-4-3 {
+    aspect-ratio: 4 / 3;
+    max-height: 40vh;
+  }
+
+  .feed-card-img-box.is-vertical {
+    aspect-ratio: 9 / 16;
+    max-height: 48vh;
+    width: auto;
     max-width: 100%;
-    height: auto;
   }
 
-  iframe {
-    display: block;
+  html.light .feed-card-img-box {
+    background: #F1F1F1;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
 
-  /* Image inside feed box must fill its container */
-  .media-box img {
+  .feed-card-img-box img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center top;
+    display: block;
   }
 
-  .media-box iframe {
+  .feed-card-img-box iframe {
     width: 100%;
     height: 100%;
     border: none;
-  }
-}
-
-/* ─────────────────────────────────────────────
-   COMPONENT CLASSES
-   Semantic classes for feed cards, HUD, etc.
-───────────────────────────────────────────── */
-@layer components {
-
-  /* ── Light mode body ── */
-  html.light body {
-    background-color: var(--color-bg) !important;
-    color: var(--color-text-primary) !important;
+    display: block;
   }
 
-  /* bg-surface token */
-  .bg-surface {
-    background-color: var(--color-surface);
-  }
-
-  /* ── Media box (image / video container inside cards) ── */
-  .media-box {
+  .feed-card-content {
     width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #141414;
-    flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.08);
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-shrink: 1;
+    min-height: 0;
   }
 
-  .media-box.ratio-16-9 { aspect-ratio: 16/9; }
-  .media-box.ratio-4-3  { aspect-ratio: 4/3; }
-
-  html.light .media-box {
-    background: #f0f0f0;
-    border-color: rgba(0,0,0,0.1);
+  .feed-card-source-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 6px;
   }
 
-  /* ── Feed card ── */
+  .feed-card-source {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  html.light .feed-card-source {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .feed-card-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  html.light .feed-card-dot {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .feed-card-category {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(59, 130, 246, 0.18);
+    color: #60A5FA;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+  }
+
+  html.light .feed-card-category {
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563EB;
+    border-color: rgba(37, 99, 235, 0.3);
+  }
+
   .feed-card-title {
-    font-size: clamp(1rem, 4vw, 1.25rem);
+    font-size: clamp(1rem, 4.2vw, 1.25rem);
     font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.02em;
-    color: var(--color-text-primary);
+    line-height: 1.28;
+    color: #FFFFFF;
     margin: 0 0 6px;
-  }
-
-  .feed-card-summary {
-    font-size: 0.83rem;
-    line-height: 1.55;
-    color: rgba(255,255,255,0.55);
-    margin: 0 0 12px;
+    letter-spacing: -0.02em;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  html.light .feed-card-summary { color: rgba(0,0,0,0.55); }
+  html.light .feed-card-title {
+    color: #0B0B0B;
+  }
+
+  .feed-card-summary {
+    font-size: 0.825rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.58);
+    margin: 0 0 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  html.light .feed-card-summary {
+    color: rgba(0, 0, 0, 0.58);
+  }
 
   .feed-card-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 0.72rem;
     font-weight: 700;
     color: #60A5FA;
     padding: 6px 14px;
     border-radius: 9999px;
-    background: rgba(59,130,246,0.12);
-    border: 1px solid rgba(59,130,246,0.35);
-    transition: all 0.15s;
+    background: rgba(59, 130, 246, 0.14);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    transition: all 0.15s ease;
     text-decoration: none;
+    margin-top: 2px;
   }
 
   .feed-card-link:hover {
-    background: rgba(59,130,246,0.24);
-    border-color: rgba(59,130,246,0.6);
+    background: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.6);
     color: #93C5FD;
   }
 
   html.light .feed-card-link {
-    color: #2563eb;
-    background: rgba(37,99,235,0.1);
-    border-color: rgba(37,99,235,0.3);
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
   }
 
-  /* ── HUD tucked state ── */
-  .hud-tucked {
-    opacity: 0 !important;
-    transform: translateY(16px) !important;
-    pointer-events: none !important;
-  }
-}
-
-/* ─────────────────────────────────────────────
-   DESKTOP: phone-column layout
-   On screens wider than 520px, centre the app
-   in a phone-width column so it looks intentional
-   rather than elements scattered at screen edges.
-───────────────────────────────────────────── */
-@media (min-width: 520px) {
-  /* Constrain and centre the feed */
-  #feed {
-    max-width: 440px;
-    margin-left: auto;
-    margin-right: auto;
-    border-left: 1px solid rgba(255,255,255,0.06);
-    border-right: 1px solid rgba(255,255,255,0.06);
-  }
-
-  html.light #feed {
-    border-color: rgba(0,0,0,0.08);
-  }
-
-  /* Header stays full-width but content centred */
-  header {
+  /* ─── Bottom Action Pill (Phone-reach aligned on Desktop) ─── */
+  .action-pill {
+    position: fixed;
+    left: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    z-index: 50;
     display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 5px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    pointer-events: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  @media (min-width: 480px) {
+    .action-pill {
+      left: calc((100vw - 440px) / 2);
+    }
+  }
+
+  html.light .action-pill {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+    transition: background 0.15s ease, transform 0.15s ease;
+    touch-action: manipulation;
+  }
+
+  .action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .action-btn:active {
+    transform: scale(0.92);
+  }
+
+  html.light .action-btn {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  html.light .action-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .action-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .action-btn-count {
+    min-width: 12px;
+    text-align: center;
+  }
+
+  /* Active states */
+  .action-btn.active-like {
+    color: #FF3B30;
+  }
+  .action-btn.active-like svg {
+    fill: #FF3B30;
+    stroke: #FF3B30;
+  }
+
+  .action-btn.active-save {
+    color: #FFD60A;
+  }
+  .action-btn.active-save svg {
+    fill: #FFD60A;
+    stroke: #FFD60A;
+  }
+
+  .action-btn.active-share {
+    color: #30D158;
+  }
+  .action-btn.active-share svg {
+    fill: #30D158;
+    stroke: #30D158;
+  }
+
+  /* ─── Emoji Trigger ─── */
+  .emoji-trigger {
+    position: fixed;
+    right: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    z-index: 50;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
     justify-content: center;
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 1.3rem;
+    pointer-events: auto;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.15s ease, background 0.15s ease;
   }
 
-  header > div.flex {
+  @media (min-width: 480px) {
+    .emoji-trigger {
+      right: calc((100vw - 440px) / 2);
+    }
+  }
+
+  .emoji-trigger:hover {
+    transform: scale(1.08);
+  }
+
+  .emoji-trigger:active {
+    transform: scale(0.92);
+  }
+
+  html.light .emoji-trigger {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ─── Emoji Picker ─── */
+  .emoji-picker {
+    position: fixed;
+    right: 16px;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    padding: 10px;
+    background: rgba(16, 16, 16, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    width: 196px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  @media (min-width: 480px) {
+    .emoji-picker {
+      right: calc((100vw - 440px) / 2);
+    }
+  }
+
+  .emoji-picker.open {
+    display: flex;
+  }
+
+  .emoji-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .emoji-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: scale(1.15);
+  }
+
+  html.light .emoji-picker {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+
+  html.light .emoji-btn {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  html.light .emoji-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  /* ─── Preferences Modal (Theme-conforming) ─── */
+  .prefs-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .prefs-modal.open {
+    display: flex;
+  }
+
+  .prefs-card {
+    position: relative;
     width: 100%;
-    max-width: 440px;
+    max-width: 380px;
+    background: rgba(18, 18, 18, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 24px 22px 22px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    animation: fadeInUp 0.2s ease;
   }
 
-  /* Re-anchor action bar to the column, not the viewport left edge */
-  #action-bar {
-    left: 50%;
-    transform: translateX(calc(-220px + 8px));
+  .prefs-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.5);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.15s;
   }
 
-  /* Re-anchor emoji trigger to the column right edge */
-  #emoji-trigger {
-    left: 50%;
-    transform: translateX(calc(220px - 50px - 8px));
-    right: auto;
+  .prefs-close:hover {
+    color: #fff;
   }
 
-  /* Re-anchor emoji picker similarly */
-  #emoji-picker {
-    left: 50%;
-    transform: translateX(calc(220px - 256px - 8px));
-    right: auto;
+  .prefs-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
   }
 
-  /* Toast centred within column */
-  #toast {
-    left: 50%;
+  .prefs-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 18px;
+    line-height: 1.4;
   }
 
-  /* TG premium banner */
-  #tg-premium {
+  .prefs-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+
+  .prefs-chip {
+    padding: 8px 14px;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.75);
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+
+  .prefs-chip:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .prefs-chip.selected {
+    background: rgba(59, 130, 246, 0.22);
+    border-color: rgba(59, 130, 246, 0.6);
+    color: #93C5FD;
+  }
+
+  .prefs-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  html.light .prefs-modal {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  html.light .prefs-card {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  html.light .prefs-close {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  html.light .prefs-close:hover {
+    color: #000;
+  }
+
+  html.light .prefs-title {
+    color: #0B0B0B;
+  }
+
+  html.light .prefs-desc {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  html.light .prefs-chip {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  html.light .prefs-chip:hover {
+    background: rgba(0, 0, 0, 0.09);
+  }
+
+  html.light .prefs-chip.selected {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.5);
+    color: #2563EB;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    transition: all 0.15s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: #3B82F6;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #2563EB;
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  html.light .btn-secondary {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.75);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+
+  html.light .btn-secondary:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  /* ─── Toast Notification ─── */
+  .toast {
+    position: fixed;
+    bottom: 84px;
     left: 50%;
-    transform: translateX(-50%);
-    max-width: 440px;
-    right: auto;
+    transform: translateX(-50%) translateY(10px);
+    z-index: 200;
+    padding: 8px 18px;
+    background: rgba(18, 18, 18, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  html.light .toast {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #0B0B0B;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
 }
 
-/* ─────────────────────────────────────────────
-   ANIMATIONS
-───────────────────────────────────────────── */
 @keyframes fadeInUp {
-  0%  { opacity: 0; transform: translateY(14px); }
-  to  { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes heartBeat {
-  0%, to { transform: scale(1); }
-  40%    { transform: scale(1.45); }
-  65%    { transform: scale(1.2); }
-}
-
-.heart-beat { animation: heartBeat 0.38s ease; }

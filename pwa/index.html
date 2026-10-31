@@ -12,10 +12,10 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 
-    <!-- Telegram Mini App SDK (must load before app script) -->
+    <!-- Telegram Mini App SDK (initializes Telegram WebApp if opened in Telegram) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- Self-contained CSS (no external CDN) -->
+    <!-- Self-contained CSS -->
     <link rel="stylesheet" href="/style.css">
 
     <!-- Theme toggle (runs before body renders) -->
@@ -28,105 +28,81 @@
         })();
     </script>
 </head>
-<body class="text-white min-h-screen font-sans antialiased overflow-hidden">
-
-    <!-- Telegram WebApp banner (appears only in Telegram) -->
-    <div id="tg-banner" class="hidden fixed top-0 left-0 right-0 px-4 py-2 bg-blue-600 text-white text-center text-xs font-medium z-50">
-        <span id="tg-banner-text">Open in Telegram for the full Mini App experience</span>
-        <button id="tg-banner-close" class="ml-2 text-xs underline hover:text-blue-200">Dismiss</button>
-    </div>
-
-    <!-- Telegram Stars / premium upsell (Telegram context only) -->
-    <div id="tg-premium" class="hidden fixed bottom-[calc(120px+env(safe-area-inset-bottom))] left-2 right-2 z-40 flex items-center gap-2 px-4 py-2 bg-amber-900/90 backdrop-blur border border-amber-500/30 rounded-lg text-amber-100 text-xs shadow-lg">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-        <span id="tg-premium-text">Go ad-free with Telegram Stars</span>
-        <button id="tg-premium-btn" class="ml-auto px-3 py-1 bg-amber-500 text-amber-900 text-xs font-bold rounded hover:bg-amber-400">Stars</button>
-    </div>
+<body>
 
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 h-14 px-4 flex items-center justify-between z-40 bg-black/80 backdrop-blur border-b border-white/10">
-        <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='/'">
-            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">S</div>
-            <span class="font-bold text-lg tracking-tight">Snapfeed</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <button id="theme-toggle" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors" aria-label="Toggle theme">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>
-            </button>
-            <button id="prefs-btn" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors" aria-label="Preferences">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573z"></path></svg>
-            </button>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo" onclick="window.location.href='/'">
+                <div class="logo-icon">S</div>
+                <span class="logo-text">Snapfeed</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="theme-toggle" class="header-btn" aria-label="Toggle theme">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 3c4.971 0 9.023 4.001 9.018 8.997.003.487-.035.965-.102 1.43a9 9 0 01-2.534 2.534c-.465.067-.944.105-1.43.102a9 9 0 01-8.997 9.018 9 9 0 01-8.997-8.996c0-4.971 4.001-9.023 8.997-9.018.487.067.965.102 1.43.102z"></path></svg>
+                </button>
+                <button id="prefs-btn" class="header-btn" aria-label="Preferences">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573z"></path></svg>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- Feed -->
-    <main class="pt-16 pb-24 px-2 overflow-y-auto h-[100svh] -mx-2" id="feed" role="main" aria-label="Flashcard feed">
-        <!-- Cards injected here -->
+    <!-- Swipe / Flashcard Feed Container -->
+    <main class="feed" id="feed" role="main" aria-label="Flashcard feed">
+        <div style="color: rgba(255,255,255,0.4); font-size: 0.9rem;">Loading feed...</div>
     </main>
 
-    <!-- Bottom action pill (hidden while swiping, reappears on tap) -->
-    <div id="action-bar" class="fixed left-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 flex gap-2 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-full pointer-events-auto transition-all duration-300">
+    <!-- Bottom Action Pill: Like / Save / Share -->
+    <div id="action-bar" class="action-pill" role="group" aria-label="Post actions">
         <!-- Like -->
-        <button id="btn-like" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Like">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-            <span id="count-like" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        <button id="btn-like" class="action-btn" aria-label="Like" title="Like">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            <span id="count-like" class="action-btn-count">0</span>
         </button>
         <!-- Save -->
-        <button id="btn-save" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Save">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-            <span id="count-save" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        <button id="btn-save" class="action-btn" aria-label="Save" title="Save">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+            <span id="count-save" class="action-btn-count">0</span>
         </button>
         <!-- Share -->
-        <button id="btn-share" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all" aria-label="Share">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-            <span id="count-share" class="text-[10px] mt-0.5 font-bold text-white/70">0</span>
+        <button id="btn-share" class="action-btn" aria-label="Share" title="Share">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+            <span id="count-share" class="action-btn-count">0</span>
         </button>
     </div>
 
-    <!-- Floating emoji trigger (bottom-right, colinear with action pill) -->
-    <button id="emoji-trigger" class="fixed right-2 bottom-[calc(100px+env(safe-area-inset-bottom))] z-50 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20 transition-all pointer-events-auto" aria-label="Reactions">
+    <!-- Floating Emoji Reaction Trigger -->
+    <button id="emoji-trigger" class="emoji-trigger" aria-label="Reactions" title="React">
         😊
     </button>
 
-    <!-- Emoji picker (hidden by default) -->
-    <div id="emoji-picker" class="hidden fixed right-2 bottom-[calc(116px+env(safe-area-inset-bottom))] z-50 w-64 p-2 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex-wrap gap-2">
-        😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤨🧐🤓😎🥸🤩🥳😏😒😞😔😟😕🙁😮😯😲😳😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈👿💀💩🤡👹👺🤡👻👽🤖🎃😺😸😹😻😼😽🙀😿😾
-    </div>
+    <!-- Floating Emoji Picker -->
+    <div id="emoji-picker" class="emoji-picker" role="menu" aria-label="Choose reaction"></div>
 
-    <!-- Preferences modal -->
-    <div id="prefs-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="bg-black/95 rounded-2xl border border-white/10 p-6 w-full max-w-md">
-            <h2 class="text-xl font-bold mb-4">Preferences</h2>
-            <p class="text-sm text-white/60 mb-6">Select your favorite categories</p>
-            <div id="prefs-chips" class="flex flex-wrap gap-2 mb-6"></div>
-            <div class="flex justify-end gap-2">
-                <button id="prefs-close" class="px-4 py-2 text-white/60 hover:text-white">Cancel</button>
-                <button id="prefs-save" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save</button>
+    <!-- Preferences Modal (Conforms to Theme) -->
+    <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
+        <div class="prefs-card">
+            <button id="prefs-close" class="prefs-close" aria-label="Close">&times;</button>
+            <h2 class="prefs-title">Preferences</h2>
+            <p class="prefs-desc">Select your favorite categories to customize your feed</p>
+            <div id="prefs-chips" class="prefs-chips"></div>
+            <div class="prefs-actions">
+                <button id="prefs-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="prefs-save" class="btn btn-primary">Save</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 bg-black/90 text-white rounded-full text-sm border border-white/10 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
-
-    <!-- Ad template (cloned every 5th card) -->
-    <template id="ad-template">
-        <div class="flex justify-center my-4">
-            <div class="w-full max-w-[300px] h-[250px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs relative overflow-hidden">
-                <div class="absolute top-1 left-1 text-[10px] text-white/40 bg-black/60 px-1 py-0.5 rounded">Ad</div>
-                <div id="ad-content" class="w-full h-full flex items-center justify-center"></div>
-            </div>
-        </div>
-    </template>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
     <script type="module">
-        import { rankPosts } from './ranking.js';
-
         // ── Config ──
-        // Worker proxy URL — deploy the Worker and set this to its URL
         const WORKER_URL = 'https://wrangler-auth.abdukarrim6.workers.dev';
 
-        // ── Ad / Monetization config (from Turso site_config, cached in localStorage) ──
+        const EMOJIS = ['😂', '🔥', '😭', '💀', '💅', '🤝', '🫡', '✨', '👀', '❤️'];
+
         let adConfig = {
             enable_ads: false,
             adsense_client_id: '',
@@ -141,33 +117,28 @@
         let ranked = [];
         let activeIndex = 0;
         let favorites = JSON.parse(localStorage.getItem('snapfeed_favorites') || '[]');
-        let viewed = new Set(JSON.parse(localStorage.getItem('snapfeed_viewed') || '[]'));
-        let interactions = {}; // { [postId]: { like, save, share } }
+        let interactions = JSON.parse(localStorage.getItem('snapfeed_interactions') || '{}');
         let theme = localStorage.getItem('snapfeed_theme') || 'dark';
-        let isTelegram = false;
-        let isAdFree = false;
 
-        // ── DOM ──
+        // ── DOM Elements ──
         const feed = document.getElementById('feed');
         const themeToggle = document.getElementById('theme-toggle');
         const prefsBtn = document.getElementById('prefs-btn');
         const prefsModal = document.getElementById('prefs-modal');
         const prefsClose = document.getElementById('prefs-close');
+        const prefsCancel = document.getElementById('prefs-cancel');
         const prefsSave = document.getElementById('prefs-save');
         const prefsChips = document.getElementById('prefs-chips');
-        const actionBar = document.getElementById('action-bar');
         const emojiTrigger = document.getElementById('emoji-trigger');
         const emojiPicker = document.getElementById('emoji-picker');
         const toastEl = document.getElementById('toast');
-        const tgBanner = document.getElementById('tg-banner');
-        const tgPremium = document.getElementById('tg-premium');
-        const tgPremiumBtn = document.getElementById('tg-premium-btn');
 
         // ── Init ──
         function init() {
             applyTheme();
             detectTelegram();
             setupEventListeners();
+            initEmojiPicker();
             fetchAndRender();
         }
 
@@ -182,114 +153,168 @@
         }
 
         function detectTelegram() {
-            isTelegram = !!window.Telegram?.WebApp;
-            if (isTelegram) {
-                tgBanner.classList.remove('hidden');
-                if (window.Telegram.WebApp) {
-                    Telegram.WebApp.ready();
-                    Telegram.WebApp.expand();
-                    Telegram.WebApp.MainButton.text = 'Go Ad-Free (Stars)';
-                    Telegram.WebApp.MainButton.onClick(() => {
-                        if (Telegram.WebApp.openInvoice) {
-                            Telegram.WebApp.openInvoice({
-                                title: 'Snapfeed Ad-Free',
-                                description: 'Remove ads for 30 days',
-                                payload: 'snapfeed_adfree_30d',
-                                provider_token: '',
-                                currency: 'XTR',
-                                prices: [{ label: 'Ad-Free 30 Days', amount: 99 }],
-                            });
-                        }
-                    });
-                }
-                if (!isAdFree) {
-                    tgPremium.classList.remove('hidden');
-                    actionBar.style.transform = 'translateY(10px)';
-                    actionBar.style.opacity = '0.5';
-                }
+            if (window.Telegram?.WebApp) {
+                try {
+                    window.Telegram.WebApp.ready();
+                    window.Telegram.WebApp.expand();
+                } catch (_) {}
             }
         }
 
+        function initEmojiPicker() {
+            emojiPicker.innerHTML = EMOJIS.map(em => `
+                <button class="emoji-btn" data-emoji="${em}" title="${em}">${em}</button>
+            `).join('');
+
+            emojiPicker.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const em = btn.dataset.emoji;
+                    reactWithEmoji(em);
+                    emojiPicker.classList.remove('open');
+                });
+            });
+        }
+
+        function reactWithEmoji(emoji) {
+            const post = ranked[activeIndex];
+            if (!post) return;
+            showToast(`Reacted ${emoji}`);
+        }
+
         function setupEventListeners() {
+            // Theme toggle
             themeToggle.addEventListener('click', () => {
                 theme = theme === 'light' ? 'dark' : 'light';
                 localStorage.setItem('snapfeed_theme', theme);
                 applyTheme();
             });
 
+            // Preferences modal
             prefsBtn.addEventListener('click', () => {
-                prefsModal.classList.remove('hidden');
                 renderPrefsChips();
+                prefsModal.classList.add('open');
             });
 
-            prefsClose.addEventListener('click', () => prefsModal.classList.add('hidden'));
+            prefsClose.addEventListener('click', () => prefsModal.classList.remove('open'));
+            prefsCancel.addEventListener('click', () => prefsModal.classList.remove('open'));
+
             prefsSave.addEventListener('click', () => {
-                prefsModal.classList.add('hidden');
-                fetchAndRender();
-            });
-
-            tgPremiumBtn.addEventListener('click', () => {
-                if (Telegram.WebApp.openInvoice) {
-                    Telegram.WebApp.openInvoice({
-                        title: 'Snapfeed Ad-Free',
-                        description: 'Remove ads for 30 days',
-                        payload: 'snapfeed_adfree_30d',
-                        provider_token: '',
-                        currency: 'XTR',
-                        prices: [{ label: 'Ad-Free 30 Days', amount: 99 }],
-                    });
-                }
-            });
-
-            // HUD tuck on scroll
-            feed.addEventListener('scroll', () => {
-                actionBar.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
-                emojiTrigger.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
-                emojiPicker.classList.add('hidden');
-            }, { passive: true });
-
-            // Tap to toggle HUD
-            feed.addEventListener('click', (e) => {
-                if (e.target.closest('button, a')) return;
-                const tucked = actionBar.classList.contains('opacity-0');
-                actionBar.classList.toggle('opacity-0');
-                actionBar.classList.toggle('translate-y-2');
-                actionBar.classList.toggle('pointer-events-none');
-                emojiTrigger.classList.toggle('opacity-0');
-                emojiTrigger.classList.toggle('translate-y-2');
-                emojiTrigger.classList.toggle('pointer-events-none');
+                localStorage.setItem('snapfeed_favorites', JSON.stringify(favorites));
+                prefsModal.classList.remove('open');
+                ranked = rankAndFilter(posts);
+                activeIndex = 0;
+                renderCard(0);
+                showToast('Preferences updated');
             });
 
             // Action buttons
-            document.getElementById('btn-like').addEventListener('click', () => toggleInteraction('like'));
-            document.getElementById('btn-save').addEventListener('click', () => toggleInteraction('save'));
-            document.getElementById('btn-share').addEventListener('click', () => toggleInteraction('share'));
+            document.getElementById('btn-like').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleInteraction('like');
+            });
+
+            document.getElementById('btn-save').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleInteraction('save');
+            });
+
+            document.getElementById('btn-share').addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleShare();
+            });
 
             // Emoji trigger
             emojiTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
-                emojiPicker.classList.toggle('hidden');
+                emojiPicker.classList.toggle('open');
             });
 
             // Close picker on outside click
             document.addEventListener('click', (e) => {
                 if (!emojiTrigger.contains(e.target) && !emojiPicker.contains(e.target)) {
-                    emojiPicker.classList.add('hidden');
+                    emojiPicker.classList.remove('open');
+                }
+            });
+
+            // ─── Swipe & Navigation Gestures (No scrollbar needed) ───
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isSwiping = false;
+
+            feed.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isSwiping = true;
+            }, { passive: true });
+
+            feed.addEventListener('touchend', (e) => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                const diffX = e.changedTouches[0].clientX - touchStartX;
+                const diffY = e.changedTouches[0].clientY - touchStartY;
+
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
+                    if (diffY < 0 && activeIndex < ranked.length - 1) {
+                        // Swipe UP -> Next post
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    } else if (diffY > 0 && activeIndex > 0) {
+                        // Swipe DOWN -> Previous post
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
+                }
+            }, { passive: true });
+
+            // Desktop Mouse Wheel / Trackpad Gesture
+            let wheelTimer = null;
+            window.addEventListener('wheel', (e) => {
+                if (wheelTimer) return;
+                if (Math.abs(e.deltaY) > 25) {
+                    if (e.deltaY > 0 && activeIndex < ranked.length - 1) {
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    } else if (e.deltaY < 0 && activeIndex > 0) {
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
+                    wheelTimer = setTimeout(() => { wheelTimer = null; }, 320);
+                }
+            }, { passive: true });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+                    if (activeIndex < ranked.length - 1) {
+                        e.preventDefault();
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    }
+                } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+                    if (activeIndex > 0) {
+                        e.preventDefault();
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
                 }
             });
         }
 
-        // ── Data ──
+        // ── Data Fetching ──
         async function fetchAndRender() {
             try {
-                const [raw, config] = await Promise.all([fetchFromTurso(), fetchConfigFromTurso()]);
-                posts = raw;
+                const [rawPosts, config] = await Promise.all([
+                    fetchFromTurso(),
+                    fetchConfigFromTurso()
+                ]);
+                posts = rawPosts;
                 adConfig = config;
-                isAdFree = localStorage.getItem('snapfeed_adfree') === 'true' || (isTelegram && adConfig.enable_ads === false);
                 ranked = rankAndFilter(posts);
                 renderCard(activeIndex);
             } catch (err) {
                 console.error('Fetch failed:', err);
+                feed.innerHTML = '<div style="color:rgba(255,255,255,0.5);text-align:center;padding:20px;">Failed to load feed. Check connection.</div>';
                 showToast('Failed to load feed');
             }
         }
@@ -306,13 +331,22 @@
             });
             if (!res.ok) throw new Error(`Worker HTTP ${res.status}`);
             const data = await res.json();
-            // Turso HTTP API returns: [{ results: { columns, rows } }]
-            const rows0 = Array.isArray(data) ? data[0]?.results?.rows : data.results?.[0]?.rows;
-            return (rows0 || []).map(row => ({
-                id: row[0], title: row[1], summary: row[2], media_url: row[3],
-                media_type: row[4], source_url: row[5], source_name: row[6],
-                category: row[7], likes: row[8], shares: row[9], saves: row[10],
-                views: row[11], created_at: row[12], indexed_at: row[13]
+            const rows = Array.isArray(data) ? (data[0]?.results?.rows || []) : (data.results?.[0]?.rows || []);
+            return rows.map(row => ({
+                id: row[0],
+                title: row[1] || '',
+                summary: row[2] || '',
+                media_url: row[3] || '',
+                media_type: row[4] || '',
+                source_url: row[5] || '',
+                source_name: row[6] || 'Snapfeed',
+                category: row[7] || 'General',
+                likes: Number(row[8]) || 0,
+                shares: Number(row[9]) || 0,
+                saves: Number(row[10]) || 0,
+                views: Number(row[11]) || 0,
+                created_at: row[12],
+                indexed_at: row[13]
             }));
         }
 
@@ -327,58 +361,51 @@
                 });
                 if (!res.ok) return adConfig;
                 const data = await res.json();
-                // Turso HTTP API returns: [{ results: { columns, rows } }]
                 const rows = Array.isArray(data) ? (data[0]?.results?.rows || []) : (data.results?.[0]?.rows || []);
                 const cfg = { ...adConfig };
                 rows.forEach(([key, value]) => {
                     if (key in cfg) cfg[key] = value === 'true' ? true : value;
                 });
-                localStorage.setItem('snapfeed_adconfig', JSON.stringify(cfg));
                 return cfg;
-            } catch (e) {
-                const cached = localStorage.getItem('snapfeed_adconfig');
-                return cached ? JSON.parse(cached) : adConfig;
+            } catch (_) {
+                return adConfig;
             }
         }
 
         function rankAndFilter(items) {
             const now = new Date();
-            const FRESHNESS_WINDOW_DAYS = 30; // Relaxed from 3 — avoids empty feed if DB isn't super fresh
+            const FRESHNESS_WINDOW_DAYS = 30;
             const FRESH_WEIGHT = 30;
-            const FRESH_DECAY = 0.15; // Gentler decay over 30 days
-            const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
+            const FRESH_DECAY = 0.15;
             const CATEGORY_BOOST = { Memes: 6.0, Entertainment: 2.0 };
             const SOURCE_CAP = 3;
             const CATEGORY_CAP = 6;
             const DIVERSITY_WINDOW = 25;
 
-            // Use let so the favorites filter can reassign
             let scored = items.map(post => {
                 const postTime = new Date(post.created_at);
                 const ageDays = isNaN(postTime) ? 0 : Math.max(0, (now - postTime) / 86400000);
                 if (ageDays > FRESHNESS_WINDOW_DAYS) return null;
-                const engagement = (post.likes||0)*1 + (post.shares||0)*2 + (post.saves||0)*3 + (post.views||0)*0.0001;
+                const engagement = (post.likes || 0) * 1 + (post.shares || 0) * 2 + (post.saves || 0) * 3 + (post.views || 0) * 0.0001;
                 const recency = FRESH_WEIGHT * Math.exp(-FRESH_DECAY * ageDays);
                 const score = engagement + recency + (CATEGORY_BOOST[post.category] || 0);
                 return { ...post, score };
             }).filter(Boolean);
 
-            // If the freshness window filtered everything out, fall back to all items scored
             if (!scored.length) {
                 scored = items.map(post => {
-                    const engagement = (post.likes||0)*1 + (post.shares||0)*2 + (post.saves||0)*3 + (post.views||0)*0.0001;
+                    const engagement = (post.likes || 0) * 1 + (post.shares || 0) * 2 + (post.saves || 0) * 3 + (post.views || 0) * 0.0001;
                     return { ...post, score: engagement };
                 });
             }
 
             scored.sort((a, b) => b.score - a.score);
 
-            // Category filter (favorites)
             if (favorites.length) {
-                scored = scored.filter(p => favorites.includes(p.category));
+                const filtered = scored.filter(p => favorites.includes(p.category));
+                if (filtered.length) scored = filtered;
             }
 
-            // Diversity window: source cap
             const window = scored.slice(0, DIVERSITY_WINDOW);
             const tail = scored.slice(DIVERSITY_WINDOW);
             const kept = [], dropped = [];
@@ -390,21 +417,6 @@
                 } else {
                     dropped.push(item);
                 }
-            }
-
-            // Category cap (favorites only)
-            if (favorites.length) {
-                const catKept = [], catDropped = [];
-                const catCounts = {};
-                for (const item of kept) {
-                    if ((catCounts[item.category] || 0) < CATEGORY_CAP) {
-                        catKept.push(item);
-                        catCounts[item.category] = (catCounts[item.category] || 0) + 1;
-                    } else {
-                        catDropped.push(item);
-                    }
-                }
-                return interleaveVideos([...catKept, ...catDropped, ...dropped, ...tail]);
             }
 
             return interleaveVideos([...kept, ...dropped, ...tail]);
@@ -430,133 +442,69 @@
             return out;
         }
 
-        // ── Affiliate link rewriting ──
-        function affiliateUrl(url) {
-            if (!adConfig.affiliate_aliexpress || !adConfig.affiliate_aliexpress_tag) return url;
-            try {
-                const u = new URL(url);
-                if (u.hostname.includes('aliexpress.com')) {
-                    u.searchParams.set('aff_platform', 'mws');
-                    u.searchParams.set('aff_ext_fingerprint', adConfig.affiliate_aliexpress_tag);
-                    u.searchParams.set('aff_short_key', adConfig.affiliate_aliexpress_tag);
-                    u.searchParams.set('utm_source', 'snapfeed');
-                    u.searchParams.set('utm_medium', 'affiliate');
-                    u.searchParams.set('utm_campaign', 'snapfeed_app');
-                    return u.toString();
-                }
-            } catch (_) {}
-            return url;
-        }
-
-        // ── Ad rendering ──
-        function renderAdSlot() {
-            if (!adConfig.enable_ads || isAdFree) return `<div class="my-4"></div>`;
-
-            const adId = `snapfeed-ad-${Date.now()}`;
-            const html = `
-                <div class="flex justify-center my-4">
-                    <div class="w-full max-w-[320px] h-[280px] border border-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs relative overflow-hidden">
-                        <div class="absolute top-1 left-1 text-[10px] text-white/40 bg-black/60 px-1 py-0.5 rounded">Ad</div>
-                        <div id="${adId}" class="w-full h-full"></div>
-                    </div>
-                </div>
-            `;
-
-            // Try AdSense
-            if (adConfig.adsense_client_id && adConfig.adsense_slot_feed && !isTelegram) {
-                setTimeout(() => {
-                    const el = document.getElementById(adId);
-                    if (!el) return;
-                    el.innerHTML = `
-                        <ins class="adsbygoogle" style="display:inline-block;width:320px;height:280px"
-                             data-ad-client="${escapeHtml(adConfig.adsense_client_id)}"
-                             data-ad-slot="${escapeHtml(adConfig.adsense_slot_feed)}"></ins>
-                    `;
-                    if (window.adsbygoogle) window.adsbygoogle.push({});
-                }, 100);
-                return html;
-            }
-
-            // Try Monetag
-            if (adConfig.monetag_zone_id) {
-                setTimeout(() => {
-                    const el = document.getElementById(adId);
-                    if (!el) return;
-                    el.innerHTML = `
-                        <iframe src="https://www.monetag.com/serve/${escapeHtml(adConfig.monetag_zone_id)}"
-                                width="320" height="280" style="border:0;" scrolling="no"></iframe>
-                    `;
-                }, 100);
-                return html;
-            }
-
-            // Telegram Adsgram placeholder
-            if (isTelegram && Telegram.WebApp) {
-                setTimeout(() => {
-                    const el = document.getElementById(adId);
-                    if (!el) return;
-                    el.innerHTML = `
-                        <div class="w-full h-full bg-white/5 rounded flex items-center justify-center text-[10px] text-white/40 border border-white/10">
-                            Sponsored
-                        </div>
-                    `;
-                }, 100);
-                return html;
-            }
-
-            return html;
-        }
-
-        // ── Render ──
+        // ── Single Card Flashcard Renderer ──
         function renderCard(index) {
             if (index < 0 || index >= ranked.length) {
-                feed.innerHTML = '<div class="flex items-center justify-center h-full text-white/40 text-sm">No more content</div>';
+                feed.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:0.9rem;">No more content</div>';
                 return;
             }
 
             const post = ranked[index];
             const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
-            const viewedCls = viewed.has(String(post.id)) ? 'opacity-60' : '';
-            const ratioClass = isVideo ? 'ratio-16-9' : 'ratio-4-3';
-            const imgSrc = escapeHtml(post.media_url || 'https://placehold.co/400x300/111/555?text=No+Image');
+            const isVertical = post.media_type === 'shorts';
+            const boxClass = `feed-card-img-box${isVertical ? ' is-vertical' : (isVideo ? '' : ' ratio-4-3')}`;
+            const fallbackImg = 'https://placehold.co/600x400/181818/888888?text=Snapfeed';
 
             const mediaHtml = isVideo
                 ? `<iframe src="${escapeHtml(post.media_url)}" frameborder="0" allowfullscreen loading="lazy"></iframe>`
-                : `<img src="${imgSrc}" alt="${escapeHtml(post.title)}" loading="lazy">`;
+                : `<img src="${escapeHtml(post.media_url || fallbackImg)}" alt="${escapeHtml(post.title)}" loading="lazy" onerror="this.src='${fallbackImg}'">`;
 
-            const summaryHtml = post.summary
-                ? `<p class="feed-card-summary">${escapeHtml(post.summary)}</p>` : '';
+            // Headings for ALL posts, summaries for everything except videos that don't need summaries
+            const summaryHtml = (!isVideo && post.summary)
+                ? `<p class="feed-card-summary">${escapeHtml(post.summary)}</p>`
+                : '';
 
-            const sourceUrl = affiliateUrl(post.source_url);
+            const sourceUrl = post.source_url || '#';
 
             feed.innerHTML = `
-                <article class="w-full max-w-[440px] mx-auto flex flex-col gap-3 px-3 pt-16 pb-28 ${viewedCls}" style="min-height:100svh;min-height:100vh;">
-                    <div class="media-box ${ratioClass}">
+                <article class="feed-card">
+                    <div class="${boxClass}">
                         ${mediaHtml}
                     </div>
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">${escapeHtml(post.source_name)}</span>
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30">${escapeHtml(post.category)}</span>
-                    </div>
-                    <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
-                    ${summaryHtml}
-                    <div class="mt-2">
-                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="feed-card-link">
-                            Read on ${escapeHtml(post.source_name)}
-                            ${adConfig.affiliate_aliexpress ? '<span class="text-[10px] ml-1">→</span>' : ''}
+                    <div class="feed-card-content">
+                        <div class="feed-card-source-row">
+                            <span class="feed-card-source">${escapeHtml(post.source_name)}</span>
+                            <div class="feed-card-dot"></div>
+                            <span class="feed-card-category">${escapeHtml(post.category)}</span>
+                        </div>
+                        <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
+                        ${summaryHtml}
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
+                            Read on ${escapeHtml(post.source_name)} &rarr;
                         </a>
                     </div>
                 </article>
-                ${index % 5 === 4 ? renderAdSlot() : ''}
             `;
 
             updateActionCounts(post);
+            updateButtonVisualState(String(post.id));
         }
 
         function updateActionCounts(post) {
-            document.getElementById('count-like').textContent = post.likes;
-            document.getElementById('count-save').textContent = post.saves;
-            document.getElementById('count-share').textContent = post.shares;
+            document.getElementById('count-like').textContent = post.likes || 0;
+            document.getElementById('count-save').textContent = post.saves || 0;
+            document.getElementById('count-share').textContent = post.shares || 0;
+        }
+
+        function updateButtonVisualState(postId) {
+            const act = interactions[postId] || {};
+            const likeBtn = document.getElementById('btn-like');
+            const saveBtn = document.getElementById('btn-save');
+            const shareBtn = document.getElementById('btn-share');
+
+            if (likeBtn) likeBtn.classList.toggle('active-like', !!act.like);
+            if (saveBtn) saveBtn.classList.toggle('active-save', !!act.save);
+            if (shareBtn) shareBtn.classList.toggle('active-share', !!act.share);
         }
 
         function toggleInteraction(action) {
@@ -566,14 +514,67 @@
             if (!interactions[id]) interactions[id] = {};
 
             interactions[id][action] = !interactions[id][action];
-            if (action === 'like') post.likes += interactions[id].like ? 1 : -1;
-            if (action === 'save') post.saves += interactions[id].save ? 1 : -1;
-            if (action === 'share') post.shares += interactions[id].share ? 1 : -1;
+            const isAct = interactions[id][action];
+
+            if (action === 'like') post.likes = Math.max(0, (post.likes || 0) + (isAct ? 1 : -1));
+            if (action === 'save') post.saves = Math.max(0, (post.saves || 0) + (isAct ? 1 : -1));
 
             localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
-            ranked = rankAndFilter(posts);
-            renderCard(Math.min(activeIndex, ranked.length - 1));
-            showToast(action.charAt(0).toUpperCase() + action.slice(1) + (interactions[id][action] ? '' : 'd'));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+            showToast(action.charAt(0).toUpperCase() + action.slice(1) + (isAct ? 'd' : ' removed'));
+        }
+
+        function handleShare() {
+            const post = ranked[activeIndex];
+            if (!post) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            interactions[id].share = true;
+            post.shares = (post.shares || 0) + 1;
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+
+            const shareData = {
+                title: post.title,
+                text: post.title,
+                url: post.source_url || window.location.href,
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareData.url).then(() => {
+                    showToast('Link copied to clipboard!');
+                }).catch(() => {
+                    showToast('Shared');
+                });
+            } else {
+                showToast('Shared');
+            }
+        }
+
+        function renderPrefsChips() {
+            const categories = ['News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
+            prefsChips.innerHTML = categories.map(cat => `
+                <button class="prefs-chip ${favorites.includes(cat) ? 'selected' : ''}" data-cat="${cat}">
+                    ${cat}
+                </button>
+            `).join('');
+
+            prefsChips.querySelectorAll('.prefs-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cat = btn.dataset.cat;
+                    if (favorites.includes(cat)) {
+                        favorites = favorites.filter(c => c !== cat);
+                    } else {
+                        favorites.push(cat);
+                    }
+                    renderPrefsChips();
+                });
+            });
         }
 
         function escapeHtml(text) {
@@ -583,66 +584,25 @@
             return div.innerHTML;
         }
 
+        let toastTimer = null;
         function showToast(msg) {
+            if (toastTimer) clearTimeout(toastTimer);
             toastEl.textContent = msg;
-            toastEl.classList.remove('opacity-0');
-            setTimeout(() => toastEl.classList.add('opacity-0'), 2000);
-        }
-
-        // ── Swipe navigation ──
-        let touchStartX = 0, touchStartY = 0;
-        feed.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        }, { passive: true });
-
-        feed.addEventListener('touchend', e => {
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-
-            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
-                if (diffY > 0 && activeIndex > 0) {
-                    activeIndex--;
-                } else if (diffY < 0 && activeIndex < ranked.length - 1) {
-                    activeIndex++;
-                }
-                renderCard(activeIndex);
-            }
-        }, { passive: true });
-
-        // Keyboard nav
-        document.addEventListener('keydown', e => {
-            if (e.key === 'ArrowDown' && activeIndex < ranked.length - 1) {
-                activeIndex++;
-                renderCard(activeIndex);
-            }
-            if (e.key === 'ArrowUp' && activeIndex > 0) {
-                activeIndex--;
-                renderCard(activeIndex);
-            }
-        });
-
-        // ── Preferences ──
-        function renderPrefsChips() {
-            const cats = ['News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
-            prefsChips.innerHTML = cats.map(cat => `
-                <button class="px-3 py-1 rounded-full text-sm border transition-colors ${favorites.includes(cat) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/10 text-white/60 border-white/10 hover:bg-white/20'}" data-cat="${cat}">
-                    ${cat}
-                </button>
-            `).join('');
-            prefsChips.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const cat = btn.dataset.cat;
-                    if (favorites.includes(cat)) favorites = favorites.filter(c => c !== cat);
-                    else favorites.push(cat);
-                    renderPrefsChips();
-                });
-            });
+            toastEl.classList.add('show');
+            toastTimer = setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 2000);
         }
 
         // ── Boot ──
+        // Cleanup: unregister any legacy service worker + clear all caches.
+        // An older SW cached stale assets (old Tailwind markup); this runs on
+        // every load to guarantee fresh HTML/CSS/JS from the network.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())).catch(() => {});
+            if (window.caches && caches.keys) caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(() => {});
+        }
+
         init();
     </script>
 </body>

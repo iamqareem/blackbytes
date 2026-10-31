@@ -2,10 +2,14 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
+  # Everything network-only during stabilization — stale caches were serving
+  # the old Tailwind markup/CSS. Re-enable long caching after the design is
+  # confirmed stable on snapfeed.pages.dev.
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /style.css
   Content-Type: text/css; charset=utf-8
-  Cache-Control: public, max-age=86400
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /sw.js
   Content-Type: application/javascript; charset=utf-8
@@ -13,8 +17,8 @@
 
 /ranking.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: public, max-age=86400
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /manifest.json
   Content-Type: application/manifest+json; charset=utf-8
-  Cache-Control: public, max-age=86400
+  Cache-Control: no-cache, no-store, must-revalidate
