@@ -545,14 +545,16 @@
 
         function injectMonetag() {
             if (monetagInjected) return;
-            const zone = String(adConfig.monetag_zone_id || '12159495').trim();
+            const zone = String(adConfig.monetag_zone_id || '').trim();
             const src = String(adConfig.monetag_tag_url || '').trim() || (zone ? MONETAG_TAG_SRC : '');
             if (!src) return;
             const s = document.createElement('script');
             s.src = src;
             s.async = true;
             s.setAttribute('data-cfasync', 'false');
-            if (zone && !src.includes('zone')) s.setAttribute('zone', zone);
+            // Monetag reads the zone from the script's dataset → the attribute
+            // must be data-zone, NOT zone. (dataset.zone === data-zone.)
+            if (zone && !src.includes('zone')) s.dataset.zone = zone;
             document.head.appendChild(s);
             monetagInjected = true;
         }
