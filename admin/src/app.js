@@ -1,9 +1,26 @@
-const API_BASE = '/admin/api';
+// Snapfeed Admin — minimal dashboard logic
+// One fetch per dataset (the old build hit /analytics four times in parallel),
+// charts rendered lazily on tab activation, Chart.js tree-shaken by esbuild.
+import Chart from 'chart.js/auto';
 
-let currentTab = 'posts';
+const API_BASE = '/admin/api';
+let currentTab = 'overview';
 let postsPage = 1;
 let postsLimit = 20;
 let currentPostId = null;
+
+const CATEGORIES = [
+    'News', 'Sports', 'Geopolitics', 'Tech', 'AI & Quantum', 'Web3',
+    'IoT & Open Source', 'Education', 'Entertainment', 'Culture',
+];
+
+// Gradient-consistent categorical palette (indigo → violet → pink → warm)
+const CATEGORY_COLORS = [
+    '#6366F1', '#A855F7', '#EC4899', '#F97316', '#F59E0B',
+    '#10B981', '#14B8A6', '#3B82F6', '#EF4444', '#8B5CF6',
+];
+
+const charts = {}; // reusable Chart instances, destroyed on re-render
 
 async function api(path, options = {}) {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -11,141 +28,327 @@ async function api(path, options = {}) {
         credentials: 'include',
         ...options,
     });
-    
-    if (res.status === 401) {
-        // Session expired or not authenticated — return null, let caller decide
-        return null;
-    }
-    
+    if (res.status === 401) return null;
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(err.error || `HTTP ${res.status}`);
     }
-    
     return res.json();
 }
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+}
+
+function formatDate(dateStr) {
+    try {
+        return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    } catch { return dateStr; }
+}
+
+function fmtNum(n) {
+    n = Number(n) || 0;
+    if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+    return String(n);
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
 
 function showTab(tabName) {
     currentTab = tabName;
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    
+    document.querySelectorAll('.tab-link').forEach(el => el.classList.toggle('active', el.dataset.tab === tabName));
     document.getElementById(`tab-${tabName}`)?.classList.remove('hidden');
-    document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
-    
-    document.getElementById('page-title').textContent = 
-        tabName.charAt(0).toUpperCase() + tabName.slice(1);
-    
     loadTabData(tabName);
 }
 
 async function loadTabData(tab) {
     switch (tab) {
+        case 'overview': await loadOverview(); break;
         case 'posts': await loadPosts(); break;
-        case 'scraper': await loadScraperConfig(); break;
-        case 'analytics': await loadAnalytics(); break;
-        case 'settings': await loadConfig(); break;
-        case 'users': await loadUsers(); break;
+        case 'pipeline': await loadScraperConfig(); break;
+        case 'settings': await Promise.all([loadConfig(), loadUsers()]); break;
     }
 }
+
+// ── Overview ────────────────────────────────────────────────────────────────
+
+async function loadOverview() {
+    const data = await api('/analytics');
+    if (!data) return;
+    const { daily = [], userStats = {}, categoryStats = [], topPosts = [] } = data;
+
+    document.getElementById('kpi-posts').textContent = fmtNum(categoryStats.reduce((a, c) => a + c.count, 0));
+    document.getElementById('kpi-views').textContent = fmtNum(userStats.total_views_30d ?? daily.reduce((a, d) => a + d.views, 0));
+    document.getElementById('kpi-interactions').textContent = fmtNum(userStats.total_interactions || 0);
+    document.getElementById('kpi-sessions').textContent = fmtNum(userStats.total_sessions || 0);
+
+    renderActivityChart(daily);
+    renderCategoryChart(categoryStats);
+    renderTopChart(topPosts);
+    renderMomentum(daily);
+}
+
+function makeChart(id, config) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(el, config);
+}
+
+const baseLine = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, pointStyle: 'rectRounded', usePointStyle: true } } },
+    scales: {
+        x: { ticks: { color: '#6E6E7A', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false }, border: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#6E6E7A', font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(23,23,28,.05)' }, border: { display: false } },
+    },
+};
+
+function renderActivityChart(daily) {
+    makeChart('chart-activity', {
+        type: 'line',
+        data: {
+            labels: daily.map(d => d.date),
+            datasets: [
+                { label: 'Views', data: daily.map(d => d.views), borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,.08)', fill: true, tension: .3, pointRadius: 0, borderWidth: 2 },
+                { label: 'Likes', data: daily.map(d => d.likes), borderColor: '#A855F7', tension: .3, pointRadius: 0, borderWidth: 2 },
+                { label: 'Shares', data: daily.map(d => d.shares), borderColor: '#EC4899', tension: .3, pointRadius: 0, borderWidth: 2 },
+                { label: 'Saves', data: daily.map(d => d.saves), borderColor: '#10B981', tension: .3, pointRadius: 0, borderWidth: 2 },
+            ],
+        },
+        options: baseLine,
+    });
+}
+
+function renderCategoryChart(categoryStats) {
+    makeChart('chart-category', {
+        type: 'doughnut',
+        data: {
+            labels: categoryStats.map(c => c.category),
+            datasets: [{ data: categoryStats.map(c => c.count), backgroundColor: CATEGORY_COLORS, borderWidth: 0, hoverOffset: 6 }],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '62%',
+            plugins: { legend: { position: 'right', labels: { boxWidth: 10, boxHeight: 10, color: '#6E6E7A', font: { size: 11 }, usePointStyle: true, pointStyle: 'rectRounded' } } },
+        },
+    });
+}
+
+function renderTopChart(topPosts) {
+    const top = topPosts.slice(0, 8);
+    makeChart('chart-top', {
+        type: 'bar',
+        data: {
+            labels: top.map(p => p.title.length > 46 ? p.title.slice(0, 46) + '…' : p.title),
+            datasets: [{ data: top.map(p => p.engagement_score), backgroundColor: CATEGORY_COLORS, borderRadius: 6, maxBarThickness: 26 }],
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 11 } } },
+            scales: {
+                x: { beginAtZero: true, ticks: { color: '#6E6E7A', font: { size: 10 }, precision: 0 }, grid: { color: 'rgba(23,23,28,.05)' }, border: { display: false } },
+                y: { ticks: { color: '#6E6E7A', font: { size: 10.5 } }, grid: { display: false }, border: { display: false } },
+            },
+        },
+    });
+}
+
+// 7-day momentum vs the previous 7 days — views, likes, shares deltas
+function renderMomentum(daily) {
+    const el = document.getElementById('momentum');
+    if (!el) return;
+
+    const n = daily.length;
+    const recent = Math.min(7, n);
+    const range = (list, key, from, to) => list.slice(from, to).reduce((a, d) => a + (Number(d[key]) || 0), 0);
+    const viewsNow = range(daily, 'views', n - recent, n);
+    const viewsPrev = range(daily, 'views', Math.max(0, n - recent * 2), n - recent);
+    const likesNow = range(daily, 'likes', n - recent, n);
+    const likesPrev = range(daily, 'likes', Math.max(0, n - recent * 2), n - recent);
+    const sharesNow = range(daily, 'shares', n - recent, n);
+    const sharesPrev = range(daily, 'shares', Math.max(0, n - recent * 2), n - recent);
+
+    const row = (label, now, prev) => {
+        const delta = now - prev;
+        const pct = prev > 0 ? Math.round((delta / prev) * 100) : (now > 0 ? 100 : 0);
+        const cls = delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
+        const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
+        const pctTxt = prev > 0 || now > 0 ? `${pct > 0 ? '+' : ''}${pct}%` : '0%';
+        return `<div class="momentum-row"><span class="muted small">${label}</span><b>${fmtNum(now)}</b><span class="momentum-trend ${cls}">${arrow} ${pctTxt}</span></div>`;
+    };
+    el.innerHTML = `
+        <p class="muted small" style="margin-bottom:4px;">Last 7 days vs previous 7</p>
+        ${row('Views', viewsNow, viewsPrev)}
+        ${row('Likes', likesNow, likesPrev)}
+        ${row('Shares', sharesNow, sharesPrev)}
+    `;
+}
+
+// ── Posts ───────────────────────────────────────────────────────────────────
 
 async function loadPosts(page = 1) {
     postsPage = page;
     const data = await api(`/posts?page=${page}&limit=${postsLimit}`);
     if (!data) return;
-    
+
     const tbody = document.getElementById('posts-tbody');
     tbody.innerHTML = data.posts.map(post => `
-        <tr>
-            <td class="font-mono text-sm">${post.id}</td>
-            <td class="max-w-xs truncate" title="${escapeHtml(post.title)}">${escapeHtml(post.title)}</td>
+        <tr data-search="${escapeHtml((post.title + ' ' + post.source_name + ' ' + post.category).toLowerCase())}">
+            <td class="title-cell" title="${escapeHtml(post.title)}">${escapeHtml(post.title)}</td>
             <td>${escapeHtml(post.source_name)}</td>
-            <td><span class="badge ${getBadgeClass(post.category)}">${escapeHtml(post.category)}</span></td>
-            <td class="font-mono">${post.engagement_score || 0}</td>
-            <td class="font-mono">${post.views || 0}</td>
-            <td class="text-sm">${formatDate(post.created_at)}</td>
+            <td><span class="cat-dot" style="background:${CATEGORY_COLORS[CATEGORIES.indexOf(post.category) % CATEGORY_COLORS.length] || '#A855F7'}"></span>${escapeHtml(post.category)}</td>
+            <td class="num">${fmtNum(post.views)}</td>
+            <td class="num">${fmtNum(post.engagement_score)}</td>
+            <td class="muted small">${formatDate(post.created_at)}</td>
             <td>
-                <div class="flex items-center gap-2">
-                    <button class="edit-btn p-1.5 text-ig-400 hover:text-ig-primary transition-colors" data-id="${post.id}" aria-label="Edit">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button class="delete-btn p-1.5 text-ig-400 hover:text-ig-danger transition-colors" data-id="${post.id}" aria-label="Delete">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                <div class="row-actions">
+                    <button class="btn btn-ghost btn-sm edit-btn" data-id="${post.id}">Edit</button>
+                    <button class="btn btn-ghost btn-sm danger delete-btn" data-id="${post.id}">Del</button>
                 </div>
             </td>
         </tr>
     `).join('');
-    
-    document.getElementById('posts-pagination-info').textContent = 
-        `Page ${data.page} of ${data.totalPages} (${data.total} total)`;
+
+    document.getElementById('posts-pagination-info').textContent =
+        `Page ${data.page} of ${data.totalPages} · ${data.total} posts`;
     document.getElementById('prev-page').disabled = page <= 1;
     document.getElementById('next-page').disabled = page >= data.totalPages;
-    
-    tbody.querySelectorAll('.edit-btn').forEach(btn => 
-        btn.addEventListener('click', () => openPostModal(btn.dataset.id))
-    );
-    tbody.querySelectorAll('.delete-btn').forEach(btn => 
-        btn.addEventListener('click', () => deletePost(btn.dataset.id))
-    );
+
+    tbody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => openPostModal(btn.dataset.id)));
+    tbody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deletePost(btn.dataset.id)));
 }
 
-async function loadScraperConfig() {
-    const config = await api('/config');
-    if (config) {
-        document.getElementById('cron-schedule').value = config.scraper_cron || '*/30 * * * *';
+// Client-side filter over the current page
+function filterPosts() {
+    const q = document.getElementById('posts-search').value.trim().toLowerCase();
+    document.querySelectorAll('#posts-tbody tr').forEach(tr => {
+        tr.classList.toggle('hidden', q && !tr.dataset.search.includes(q));
+    });
+}
+
+// ── Post CRUD ───────────────────────────────────────────────────────────────
+
+async function openPostModal(id = null) {
+    currentPostId = id;
+    document.getElementById('modal-title').textContent = id ? 'Edit Post' : 'Add Post';
+
+    if (id) {
+        // Find from paginated data — fetch single via list page search
+        const data = await api(`/posts?page=${postsPage}&limit=${postsLimit}`);
+        const post = data?.posts?.find(p => String(p.id) === String(id));
+        if (!post) return;
+        document.getElementById('post-id').value = post.id;
+        document.getElementById('post-title').value = post.title || '';
+        document.getElementById('post-summary').value = post.summary || '';
+        document.getElementById('post-media_url').value = post.media_url || '';
+        document.getElementById('post-media_type').value = post.media_type || 'text';
+        document.getElementById('post-source_url').value = post.source_url || '';
+        document.getElementById('post-source_name').value = post.source_name || '';
+        document.getElementById('post-category').value = post.category || 'News';
+    } else {
+        document.getElementById('post-form').reset();
+        document.getElementById('post-id').value = '';
+        document.getElementById('post-category').value = 'News';
+    }
+    document.getElementById('post-modal').classList.remove('hidden');
+}
+
+function closePostModal() {
+    document.getElementById('post-modal').classList.add('hidden');
+}
+
+async function savePost(e) {
+    e.preventDefault();
+    const payload = {
+        title: document.getElementById('post-title').value,
+        summary: document.getElementById('post-summary').value,
+        media_url: document.getElementById('post-media_url').value || null,
+        media_type: document.getElementById('post-media_type').value,
+        source_url: document.getElementById('post-source_url').value,
+        source_name: document.getElementById('post-source_name').value,
+        category: document.getElementById('post-category').value,
+    };
+    const id = document.getElementById('post-id').value;
+    try {
+        if (id) await api(`/posts/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        else await api('/posts', { method: 'POST', body: JSON.stringify(payload) });
+        closePostModal();
+        await loadPosts(postsPage);
+    } catch (err) {
+        alert(err.message);
     }
 }
 
-async function loadAnalytics() {
-    const [analytics, userStats, categoryStats, topPosts] = await Promise.all([
-        api('/analytics'),
-        api('/analytics').then(r => r?.userStats),
-        api('/analytics').then(r => r?.categoryStats),
-        api('/analytics').then(r => r?.topPosts),
-    ]);
-    
-    if (!analytics) return;
-    
-    document.getElementById('stat-sessions').textContent = userStats?.total_sessions || 0;
-    document.getElementById('stat-interactions').textContent = userStats?.total_interactions || 0;
-    document.getElementById('stat-posts').textContent = categoryStats?.reduce((a, c) => a + c.count, 0) || 0;
-    document.getElementById('stat-engagement').textContent = topPosts?.reduce((a, p) => a + p.engagement_score, 0) || 0;
-    
-    const dailyEl = document.getElementById('analytics-daily');
-    dailyEl.innerHTML = analytics.daily?.map(d => `
-        <div class="flex justify-between text-sm">
-            <span>${d.date}</span>
-            <span class="font-mono">Views: ${d.views} · Likes: ${d.likes} · Shares: ${d.shares} · Saves: ${d.saves}</span>
-        </div>
-    `).join('') || '<p class="text-ig-400 text-center py-4">No data</p>';
-    
-    const topTbody = document.getElementById('top-posts-tbody');
-    topTbody.innerHTML = topPosts?.map(p => `
-        <tr>
-            <td class="max-w-xs truncate" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</td>
-            <td><span class="badge ${getBadgeClass(p.category)}">${escapeHtml(p.category)}</span></td>
-            <td class="font-mono">${p.views}</td>
-            <td class="font-mono">${p.likes}</td>
-            <td class="font-mono">${p.shares}</td>
-            <td class="font-mono">${p.saves}</td>
-            <td class="font-mono font-semibold">${p.engagement_score}</td>
-        </tr>
-    `).join('') || '<tr><td colspan="7" class="text-center text-ig-400 py-4">No data</td></tr>';
-    
-    const catEl = document.getElementById('category-stats');
-    catEl.innerHTML = categoryStats?.map(c => `
-        <div class="text-center p-3 bg-ig-50 dark:bg-ig-elevated rounded-lg">
-            <p class="text-2xl font-bold text-ig-primary">${c.count}</p>
-            <p class="text-xs text-ig-400">${escapeHtml(c.category)}</p>
-        </div>
-    `).join('') || '<p class="text-ig-400 text-center py-4">No data</p>';
+async function deletePost(id) {
+    if (!confirm('Delete this post?')) return;
+    try {
+        await api(`/posts/${id}`, { method: 'DELETE' });
+        await loadPosts(postsPage);
+    } catch (err) {
+        alert(err.message);
+    }
 }
+
+// ── Pipeline triggers ───────────────────────────────────────────────────────
+
+async function runJob(endpoint, btn, runningLabel, logLine) {
+    const logs = document.getElementById('scraper-logs');
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = runningLabel;
+    try {
+        const result = await api(endpoint, { method: 'POST' });
+        logs.textContent += logLine(result);
+    } catch (err) {
+        logs.textContent += `Error: ${err.message}\n`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
+}
+
+function triggerScrape() {
+    runJob('/scrape/trigger', document.getElementById('trigger-scrape'), 'Scraping…',
+        r => {
+            const x = r.result || {};
+            return `Scraped: ${x.saved || 0}/${x.fetched || 0} new posts in ${x.duration || 0}ms\n`;
+        });
+}
+
+function triggerSummarize() {
+    runJob('/summarize/trigger', document.getElementById('trigger-summarize'), 'Summarizing…',
+        r => {
+            const x = r.result || {};
+            if (x.skipped === 'missing_api_key') return 'Skipped: OPENROUTER_API_KEY is not set on the server (.env)\n';
+            const failed = x.failed > 0 ? `, ${x.failed} excerpt fallbacks` : '';
+            const deferred = x.deferred > 0 ? `, ${x.deferred} deferred (rate limit)` : '';
+            return `Summarized: ${x.processed || 0}/${x.total || 0}${failed}${deferred} in ${x.duration || 0}ms\n`;
+        });
+}
+
+function triggerPipeline() {
+    runJob('/pipeline/trigger', document.getElementById('trigger-pipeline'), 'Running…',
+        r => {
+            const x = r.result || {};
+            const s = x.scrapeResult || {}, m = x.summarizeResult || {}, sy = x.syncResult || {};
+            return `Pipeline done: scrape ${s.saved ?? s.staged ?? 0} saved | summarized ${m.processed ?? 0} | synced ${sy.synced ?? 0}/${sy.total ?? 0} (${x.durationSeconds || '?'}s)\n`;
+        });
+}
+
+function triggerSync() {
+    runJob('/sync', document.getElementById('trigger-sync'), 'Syncing…',
+        r => `Synced: ${r.synced || 0}/${r.total || 0} posts to Turso${r.errors > 0 ? ` (${r.errors} errors)` : ''}\n`);
+}
+
+// ── Config & users ──────────────────────────────────────────────────────────
 
 async function loadConfig() {
     const config = await api('/config');
     if (!config) return;
-    
     Object.entries(config).forEach(([key, value]) => {
         const el = document.getElementById(`cfg-${key}`);
         if (el) {
@@ -158,203 +361,13 @@ async function loadConfig() {
 async function loadUsers() {
     const data = await api('/users');
     if (!data) return;
-    
-    const tbody = document.getElementById('users-tbody');
-    tbody.innerHTML = data.users.map(u => `
+    document.getElementById('users-tbody').innerHTML = data.users.map(u => `
         <tr>
-            <td class="font-mono">${u.id}</td>
             <td>${escapeHtml(u.username)}</td>
-            <td><span class="badge badge-memes">${escapeHtml(u.role)}</span></td>
-            <td>${formatDate(u.created_at)}</td>
-            <td>${u.last_login ? formatDate(u.last_login) : 'Never'}</td>
+            <td><span class="muted small">${escapeHtml(u.role)}</span></td>
+            <td class="muted small">${u.last_login ? formatDate(u.last_login) : 'Never'}</td>
         </tr>
-    `).join('');
-}
-
-function getBadgeClass(category) {
-    const map = {
-        'Memes': 'badge-memes',
-        'Culture': 'badge-culture',
-        'Tech': 'badge-tech',
-        'Entertainment': 'badge-entertainment',
-        'News': 'badge-news',
-        'Sports': 'badge-sports',
-    };
-    return map[category] || 'badge-memes';
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function formatDate(dateStr) {
-    try {
-        return new Date(dateStr).toLocaleDateString('en-US', { 
-            year: 'numeric', month: 'short', day: 'numeric' 
-        });
-    } catch {
-        return dateStr;
-    }
-}
-
-function openPostModal(id = null) {
-    currentPostId = id;
-    const modal = document.getElementById('post-modal');
-    const form = document.getElementById('post-form');
-    const title = document.getElementById('modal-title');
-    
-    form.reset();
-    document.getElementById('post-id').value = '';
-    
-    if (id) {
-        title.textContent = 'Edit Post';
-        api(`/posts/${id}`).then(post => {
-            if (post) {
-                document.getElementById('post-id').value = post.id;
-                document.getElementById('post-title').value = post.title;
-                document.getElementById('post-summary').value = post.summary;
-                document.getElementById('post-media_url').value = post.media_url || '';
-                document.getElementById('post-media_type').value = post.media_type || 'text';
-                document.getElementById('post-source_url').value = post.source_url;
-                document.getElementById('post-source_name').value = post.source_name;
-                document.getElementById('post-category').value = post.category;
-            }
-        });
-    } else {
-        title.textContent = 'Add Post';
-    }
-    
-    modal.classList.remove('hidden');
-}
-
-function closePostModal() {
-    document.getElementById('post-modal').classList.add('hidden');
-    currentPostId = null;
-}
-
-async function savePost(e) {
-    e.preventDefault();
-    const id = document.getElementById('post-id').value;
-    const data = {
-        title: document.getElementById('post-title').value,
-        summary: document.getElementById('post-summary').value,
-        media_url: document.getElementById('post-media_url').value || null,
-        media_type: document.getElementById('post-media_type').value,
-        source_url: document.getElementById('post-source_url').value,
-        source_name: document.getElementById('post-source_name').value,
-        category: document.getElementById('post-category').value,
-    };
-    
-    try {
-        if (id) {
-            await api(`/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-        } else {
-            await api('/posts', { method: 'POST', body: JSON.stringify(data) });
-        }
-        closePostModal();
-        await loadPosts(postsPage);
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-async function deletePost(id) {
-    if (!confirm('Delete this post? This cannot be undone.')) return;
-    try {
-        await api(`/posts/${id}`, { method: 'DELETE' });
-        await loadPosts(postsPage);
-    } catch (err) {
-        alert(err.message);
-    }
-}
-
-async function triggerScrape() {
-    const btn = document.getElementById('trigger-scrape');
-    const logs = document.getElementById('scraper-logs');
-    btn.disabled = true;
-    btn.textContent = 'Running...';
-    logs.textContent = 'Starting scraper...\n';
-    
-    try {
-        const result = await api('/scrape/trigger', { method: 'POST' });
-        logs.textContent += `Completed: ${result.result?.saved || 0}/${result.result?.fetched || 0} new posts in ${result.result?.duration || 0}ms\n`;
-    } catch (err) {
-        logs.textContent += `Error: ${err.message}\n`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Run Scraper Now';
-    }
-}
-
-async function triggerSummarize() {
-    const btn = document.getElementById('trigger-summarize');
-    const logs = document.getElementById('scraper-logs');
-    btn.disabled = true;
-    btn.textContent = 'Summarizing...';
-    logs.textContent += '\nStarting summarizer (raw_posts -> posts)...\n';
-
-    try {
-        const result = await api('/summarize/trigger', { method: 'POST' });
-        const r = result.result || {};
-        if (r.skipped === 'missing_api_key') {
-            logs.textContent += 'Skipped: OPENROUTER_API_KEY is not set on the server (.env)\n';
-        } else {
-            const failed = r.failed > 0 ? `, ${r.failed} fell back to excerpts` : '';
-            logs.textContent += `Summarized: ${r.processed || 0}/${r.total || 0} posts${failed} in ${r.duration || 0}ms\n`;
-        }
-    } catch (err) {
-        logs.textContent += `Summarize error: ${err.message}\n`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Run Summarizer';
-    }
-}
-
-async function triggerPipeline() {
-    const btn = document.getElementById('trigger-pipeline');
-    const logs = document.getElementById('scraper-logs');
-    btn.disabled = true;
-    btn.textContent = 'Running...';
-    logs.textContent += '\nStarting full pipeline (scrape -> summarize -> sync)...\n';
-
-    try {
-        const result = await api('/pipeline/trigger', { method: 'POST' });
-        const r = result.result || {};
-        const scrape = r.scrapeResult || {};
-        const summarize = r.summarizeResult || {};
-        const sync = r.syncResult || {};
-        const steps = [
-            `scrape ${scrape.saved ?? scrape.staged ?? 0} saved`,
-            `summarized ${summarize.processed ?? 0}`,
-            `synced ${sync.synced ?? 0}/${sync.total ?? 0}`,
-        ].join(' | ');
-        logs.textContent += `Pipeline done: ${steps} (${r.durationSeconds || '?'}s)\n`;
-    } catch (err) {
-        logs.textContent += `Pipeline error: ${err.message}\n`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Run Everything';
-    }
-}
-
-async function triggerSync() {
-    const btn = document.getElementById('trigger-sync');
-    const logs = document.getElementById('scraper-logs');
-    btn.disabled = true;
-    btn.textContent = 'Syncing...';
-    logs.textContent += '\nStarting Turso sync...\n';
-    
-    try {
-        const result = await api('/sync', { method: 'POST' });
-        logs.textContent += `Synced: ${result.synced || 0}/${result.total || 0} posts to Turso${result.errors > 0 ? ` (${result.errors} errors)` : ''}\n`;
-    } catch (err) {
-        logs.textContent += `Sync error: ${err.message}\n`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Sync to Turso';
-    }
+    `).join('') || '<tr><td colspan="3" class="muted">No users</td></tr>';
 }
 
 async function saveConfig() {
@@ -363,10 +376,11 @@ async function saveConfig() {
         const key = el.id.replace('cfg-', '');
         config[key] = el.type === 'checkbox' ? String(el.checked) : el.value;
     });
-    
     try {
         await api('/config', { method: 'PUT', body: JSON.stringify(config) });
-        alert('Configuration saved');
+        const btn = document.getElementById('save-config');
+        btn.textContent = 'Saved ✓';
+        setTimeout(() => (btn.textContent = 'Save configuration'), 1600);
     } catch (err) {
         alert(err.message);
     }
@@ -376,9 +390,29 @@ async function saveCronSchedule() {
     const cron = document.getElementById('cron-schedule').value;
     try {
         await api('/config', { method: 'PUT', body: JSON.stringify({ scraper_cron: cron }) });
-        alert('Cron schedule updated');
     } catch (err) {
         alert(err.message);
+    }
+}
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+
+async function login() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    errorEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+        const result = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+        if (result) window.location.reload();
+    } catch (err) {
+        errorEl.textContent = err.message || 'Login failed';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
     }
 }
 
@@ -388,102 +422,55 @@ async function logout() {
 }
 
 function checkAuth() {
-    return api('/auth/me').then(user => {
-        if (user) {
-            document.getElementById('user-display').textContent = user.user.username;
-            return true;
-        }
-        return false;
-    }).catch(() => false);
+    return api('/auth/me')
+        .then(user => (user?.user?.username ? user : null))
+        .catch(() => null);
 }
 
-async function login() {
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
-    
-    errorEl.classList.add('hidden');
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
-    
-    try {
-        const result = await api('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ username, password }),
-        });
-        if (result) {
-            window.location.reload();
-        }
-    } catch (err) {
-        errorEl.textContent = err.message || 'Login failed';
-        errorEl.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = 'Sign In';
-    }
-}
+// ── Events & boot ───────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const loginForm = document.getElementById('login-form-el');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    loginForm?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        login();
-    });
-    
-    // Password visibility toggle
-    const togglePassword = document.getElementById('toggle-password');
+    document.getElementById('login-form-el')?.addEventListener('submit', e => { e.preventDefault(); login(); });
     const passwordInput = document.getElementById('login-password');
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            const eye = togglePassword.querySelector('path');
-            if (type === 'text') {
-                eye.setAttribute('d', 'M1.754 12.25c.846-1.468 3.116-4.203 10.246-4.203 7.045 0 9.901 5.151 10.246 6.129.025.074.053.151.053.226 0 1.412-.95 2.858-2.321 3.816-1.372.957-3.15 1.472-5.214 1.472-1.92 0-3.722-.45-5.366-1.446-1.302-.774-2.083-1.871-2.184-2.953a4 4 0 0 1-.076-.432m0-4.022c-.748-.772-1.178-1.596-1.335-2.185a4 4 0 0 1 .076-.432c.352-.93 1.188-2.049 2.343-2.878A9.96 9.96 0 0 1 12 2c4.094 0 7.562 2.496 8.978 5.742a9.98 9.98 0 0 1 1.171 2.185c.112.41.191.847.191 1.284 0 1.609-1.156 3.186-2.827 4.018-1.339.68-3.092 1.051-4.779 1.051-1.687 0-3.44-.371-5.063-1.069-1.671-.832-2.506-2.409-2.625-3.531a3 3 0 0 1-.076-.422z');
-            } else {
-                eye.setAttribute('d', 'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.483 7.25 8.031 4.081 12 4.081c8.829 0 12.364 6.368 12.364 7.919 0 1.551-3.535 7.918-12.364 7.918-3.97 0-8.517-3.169-9.543-7.918z');
-            }
-        });
+    passwordInput?.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    document.getElementById('logout-btn')?.addEventListener('click', logout);
+
+    // Category select options
+    document.getElementById('post-category').innerHTML =
+        CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    const user = await checkAuth();
+    if (!user) {
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('dashboard-app').classList.add('hidden');
+        document.getElementById('login-username')?.focus();
+        return;
     }
-    
-    logoutBtn?.addEventListener('click', logout);
-    
-    const authed = await checkAuth();
-    
-    if (authed) {
-        document.getElementById('login-form')?.classList.add('hidden');
-        document.getElementById('dashboard-app')?.classList.remove('hidden');
-        
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                showTab(link.dataset.tab);
-            });
-        });
-        
-        document.getElementById('add-post-btn')?.addEventListener('click', () => openPostModal());
-        document.getElementById('post-form')?.addEventListener('submit', savePost);
-        document.getElementById('close-modal')?.addEventListener('click', closePostModal);
-        document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
-        document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
-        document.getElementById('trigger-summarize')?.addEventListener('click', triggerSummarize);
-        document.getElementById('trigger-pipeline')?.addEventListener('click', triggerPipeline);
-        document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
-        document.getElementById('save-config')?.addEventListener('click', saveConfig);
-        document.getElementById('cron-schedule')?.addEventListener('change', saveCronSchedule);
-        document.getElementById('prev-page')?.addEventListener('click', () => loadPosts(postsPage - 1));
-        document.getElementById('next-page')?.addEventListener('click', () => loadPosts(postsPage + 1));
-        
-        document.getElementById('post-modal')?.addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) closePostModal();
-        });
-        
-        showTab('posts');
-    } else {
-        document.getElementById('login-form')?.classList.remove('hidden');
-        document.getElementById('dashboard-app')?.classList.add('hidden');
-    }
+
+    document.getElementById('user-display').textContent = user.user.username;
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('dashboard-app').classList.remove('hidden');
+
+    document.querySelectorAll('.tab-link').forEach(link =>
+        link.addEventListener('click', e => { e.preventDefault(); showTab(link.dataset.tab); }));
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+    document.getElementById('add-post-btn')?.addEventListener('click', () => openPostModal());
+    document.getElementById('post-form')?.addEventListener('submit', savePost);
+    document.getElementById('close-modal')?.addEventListener('click', closePostModal);
+    document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
+    document.getElementById('post-modal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closePostModal(); });
+
+    document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
+    document.getElementById('trigger-summarize')?.addEventListener('click', triggerSummarize);
+    document.getElementById('trigger-pipeline')?.addEventListener('click', triggerPipeline);
+    document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
+    document.getElementById('save-cron')?.addEventListener('click', saveCronSchedule);
+    document.getElementById('save-config')?.addEventListener('click', saveConfig);
+    document.getElementById('prev-page')?.addEventListener('click', () => loadPosts(postsPage - 1));
+    document.getElementById('next-page')?.addEventListener('click', () => loadPosts(postsPage + 1));
+    document.getElementById('posts-search')?.addEventListener('input', filterPosts);
+
+    const params = new URLSearchParams(window.location.search);
+    showTab(['overview', 'posts', 'pipeline', 'settings'].includes(params.get('tab')) ? params.get('tab') : 'overview');
 });
