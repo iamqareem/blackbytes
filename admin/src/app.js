@@ -288,6 +288,57 @@ async function triggerScrape() {
     }
 }
 
+async function triggerSummarize() {
+    const btn = document.getElementById('trigger-summarize');
+    const logs = document.getElementById('scraper-logs');
+    btn.disabled = true;
+    btn.textContent = 'Summarizing...';
+    logs.textContent += '\nStarting summarizer (raw_posts -> posts)...\n';
+
+    try {
+        const result = await api('/summarize/trigger', { method: 'POST' });
+        const r = result.result || {};
+        if (r.skipped === 'missing_api_key') {
+            logs.textContent += 'Skipped: OPENROUTER_API_KEY is not set on the server (.env)\n';
+        } else {
+            const failed = r.failed > 0 ? `, ${r.failed} fell back to excerpts` : '';
+            logs.textContent += `Summarized: ${r.processed || 0}/${r.total || 0} posts${failed} in ${r.duration || 0}ms\n`;
+        }
+    } catch (err) {
+        logs.textContent += `Summarize error: ${err.message}\n`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Summarizer';
+    }
+}
+
+async function triggerPipeline() {
+    const btn = document.getElementById('trigger-pipeline');
+    const logs = document.getElementById('scraper-logs');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    logs.textContent += '\nStarting full pipeline (scrape -> summarize -> sync)...\n';
+
+    try {
+        const result = await api('/pipeline/trigger', { method: 'POST' });
+        const r = result.result || {};
+        const scrape = r.scrapeResult || {};
+        const summarize = r.summarizeResult || {};
+        const sync = r.syncResult || {};
+        const steps = [
+            `scrape ${scrape.saved ?? scrape.staged ?? 0} saved`,
+            `summarized ${summarize.processed ?? 0}`,
+            `synced ${sync.synced ?? 0}/${sync.total ?? 0}`,
+        ].join(' | ');
+        logs.textContent += `Pipeline done: ${steps} (${r.durationSeconds || '?'}s)\n`;
+    } catch (err) {
+        logs.textContent += `Pipeline error: ${err.message}\n`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Everything';
+    }
+}
+
 async function triggerSync() {
     const btn = document.getElementById('trigger-sync');
     const logs = document.getElementById('scraper-logs');
@@ -418,6 +469,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('close-modal')?.addEventListener('click', closePostModal);
         document.getElementById('cancel-modal')?.addEventListener('click', closePostModal);
         document.getElementById('trigger-scrape')?.addEventListener('click', triggerScrape);
+        document.getElementById('trigger-summarize')?.addEventListener('click', triggerSummarize);
+        document.getElementById('trigger-pipeline')?.addEventListener('click', triggerPipeline);
         document.getElementById('trigger-sync')?.addEventListener('click', triggerSync);
         document.getElementById('save-config')?.addEventListener('click', saveConfig);
         document.getElementById('cron-schedule')?.addEventListener('change', saveCronSchedule);

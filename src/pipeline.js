@@ -1,6 +1,6 @@
 // src/pipeline.js — Unified 3-Step Content Pipeline:
 //   Step 1: Scrape raw feeds from RSS/APIs into local SQLite `raw_posts` (no AI, fast, reliable)
-//   Step 2: Summarize pending `raw_posts` using Hermes CLI and upsert into `posts`
+//   Step 2: Summarize pending `raw_posts` via OpenRouter and upsert into `posts`
 //   Step 3: Sync summarized `posts` to Turso remote cloud
 //
 // You can run the entire pipeline at once:
@@ -30,7 +30,7 @@ export async function runFullPipeline() {
     console.log(`✓ Step 1 complete: ${scrapeResult.staged} items staged.`);
 
     // ── Step 2: Summarize ─────────────────────────────────────────────────────
-    console.log('\n🧠 STEP 2/3: Summarizing pending raw posts via Hermes CLI...');
+    console.log('\n🧠 STEP 2/3: Summarizing pending raw posts via OpenRouter (backend: ' + (process.env.SUMMARIZER_BACKEND || 'openrouter') + ')...');
     const summarizeResult = await runSummarizer({ limit: 80 });
     console.log(`✓ Step 2 complete: ${summarizeResult.processed} items summarized into posts.`);
 
