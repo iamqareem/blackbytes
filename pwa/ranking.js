@@ -2,7 +2,12 @@
 // Runs client-side in the PWA (Cloudflare Workers) to rank the synced feed.
 
 const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
-const CATEGORY_BOOST = { Memes: 6.0, Entertainment: 2.0 };
+const CATEGORY_BOOST = {
+    Culture: 6.0,
+    Entertainment: 2.0,
+    'IoT & Open Source': 1.5,
+    Education: 1.5,
+};
 
 // Ranking constants
 const LIKE_WEIGHT = 1.0;
@@ -16,9 +21,10 @@ const FRESH_WEIGHT = 30.0;           // score for a post published right now
 const FRESH_DECAY = 1.5;             // exp decay per day
 
 // Diversity
-const DIVERSITY_WINDOW = 25;         // first N ranked posts get diversity treatment
-const SOURCE_CAP = 3;                // max posts per source in the diversity window
-const CATEGORY_CAP = 6;              // max posts per category in the window (favorites mode only)
+const DIVERSITY_WINDOW = 40;         // first N ranked posts get diversity treatment
+const SOURCE_CAP = 4;                // max posts per source in the diversity window
+const CATEGORY_CAP = 8;              // max posts per category in the window
+const FEED_CAP = 80;
 
 function parsePostTime(createdAt) {
     if (!createdAt) return null;
@@ -108,7 +114,7 @@ export function rankPosts(posts, { limit = 20, cursor = 0, sessionId = 'default'
 
     const viewedIds = new Set((interactions.viewed || []).map(String));
 
-    const scoredPosts = [];
+    let scoredPosts = [];
 
     for (const post of posts) {
         const postTime = parsePostTime(post.created_at);
@@ -154,7 +160,7 @@ export function rankPosts(posts, { limit = 20, cursor = 0, sessionId = 'default'
     }
 
     const diversified = applyDiversity(scoredPosts, favorites);
-    const interleaved = interleaveVideos(diversified);
+    const interleaved = interleaveVideos(diversified).slice(0, FEED_CAP);
 
     const totalAvailable = interleaved.length;
     const offset = Math.max(0, parseInt(cursor, 10) || 0);
