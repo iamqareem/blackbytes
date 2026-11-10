@@ -48,3 +48,7 @@ coverage/
 # Python
 __pycache__/
 *.pyc
+
+# Secrets that must never ride with the repo again
+turso access token
+*turso*token*
