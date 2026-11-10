@@ -1,5 +1,5 @@
 export function generateJsonLd(post, siteUrl) {
-    const postUrl = `${siteUrl}/?post=${post.id}`;
+    const postUrl = `${siteUrl}/post/${post.id}`;
     const imageUrl = post.media_url || `${siteUrl}/icons/og-image.png`;
     
     return {
@@ -42,7 +42,7 @@ export function generateItemListJsonLd(posts, siteUrl) {
                 '@type': 'BlogPosting',
                 headline: post.title,
                 description: post.summary,
-                url: `${siteUrl}/?post=${post.id}`,
+                url: `${siteUrl}/post/${post.id}`,
                 datePublished: post.created_at,
             },
         })),

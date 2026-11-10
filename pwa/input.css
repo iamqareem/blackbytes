@@ -896,7 +896,61 @@
   .prefs-actions {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    align-items: center;
+  }
+
+  /* Quiet text buttons (Clear all / Undo changes) */
+  .prefs-text-btn {
+    background: none;
+    border: none;
+    padding: 4px 2px;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .prefs-text-btn:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .prefs-text-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  html.light .prefs-text-btn {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  html.light .prefs-text-btn:hover {
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  /* Push the Done button to the right, text buttons to the left */
+  .prefs-actions #prefs-done {
+    margin-left: auto;
+  }
+
+  /* Double-tap like burst */
+  .like-burst {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4.5rem;
+    pointer-events: none;
+    z-index: 5;
+    animation: like-burst-pop 0.75s ease forwards;
+    filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.35));
+  }
+
+  @keyframes like-burst-pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    22% { transform: scale(1.18); opacity: 1; }
+    55% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.05) translateY(-14px); opacity: 0; }
   }
 
   html.light .prefs-modal {

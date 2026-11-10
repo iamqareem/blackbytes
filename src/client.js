@@ -74,7 +74,7 @@ async function fetchFeed(cursor = null) {
     isLoading = true;
 
     try {
-        const params = new URLSearchParams({ session_id: sessionId, limit: '20' });
+        const params = new URLSearchParams({ session_id: sessionId, limit: '80' });
         if (cursor) params.set('cursor', cursor);
 
         const response = await fetch(`/api/feed?${params}`);
@@ -267,12 +267,16 @@ function getMediaBoxHtml(post) {
 
     // Placeholder box with category gradient
     const gradients = {
-        'Memes':         'linear-gradient(135deg,#1e0a3a,#0d001f)',
-        'Culture':       'linear-gradient(135deg,#001a3a,#00062a)',
-        'Tech':          'linear-gradient(135deg,#00213f,#000f1f)',
-        'Entertainment': 'linear-gradient(135deg,#1f0a00,#100400)',
-        'News':          'linear-gradient(135deg,#111,#1c1c1c)',
-        'Sports':        'linear-gradient(135deg,#001f00,#000f00)',
+        'News':             'linear-gradient(135deg,#111,#1c1c1c)',
+        'Sports':           'linear-gradient(135deg,#001f00,#000f00)',
+        'Geopolitics':      'linear-gradient(135deg,#1a0a00,#2a1200)',
+        'Tech':             'linear-gradient(135deg,#00213f,#000f1f)',
+        'AI & Quantum':     'linear-gradient(135deg,#0d003f,#1a005f)',
+        'Web3':             'linear-gradient(135deg,#001a3a,#002b5a)',
+        'IoT & Open Source':'linear-gradient(135deg,#003020,#001a10)',
+        'Education':        'linear-gradient(135deg,#1a1a00,#2a2a00)',
+        'Entertainment':    'linear-gradient(135deg,#1f0a00,#100400)',
+        'Culture':          'linear-gradient(135deg,#1e0a3a,#0d001f)',
     };
     const bg = gradients[category] || gradients['News'];
     return `<div class="feed-card-img-box is-placeholder" style="background:${bg};">
@@ -587,14 +591,17 @@ async function sharePost(postId) {
     // Trigger share action immediately
     handleInteraction(post.id, 'share', actionShareBtn);
 
-    const shareUrl = `${window.location.origin}/?post=${post.id}`;
-    const shareText = [post.title, post.summary, shareUrl].filter(Boolean).join('\n\n');
+    // Canonical snapfeed URL — server-rendered /post/:id (OG-rich preview);
+    // NEVER the source article link. The in-card hotlink does that on purpose.
+    const shareUrl = `${window.location.origin}/post/${post.id}`;
+    const summary = (post.summary || '').trim();
+    const shareText = `*${post.title}*\n\n${summary}\n\n🔗 Read more on Snapfeed: ${shareUrl}`;
 
     if (navigator.share) {
         try {
             await navigator.share({
                 title: post.title || 'Snapfeed',
-                text: post.summary || '',
+                text: shareText,
                 url: shareUrl,
             });
             return;
@@ -611,13 +618,13 @@ async function sharePost(postId) {
         if (data.web_link) {
             window.open(data.web_link, '_blank');
         } else {
-            await navigator.clipboard.writeText(shareUrl);
-            showToast('🔗 Link copied to clipboard!');
+            await navigator.clipboard.writeText(shareText);
+            showToast('🔗 Copied — paste it in WhatsApp!');
         }
     } catch (_) {
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(shareUrl);
-            showToast('🔗 Link copied to clipboard!');
+            navigator.clipboard.writeText(shareText);
+            showToast('🔗 Copied — paste it in WhatsApp!');
         }
     }
 }
@@ -699,7 +706,12 @@ function showToast(message) {
 }
 
 // ─── Preferences ─────────────────────────────────────────────────────────────
-const PREF_CATEGORIES = ['Memes', 'Culture', 'Tech', 'Entertainment', 'News', 'Sports'];
+const PREF_CATEGORIES = [
+    'News', 'Sports', 'Geopolitics',
+    'Tech', 'AI & Quantum', 'Web3',
+    'IoT & Open Source', 'Education',
+    'Entertainment', 'Culture',
+];
 const prefsToggle = document.getElementById('prefs-toggle');
 const prefsModal = document.getElementById('prefs-modal');
 const prefsChips = document.getElementById('prefs-chips');

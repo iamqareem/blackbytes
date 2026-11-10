@@ -35,6 +35,7 @@ gossip.ugaplex.com {
     reverse_proxy /sitemap.xml http://localhost:3000
     reverse_proxy /robots.txt http://localhost:3000
     reverse_proxy /llms.txt http://localhost:3000
+    reverse_proxy /post/* http://localhost:3000
 
     # Frontend SPA fallback
     try_files {path} /public/index.html

@@ -99,12 +99,13 @@
     <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
         <div class="prefs-card">
             <button id="prefs-close" class="prefs-close" aria-label="Close">&times;</button>
-            <h2 class="prefs-title">Preferences</h2>
-            <p class="prefs-desc">Select your favorite categories to customize your feed</p>
+            <h2 class="prefs-title">Your feed, your way</h2>
+            <p class="prefs-desc">Tap a category to favorite it — changes apply instantly. Favorites float to the top of your feed.</p>
             <div id="prefs-chips" class="prefs-chips"></div>
             <div class="prefs-actions">
-                <button id="prefs-cancel" class="btn btn-secondary">Cancel</button>
-                <button id="prefs-save" class="btn btn-primary">Save</button>
+                <button id="prefs-clear" class="prefs-text-btn" type="button">Clear all</button>
+                <button id="prefs-undo" class="prefs-text-btn hidden" type="button">Undo changes</button>
+                <button id="prefs-done" class="btn btn-primary">Done · 0</button>
             </div>
         </div>
     </div>
@@ -139,7 +140,7 @@
         const adControllers = new Map(); // Adsgram blockId -> controller
 
         // ── State ──
-        const CAT_TABS = ['Feed', 'News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
+        const CAT_TABS = ['Feed', 'News', 'Sports', 'Geopolitics', 'Tech', 'AI & Quantum', 'Web3', 'IoT & Open Source', 'Education', 'Entertainment', 'Culture'];
         let activeCategory = 'Feed';
         let posts = [];
         let ranked = [];
@@ -154,8 +155,9 @@
         const prefsBtn = document.getElementById('prefs-toggle');
         const prefsModal = document.getElementById('prefs-modal');
         const prefsClose = document.getElementById('prefs-close');
-        const prefsCancel = document.getElementById('prefs-cancel');
-        const prefsSave = document.getElementById('prefs-save');
+        const prefsDone = document.getElementById('prefs-done');
+        const prefsUndo = document.getElementById('prefs-undo');
+        const prefsClear = document.getElementById('prefs-clear');
         const prefsChips = document.getElementById('prefs-chips');
         const reviewTrigger = document.getElementById('review-trigger');
         const toastEl = document.getElementById('toast');
@@ -252,6 +254,27 @@
             }
         }
 
+        // ── Preferences shared state (used by setupEventListeners AND
+        // renderPrefsChips) ──
+        let prefsSnapshot = null;
+
+        function persistFavorites() {
+            localStorage.setItem('snapfeed_favorites', JSON.stringify(favorites));
+            // Live preview: favorites apply instantly, no explicit save
+            rerank();
+            activeIndex = 0;
+            renderCard(0);
+        }
+
+        // Footer state: undo visibility + selection count on the Done button
+        function updatePrefsFooterState() {
+            const dirty = prefsSnapshot !== null && JSON.stringify(favorites) !== prefsSnapshot;
+            prefsUndo.classList.toggle('hidden', !dirty);
+            prefsDone.textContent = favorites.length
+                ? `Done · ${favorites.length} favor${favorites.length === 1 ? 'ite' : 'ites'}`
+                : 'Done';
+        }
+
         function setupEventListeners() {
             // Theme toggle
             themeToggle.addEventListener('click', () => {
@@ -260,22 +283,32 @@
                 applyTheme();
             });
 
-            // Preferences modal
+            // Preferences modal — instant apply, snapshot + undo.
+            // persistFavorites / updatePrefsFooterState live at module scope
+            // (renderPrefsChips calls them too).
             prefsBtn.addEventListener('click', () => {
+                prefsSnapshot = JSON.stringify(favorites);
                 renderPrefsChips();
+                updatePrefsFooterState();
                 prefsModal.classList.add('open');
             });
 
             prefsClose.addEventListener('click', () => prefsModal.classList.remove('open'));
-            prefsCancel.addEventListener('click', () => prefsModal.classList.remove('open'));
+            prefsDone.addEventListener('click', () => prefsModal.classList.remove('open'));
 
-            prefsSave.addEventListener('click', () => {
-                localStorage.setItem('snapfeed_favorites', JSON.stringify(favorites));
-                prefsModal.classList.remove('open');
-                rerank();
-                activeIndex = 0;
-                renderCard(0);
-                showToast('Preferences updated');
+            prefsUndo.addEventListener('click', () => {
+                if (prefsSnapshot === null) return;
+                favorites = JSON.parse(prefsSnapshot);
+                persistFavorites();
+                renderPrefsChips();
+                updatePrefsFooterState();
+            });
+
+            prefsClear.addEventListener('click', () => {
+                favorites = [];
+                persistFavorites();
+                renderPrefsChips();
+                updatePrefsFooterState();
             });
 
             // ─── Sideways category navigation (swipe the tab strip) ───
@@ -336,8 +369,10 @@
                 const diffX = e.changedTouches[0].clientX - touchStartX;
                 const diffY = e.changedTouches[0].clientY - touchStartY;
 
+                // Any movement cancels a pending single-tap HUD toggle
+                if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; lastTapAt = 0; }
                 if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
-                    // Swipe — navigate; HUD returns on card change
+                    // Swipe vertical — navigate; HUD returns on card change
                     if (diffY < 0 && activeIndex < ranked.length - 1) {
                         // Swipe UP -> Next post
                         activeIndex++;
@@ -349,13 +384,32 @@
                     }
                     document.body.classList.remove('hud-tucked');
                 } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                    // Clean tap on the post — toggle pill + review trigger visibility
-                    const tapTarget = e.target;
-                    if (!tapTarget.closest('a, button, iframe, .action-pill, .review-trigger')) {
-                        document.body.classList.toggle('hud-tucked');
-                    }
+                    // Clean tap — HUD toggle (delayed) or double-tap like
+                    handleFeedTap(e);
                 }
             }, { passive: true });
+
+            // ── Tap disambiguation: single tap → HUD, double tap → like ──
+            let tapTimer = null;
+            let lastTapAt = 0;
+            function handleFeedTap(e) {
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
+                const now = Date.now();
+                if (now - lastTapAt < 320) {
+                    // Second tap within the window → like; the pending HUD
+                    // toggle from the first tap is cancelled
+                    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+                    lastTapAt = 0;
+                    doubleTapLike();
+                    return;
+                }
+                lastTapAt = now;
+                if (tapTimer) return;
+                tapTimer = setTimeout(() => {
+                    tapTimer = null;
+                    document.body.classList.toggle('hud-tucked');
+                }, 280);
+            }
 
             // Desktop click on the post (non-interactive area) — same HUD toggle.
             // Skipped when the click is the synthetic one following a touch tap
@@ -366,6 +420,16 @@
                 if (Date.now() - lastTouchEnd < 600) return;
                 if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
                 document.body.classList.toggle('hud-tucked');
+            });
+
+            // Desktop double-click → like (the two click toggles cancel each
+            // other out, so the HUD ends where it started). Skipped when the
+            // gesture came from touch — the touchend path already handles it.
+            feed.addEventListener('dblclick', (e) => {
+                if (Date.now() - lastTouchEnd < 700) return;
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
+                e.preventDefault();
+                doubleTapLike();
             });
 
             // Desktop Mouse Wheel / Trackpad Gesture
@@ -865,6 +929,18 @@
             showToast(action.charAt(0).toUpperCase() + action.slice(1) + (isAct ? 'd' : ' removed'));
         }
 
+        // ── Sharing ──
+        // Canonical share links go to Snapfeed (server-rendered /post/:id with
+        // OG tags = rich WhatsApp preview), never to the source article. The
+        // in-card link still hotlinks to the original platform on purpose.
+        const SHARE_BASE_URL = 'https://gossip.ugaplex.com';
+
+        function shareTextFor(post) {
+            const url = `${SHARE_BASE_URL}/post/${post.id}`;
+            const summary = String(post.summary || '').trim();
+            return `*${post.title}*\n\n${summary}\n\n🔗 Read more on Snapfeed: ${url}`;
+        }
+
         function handleShare() {
             const post = ranked[activeIndex];
             if (!post || post.__ad) return;
@@ -877,17 +953,18 @@
             updateActionCounts(post);
             updateButtonVisualState(id);
 
+            const text = shareTextFor(post);
             const shareData = {
                 title: post.title,
-                text: post.title,
-                url: post.source_url || window.location.href,
+                text,
+                url: `${SHARE_BASE_URL}/post/${post.id}`,
             };
 
             if (navigator.share) {
                 navigator.share(shareData).catch(() => {});
             } else if (navigator.clipboard) {
-                navigator.clipboard.writeText(shareData.url).then(() => {
-                    showToast('Link copied to clipboard!');
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied — paste it in WhatsApp!');
                 }).catch(() => {
                     showToast('Shared');
                 });
@@ -897,10 +974,11 @@
         }
 
         function renderPrefsChips() {
-            const categories = ['News', 'Sports', 'Memes', 'Entertainment', 'Culture', 'Tech'];
+            const categories = ['News', 'Sports', 'Geopolitics', 'Tech', 'AI & Quantum', 'Web3', 'IoT & Open Source', 'Education', 'Entertainment', 'Culture'];
             prefsChips.innerHTML = categories.map(cat => `
-                <button class="prefs-chip ${favorites.includes(cat) ? 'selected' : ''}" data-cat="${cat}">
-                    ${cat}
+                <button class="prefs-chip ${favorites.includes(cat) ? 'selected' : ''}"
+                        data-cat="${cat}" aria-pressed="${favorites.includes(cat)}">
+                    ${cat}${favorites.includes(cat) ? ' ✓' : ''}
                 </button>
             `).join('');
 
@@ -912,9 +990,44 @@
                     } else {
                         favorites.push(cat);
                     }
+                    persistFavorites();
                     renderPrefsChips();
+                    updatePrefsFooterState();
                 });
             });
+        }
+
+        // ── Double-tap to like ──
+        // TikTok-style: two taps anywhere on the card (non-interactive area)
+        // likes the current post. A stray double-tap never unlikes — reuse the
+        // heart if it's already lit.
+        function doubleTapLike() {
+            const post = ranked[activeIndex];
+            if (!post || post.__ad) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            if (interactions[id].like) {
+                showToast('Already liked ❤️');
+                return;
+            }
+
+            interactions[id].like = true;
+            post.likes = (post.likes || 0) + 1;
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+
+            // Burst overlay on the media box
+            const mediaBox = feed.querySelector('.feed-card-img-box');
+            if (mediaBox && !mediaBox.querySelector('.like-burst')) {
+                const burst = document.createElement('div');
+                burst.className = 'like-burst';
+                burst.textContent = '❤️';
+                mediaBox.appendChild(burst);
+                setTimeout(() => burst.remove(), 750);
+            }
+            showToast('Liked');
         }
 
         function escapeHtml(text) {

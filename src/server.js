@@ -150,7 +150,7 @@ app.get('/api/feed', async (req, res) => {
             sessionId = generateSessionId();
         }
         
-        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+        const limit = Math.min(parseInt(req.query.limit) || 20, 80);
         const cursor = req.query.cursor || null;
         const offset = parseInt(cursor, 10) || 0;
         
@@ -326,8 +326,11 @@ app.get('/api/share/:id/whatsapp', (req, res) => {
     }
     
     const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-    const shareUrl = `${siteUrl}/?post=${post.id}`;
-    const shareText = `${post.title}\n\n${post.summary}\n\n${shareUrl}`;
+    // Canonical snapfeed URL — /post/:id is server-rendered with OG tags for a
+    // rich WhatsApp link preview, and keeps the hotlink to the source inside.
+    const shareUrl = `${siteUrl}/post/${post.id}`;
+    const summary = (post.summary || '').trim();
+    const shareText = `*${post.title}*\n\n${summary}\n\n🔗 Read more on Snapfeed: ${shareUrl}`;
     
     res.json({
         image_url: post.media_url,
@@ -355,7 +358,7 @@ app.get('/feed.xml', (req, res) => {
     
     for (const post of posts) {
         const pubDate = new Date(post.created_at).toUTCString();
-        const postUrl = `${siteUrl}/?post=${post.id}`;
+        const postUrl = `${siteUrl}/post/${post.id}`;
         
         xml += `
     <item>
@@ -391,7 +394,7 @@ app.get('/sitemap.xml', (req, res) => {
     </url>`;
     
     for (const post of posts) {
-        const postUrl = `${siteUrl}/?post=${post.id}`;
+        const postUrl = `${siteUrl}/post/${post.id}`;
         const lastmod = new Date(post.created_at).toISOString().split('T')[0];
         
         xml += `
@@ -504,7 +507,18 @@ app.get('/post/:id', (req, res) => {
     <article class="max-w-2xl mx-auto px-4 py-8">
         <header class="mb-6">
             <a href="/" class="text-ig-400 hover:text-ig-primary text-sm mb-4 inline-block">&larr; Back to Feed</a>
-            <span class="badge ${post.category === 'Memes' ? 'badge-memes' : post.category === 'Culture' ? 'badge-culture' : post.category === 'Tech' ? 'badge-tech' : post.category === 'Entertainment' ? 'badge-entertainment' : post.category === 'News' ? 'badge-news' : 'badge-sports'}">${post.category}</span>
+            <span class="badge ${
+                post.category === 'Culture' ? 'badge-culture' :
+                post.category === 'Tech' ? 'badge-tech' :
+                post.category === 'AI & Quantum' ? 'badge-tech' :
+                post.category === 'Web3' ? 'badge-tech' :
+                post.category === 'IoT & Open Source' ? 'badge-tech' :
+                post.category === 'Education' ? 'badge-culture' :
+                post.category === 'Entertainment' ? 'badge-entertainment' :
+                post.category === 'News' ? 'badge-news' :
+                post.category === 'Geopolitics' ? 'badge-news' :
+                'badge-sports'
+            }">${post.category}</span>
             <h1 class="text-2xl md:text-3xl font-bold text-ig-900 dark:text-ig-text mt-3 mb-2 leading-tight">${post.title}</h1>
             <div class="flex items-center gap-4 text-sm text-ig-400">
                 <a href="${post.source_url}" target="_blank" rel="noopener noreferrer" class="hover:text-ig-primary">${post.source_name}</a>
