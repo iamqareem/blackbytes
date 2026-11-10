@@ -10,13 +10,13 @@ const execFileAsync = promisify(execFile);
 // East African TikTok creators — verified extractable via yt-dlp (2026-10).
 // Round 1 of a rotating subsaharan roster (this shot: Kenya, Tanzania, Uganda, Rwanda).
 const TIKTOK_CHANNELS = [
-    { username: 'mulamwah', category: 'Memes', name: 'Mulamwah 🇰🇪' },
-    { username: 'terencecreative', category: 'Memes', name: 'Terence Creative 🇰🇪' },
+    { username: 'mulamwah', category: 'Culture', name: 'Mulamwah 🇰🇪' },
+    { username: 'terencecreative', category: 'Culture', name: 'Terence Creative 🇰🇪' },
     { username: 'diamondplatnumz', category: 'Culture', name: 'Diamond Platnumz 🇹🇿' },
     { username: 'officialzuchu', category: 'Entertainment', name: 'Zuchu 🇹🇿' },
-    { username: 'tengetengeofficial', category: 'Memes', name: 'Tengetenge 🇺🇬' },
+    { username: 'tengetengeofficial', category: 'Culture', name: 'Tengetenge 🇺🇬' },
     { username: 'ghettokids_tfug256', category: 'Culture', name: 'Triplets Ghetto Kids 🇺🇬' },
-    { username: 'general_benda', category: 'Memes', name: 'General Benda 🇷🇼' },
+    { username: 'general_benda', category: 'Culture', name: 'General Benda 🇷🇼' },
     { username: 'kilipaul', category: 'Culture', name: 'Kili Paul 🇹🇿' },
 ];
 
@@ -73,7 +73,7 @@ async function fetchChannel(channel, bin) {
 
 export default {
     name: 'tiktok',
-    category: 'Memes',
+    category: 'Culture',
     async fetch() {
         const bin = resolveYtDlp();
         if (!bin) {

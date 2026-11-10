@@ -4,7 +4,6 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { getDb, initDb } from './db.js';
 import { loadPlugins, fetchAllPlugins } from './pluginManager.js';
-import { summarize } from './summarizer.js';
 
 const db = getDb();
 
@@ -57,30 +56,22 @@ async function backfillImages(items) {    const need = items.filter(it => !it.me
     return found;
 }
 
-const insertPost = db.prepare(`
-    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+const upsertRawPost = db.prepare(`
+    INSERT INTO raw_posts (title, content, media_url, media_type, source_url, source_name, category, published_at, media_caption, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(source_url) DO UPDATE SET
         title = excluded.title,
-        summary = excluded.summary,
+        content = excluded.content,
         media_url = excluded.media_url,
         media_type = excluded.media_type,
-        indexed_at = excluded.indexed_at,
-        media_caption = excluded.media_caption
+        source_name = excluded.source_name,
+        category = excluded.category,
+        published_at = excluded.published_at,
+        media_caption = excluded.media_caption,
+        updated_at = CURRENT_TIMESTAMP
 `);
 
-// Refresh content for live-updating posts (e.g. match scores) without resetting stats
-const upsertPost = db.prepare(`
-    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(source_url) DO UPDATE SET
-        title = excluded.title,
-        summary = excluded.summary,
-        media_url = excluded.media_url,
-        media_type = excluded.media_type,
-        indexed_at = excluded.indexed_at,
-        media_caption = excluded.media_caption
-`);
+const checkExistingSummary = db.prepare("SELECT id FROM posts WHERE source_url = ? AND summary IS NOT NULL AND length(trim(summary)) > 0");
 
 const updatePostEngagement = db.prepare(`
     UPDATE posts SET 
@@ -115,7 +106,7 @@ function getCronSchedule() {
 }
 
 async function runScraper() {
-    console.log('[Scraper] Starting scrape cycle...');
+    console.log('[Scraper] Starting scrape cycle (Step 1: Ingest to raw_posts)...');
     const startTime = Date.now();
 
     try {
@@ -124,63 +115,45 @@ async function runScraper() {
         
         if (items.length === 0) {
             console.log('[Scraper] No items fetched');
-            return { fetched: 0, saved: 0, duration: Date.now() - startTime };
+            return { fetched: 0, staged: 0, duration: Date.now() - startTime };
         }
 
-        console.log(`[Scraper] Fetched ${items.length} raw items, summarizing...`);
-        // Global max posts per fetch cycle — keep feed fresh, prevent runaway growth
-        const MAX_POSTS_PER_CYCLE = 40;
+        console.log(`[Scraper] Fetched ${items.length} raw items from plugins...`);
+        // Global max posts per fetch cycle — 80 posts (8 per category × 10 categories)
+        const MAX_POSTS_PER_CYCLE = 80;
         if (items.length > MAX_POSTS_PER_CYCLE) {
             console.log(`[Scraper] Capping to ${MAX_POSTS_PER_CYCLE} newest items (was ${items.length})`);
             items = items.slice(0, MAX_POSTS_PER_CYCLE);
         }
+
         // Fill missing images from article pages (og:image)
         await backfillImages(items);
-        // Video posts: title + video only, no word summary
-        const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
-        // Spend AI calls only on genuinely new posts; reuse existing summaries on upserts
-        const existingStmt = db.prepare('SELECT summary FROM posts WHERE source_url = ?');
-        const summarized = [];
-        let aiCount = 0;
-        for (const [i, item] of items.entries()) {
-            if (VIDEO_TYPES.has(item.media_type)) {
-                summarized.push({ ...item, summary: '' });
-                continue;
-            }
-            const row = existingStmt.get(item.source_url);
-            if (row?.summary) {
-                summarized.push({ ...item, summary: row.summary });
-            } else {
-                const { summary } = await summarize(item.content || item.title, item.title, true);
-                summarized.push({ ...item, summary });
-                aiCount++;
-                console.log(`[Scraper] summarized ${i + 1}/${items.length} (${aiCount} AI calls) — ${item.source_name}: ${item.title.slice(0, 40)}`);
-            }
-        }
-        console.log(`[Scraper] AI summaries generated: ${aiCount}/${items.length} (rest reused from DB)`);
 
-        let saved = 0;
-        for (const item of summarized) {
-            const stmt = item.upsert ? upsertPost : insertPost;
-const result = stmt.run(
+        let staged = 0;
+        for (const item of items) {
+            // Check if post is already summarized in the main posts table
+            const existing = checkExistingSummary.get(item.source_url);
+            const status = existing ? 'summarized' : 'pending';
+
+            const result = upsertRawPost.run(
                 item.title,
-                item.summary,
+                item.content || item.title,
                 decodeMediaUrl(item.media_url) || null,
                 item.media_type || 'text',
                 item.source_url,
                 item.source_name,
                 item.category,
                 normalizeDate(item.published_at),
-                new Date().toISOString(),
-                item.mediaCaption
+                item.mediaCaption || null,
+                status
             );
-            if (result.changes > 0) saved++;
+            if (result.changes > 0) staged++;
         }
 
         const duration = Date.now() - startTime;
-        console.log(`[Scraper] Completed: ${saved}/${items.length} new posts saved in ${duration}ms`);
+        console.log(`[Scraper] Completed Step 1: ${staged}/${items.length} raw posts staged in raw_posts (${duration}ms)`);
 
-        return { fetched: items.length, saved, duration };
+        return { fetched: items.length, staged, duration };
     } catch (err) {
         console.error('[Scraper] Error:', err.message);
         throw err;

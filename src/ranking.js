@@ -108,7 +108,7 @@ export function rankPosts(posts, { limit = 20, cursor = 0, sessionId = 'default'
 
     const viewedIds = new Set((interactions.viewed || []).map(String));
 
-    const scoredPosts = [];
+    let scoredPosts = [];
 
     for (const post of posts) {
         const postTime = parsePostTime(post.created_at);
@@ -152,6 +152,16 @@ export function rankPosts(posts, { limit = 20, cursor = 0, sessionId = 'default'
     if (favorites && favorites.length) {
         scoredPosts = scoredPosts.filter(p => favorites.includes(p.category));
     }
+
+    // Tech broadening: cap total internet-of-things / AI / web3 posts at 15
+    // in the ranked feed. Keeps the feed readable while the broader tech
+    // sources (MIT Technology Review + Cointelegraph) pull in more AI/Web3
+    // content per cycle.
+    const TECH_CATEGORIES = new Set(['Tech', 'AI', 'Web3']);
+    const techPosts = scoredPosts.filter(p => TECH_CATEGORIES.has(p.category));
+    const otherPosts = scoredPosts.filter(p => !TECH_CATEGORIES.has(p.category));
+    const cappedTech = techPosts.slice(0, 15);
+    scoredPosts = [...otherPosts, ...cappedTech].sort((a, b) => b.score - a.score);
 
     const diversified = applyDiversity(scoredPosts, favorites);
     const interleaved = interleaveVideos(diversified);

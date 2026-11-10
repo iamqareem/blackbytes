@@ -1,45 +1,41 @@
-// Free AI summarization via Pollinations.ai (keyless, GPT-OSS 20B).
-// Anonymous tier: ~1 reply / 30s per IP on the classic endpoint, burst-tolerant
-// on POST /openai. We go sequential with small gaps, honour 402 backoff, and
-// fall back to truncation when the budget runs out.
+// src/summarizer.js — Step 2: Summarize staged raw feeds and upsert into main posts
+//
+// Primary backend: OpenRouter chat-completions API (OPENROUTER_API_KEY in .env).
+// Escape hatch:    SUMMARIZER_BACKEND=hermes falls back to the local Hermes CLI.
+//
+// Reads from local-only `raw_posts` (where status = 'pending')
+// Failure policy: automatic retry once, then truncated excerpt + status='failed'
+//                 (never retried, never re-billed for permanently bad items)
+// Upserts into user-facing `posts` table (ready for Turso sync)
 
-const API_URL = 'https://text.pollinations.ai/openai';
-const MODEL = process.env.SUMMARIZER_MODEL || 'openai-fast';
-const MAX_WORDS = parseInt(process.env.SUMMARY_MAX_WORDS) || 60;
-const DAILY_CALL_LIMIT = parseInt(process.env.SUMMARY_DAILY_LIMIT) || 500;
-const MIN_CONTENT_CHARS = 80; // skip AI for short meme titles — nothing to summarize
-const CALL_GAP_MS = 1200;     // polite gap between sequential calls
-const RATE_LIMIT_WAIT_MS = 30000; // pollinations asks to wait 30s on 402
+import 'dotenv/config';
+import { spawn } from 'child_process';
+import { getDb, initDb } from './db.js';
 
-let aiEnabled = true;
-let callsToday = 0;
-let consecutiveFailures = 0;
-let disabled = false;
-let lastCallAt = 0;
+const db = getDb();
 
-function todayKey() {
-    return new Date().toISOString().slice(0, 10);
-}
-let countDay = todayKey();
+const BACKEND = (process.env.SUMMARIZER_BACKEND || 'openrouter').toLowerCase();
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-lite';
+const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 
-function refreshDailyCount() {
-    const key = todayKey();
-    if (key !== countDay) {
-        countDay = key;
-        callsToday = 0;
-    }
-}
+const HERMES_BIN = process.env.HERMES_PATH || '/home/qareem/.local/bin/hermes';
+const MAX_WORDS = parseInt(process.env.SUMMARY_MAX_WORDS) || 50;
+const TIMEOUT_MS = parseInt(process.env.SUMMARY_TIMEOUT_MS) || 25000;
+const CONCURRENCY = Math.max(1, parseInt(process.env.SUMMARY_CONCURRENCY) || 4);
 
-console.info(`AI summarizer enabled (Pollinations, model: ${MODEL}, daily limit: ${DAILY_CALL_LIMIT})`);
+// ---------------------------------------------------------------- fallbacks
 
-// ------- Helpers -------
-function truncateToWords(text, maxWords) {
+// Truncate to word count fallback
+function truncateToWords(text, maxWords = MAX_WORDS) {
+    if (!text) return '';
     const words = text.trim().split(/\s+/);
     if (words.length <= maxWords) return text.trim();
     return words.slice(0, maxWords).join(' ') + '…';
 }
 
 function cleanText(text) {
+    if (!text) return '';
     return text
         .replace(/https?:\/\/\S+/g, '')
         .replace(/@\w+/g, '')
@@ -48,130 +44,319 @@ function cleanText(text) {
         .trim();
 }
 
-function clampWords(text, maxWords) {
-    const words = text.trim().split(/\s+/);
-    return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : text;
+function buildPrompt(title, content) {
+    return (
+        `You write concise 1-2 sentence summaries for an African news, culture, and tech feed.\n` +
+        `Title: ${title}\n` +
+        `Content: ${content}\n\n` +
+        `Task: Summarize who, what, and where in 1 to 2 clear sentences (under ${MAX_WORDS} words). ` +
+        `Output ONLY the summary. Do not include introductory phrases, hashtags, quotes, or markdown headers.`
+    );
 }
 
-function truncationFallback(cleaned, title) {
-    return truncateToWords(cleaned || title, MAX_WORDS);
+// Clean a model response: strip wrappers, labels, markdown
+function cleanSummary(output) {
+    if (!output) return '';
+    return String(output)
+        .replace(/^["'`]|["'`]$/g, '')
+        .replace(/^(Summary|Here is a summary|Key Takeaway):\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
-const SYSTEM_PROMPT =
-    `You write short, descriptive summaries for an African media & meme feed. ` +
-    `Given a post title and content, produce 1-2 sentences (max ${MAX_WORDS} words) that say WHO, WHAT and WHERE. ` +
-    `Be specific and concrete — mention names, places and key facts. ` +
-    `No hashtags, no emoji, no "this post says", no preamble, just the summary.`;
+// ---------------------------------------------------------- OpenRouter call
 
 /**
- * Summarize a social media post with Pollinations, falling back to truncation.
- *
- * @param {string} text - post content/text
- * @param {string} title - post title
- * @param {boolean} useAi - whether to attempt AI summarization
- * @returns {Promise<{summary: string, mediaCaption: null}>}
+ * Summarize via OpenRouter chat-completions.
+ * Returns { summary, ok, error } — on failure, summary is the truncated excerpt.
+ * Retries once on 429/5xx/network errors with a short backoff.
  */
-export async function summarize(text, title = '', useAi = true) {
-    const cleaned = cleanText(text);
-
-    if (!useAi || !aiEnabled || disabled) {
-        return { summary: truncationFallback(cleaned, title), mediaCaption: null };
+export async function summarizeWithOpenRouter(title = '', content = '') {
+    const cleaned = cleanText(content || title);
+    if (!cleaned || cleaned.length < 50) {
+        return { summary: truncateToWords(cleaned || title, MAX_WORDS), ok: true };
     }
 
-    refreshDailyCount();
-    if (callsToday >= DAILY_CALL_LIMIT) {
-        return { summary: truncationFallback(cleaned, title), mediaCaption: null };
-    }
+    const endpoint = `${OPENROUTER_BASE_URL}/chat/completions`;
+    const payload = {
+        model: OPENROUTER_MODEL,
+        // Free-tier models (Nemotron etc.) are often reasoning models; without
+        // this they burn the entire token budget on hidden "thinking" and
+        // return content: null with finish_reason: length.
+        reasoning: { enabled: false },
+        max_tokens: MAX_WORDS * 4,
+        temperature: 0.4,
+        messages: [
+            { role: 'system', content: 'You are a concise summarizer for an African news, culture, and tech feed. Output only the summary text.' },
+            { role: 'user', content: buildPrompt(title, cleaned) },
+        ],
+    };
 
-    const input = cleaned.length >= MIN_CONTENT_CHARS
-        ? `${title ? `Title: ${title}\n` : ''}Content: ${cleaned}`
-        : null;
-    if (!input) {
-        // Too short to summarize — truncation is already the full text
-        return { summary: truncationFallback(cleaned || title, title), mediaCaption: null };
-    }
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-        refreshDailyCount();
-        if (callsToday >= DAILY_CALL_LIMIT) break;
-
+    let attempt = 0;
+    let lastError = '';
+    while (attempt < 2) {
+        attempt++;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
         try {
-            // Respect sequential gap
-            const sinceLast = Date.now() - lastCallAt;
-            if (sinceLast < CALL_GAP_MS) {
-                await new Promise(r => setTimeout(r, CALL_GAP_MS - sinceLast));
-            }
-            lastCallAt = Date.now();
-            callsToday++;
-
-            // 20s hard timeout — undici's default is 300s, which stalls the scrape silently
-            const response = await fetch(API_URL, {
+            const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: AbortSignal.timeout(20000),
-                body: JSON.stringify({
-                    model: MODEL,
-                    messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
-                        { role: 'user', content: input },
-                    ],
-                    max_tokens: 200,
-                    temperature: 0.3,
-                }),
+                signal: controller.signal,
+                headers: {
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': process.env.SITE_URL || 'https://gossip.ugaplex.com',
+                    'X-Title': 'Snapfeed Summarizer',
+                },
+                body: JSON.stringify(payload),
             });
 
-            if (response.status === 402 && attempt === 0) {
-                // Rate limited — pollinations asks for a 30s wait
-                callsToday--; // don't count the rejected call
-                console.log('[summarizer] rate limited (402), waiting 30s before retry...');
-                await new Promise(r => setTimeout(r, RATE_LIMIT_WAIT_MS));
-                continue;
+            if (res.ok) {
+                const data = await res.json();
+                const output = data?.choices?.[0]?.message?.content;
+                const summary = cleanSummary(truncateToWords(output, MAX_WORDS));
+                if (summary) {
+                    return { summary, ok: true };
+                }
+                lastError = 'empty model response';
+            } else {
+                const retryable = res.status === 429 || res.status >= 500;
+                lastError = `HTTP ${res.status}`;
+                if (!retryable) break; // 4xx other than 429 → don't retry
             }
-            if (!response.ok) {
-                throw new Error(`Pollinations API ${response.status}`);
-            }
-
-            const result = await response.json();
-            const summary = result?.choices?.[0]?.message?.content?.trim() || '';
-            if (!summary || summary.length < 5) {
-                throw new Error('empty summary');
-            }
-
-            consecutiveFailures = 0;
-            return { summary: clampWords(summary, MAX_WORDS), mediaCaption: null };
         } catch (err) {
-            consecutiveFailures++;
-            // Log first few failures, then every 10th
-            if (consecutiveFailures <= 3 || consecutiveFailures % 10 === 0) {
-                console.error(`AI summarization failed (${consecutiveFailures}):`, err.message);
-            }
-            if (consecutiveFailures >= 8) {
-                disabled = true;
-                console.warn('AI summarizer disabled after 8 consecutive failures - using truncation fallback');
-            }
-            break; // don't retry non-402 errors
+            lastError = err.name === 'AbortError' ? `timeout after ${TIMEOUT_MS}ms` : err.message;
+            // network error / timeout → fall through to retry
+        } finally {
+            clearTimeout(timer);
+        }
+
+        if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 2500));
         }
     }
 
-    return { summary: truncationFallback(cleaned, title), mediaCaption: null };
+    console.warn(`[summarizer] OpenRouter failed (${lastError}), using excerpt fallback.`);
+    return { summary: truncateToWords(cleaned, MAX_WORDS), ok: false, error: lastError };
 }
+
+// ---------------------------------------------------------- Hermes fallback
 
 /**
- * Summarize a batch of items sequentially (respecting rate limits).
- *
- * @param {Array} items - items with { title, content, ... }
- * @param {boolean} useAi - whether to attempt AI summarization
- * @returns {Promise<Array>} items enriched with { summary }
+ * Escape-hatch backend: summarize via the local Hermes CLI.
+ * Passes the prompt via stdin using `--query-file -` to prevent shell-escaping errors.
  */
-export async function summarizeBatch(items, useAi = true) {
-    const results = [];
-    for (const item of items) {
-        const { summary } = await summarize(item.content || item.title, item.title, useAi);
-        results.push({ ...item, summary });
+export async function summarizeWithHermes(title = '', content = '') {
+    const cleaned = cleanText(content || title);
+    if (!cleaned || cleaned.length < 50) {
+        return { summary: truncateToWords(cleaned || title, MAX_WORDS), ok: true };
     }
-    refreshDailyCount();
-    console.log(`[summarizer] AI calls today: ${callsToday}/${DAILY_CALL_LIMIT}`);
-    return results;
+
+    const prompt = `You write concise 1-2 sentence summaries for an African news, culture, and tech feed.\n` +
+        `Title: ${title}\n` +
+        `Content: ${cleaned}\n\n` +
+        `Task: Summarize who, what, and where in 1 to 2 clear sentences (under ${MAX_WORDS} words). ` +
+        `Output ONLY the summary. Do not include introductory phrases, hashtags, quotes, or markdown headers.`;
+
+    return new Promise((resolve) => {
+        let stdout = '';
+        let stderr = '';
+        let killed = false;
+
+        const timer = setTimeout(() => {
+            killed = true;
+            try { proc.kill('SIGKILL'); } catch {}
+            console.warn('[summarizer] Hermes CLI timed out after 25s, falling back to excerpt.');
+            resolve({ summary: truncateToWords(cleaned, MAX_WORDS), ok: true });
+        }, TIMEOUT_MS);
+
+        const proc = spawn(HERMES_BIN, [
+            'chat',
+            '--query-file', '-',
+            '--oneshot',
+            '-Q',
+            '--source', 'tool',
+        ], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: { ...process.env, PATH: `${process.env.PATH}:/home/qareem/.local/bin` },
+        });
+
+        proc.stdout.on('data', (d) => { stdout += d.toString(); });
+        proc.stderr.on('data', (d) => { stderr += d.toString(); });
+
+        proc.on('error', (err) => {
+            clearTimeout(timer);
+            if (!killed) {
+                console.warn(`[summarizer] Hermes execution failed (${err.message}), using fallback.`);
+                resolve({ summary: truncateToWords(cleaned, MAX_WORDS), ok: true });
+            }
+        });
+
+        proc.on('close', (code) => {
+            clearTimeout(timer);
+            if (killed) return;
+
+            if (code === 0 && stdout.trim()) {
+                resolve({ summary: truncateToWords(cleanSummary(stdout), MAX_WORDS), ok: true });
+            } else {
+                if (stderr && (stderr.includes('re-authenticate') || stderr.includes('No access token'))) {
+                    console.warn('[summarizer] Hermes notice: authentication needed (run `hermes model` in terminal).');
+                } else if (stderr) {
+                    console.warn(`[summarizer] Hermes exited with code ${code}: ${stderr.slice(0, 150)}`);
+                }
+                resolve({ summary: truncateToWords(cleaned, MAX_WORDS), ok: true });
+            }
+        });
+
+        // Write the prompt to stdin and close the stream
+        try {
+            proc.stdin.write(prompt);
+            proc.stdin.end();
+        } catch {
+            clearTimeout(timer);
+            resolve({ summary: truncateToWords(cleaned, MAX_WORDS), ok: true });
+        }
+    });
 }
 
-export { aiEnabled as hfEnabled, MAX_WORDS };
+// Per-item dispatch so the two backends share one result shape
+async function summarize(title, content) {
+    if (BACKEND === 'hermes') {
+        return summarizeWithHermes(title, content);
+    }
+    return summarizeWithOpenRouter(title, content);
+}
+
+// ---------------------------------------------------------------- DB layer
+
+// Prepared statements for moving raw_posts -> posts
+const getPendingRawPosts = db.prepare(`
+    SELECT * FROM raw_posts
+    WHERE status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT ?
+`);
+
+const markRawPostStatus = db.prepare(`
+    UPDATE raw_posts
+    SET status = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+`);
+
+const upsertPost = db.prepare(`
+    INSERT INTO posts (title, summary, media_url, media_type, source_url, source_name, category, created_at, indexed_at, media_caption)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_url) DO UPDATE SET
+        title = excluded.title,
+        summary = excluded.summary,
+        media_url = excluded.media_url,
+        media_type = excluded.media_type,
+        source_name = excluded.source_name,
+        category = excluded.category,
+        indexed_at = excluded.indexed_at,
+        media_caption = excluded.media_caption
+`);
+
+// ------------------------------------------------------------- concurrency
+
+function mapWithConcurrency(items, limit, fn) {
+    const results = new Array(items.length);
+    let next = 0;
+    async function worker() {
+        while (next < items.length) {
+            const idx = next++;
+            results[idx] = await fn(items[idx], idx);
+        }
+    }
+    return Promise.all(
+        Array.from({ length: Math.min(limit, items.length) }, worker)
+    ).then(() => results);
+}
+
+// -------------------------------------------------------------- Step 2 run
+
+/**
+ * Step 2 Runner: Process pending raw posts through the summarizer and stage
+ * into the main `posts` table.
+ * Concurrency pool of 4; failure policy: excerpt + status='failed'.
+ */
+export async function runSummarizer({ limit = 80 } = {}) {
+    console.log(`[Summarizer] Starting summarization cycle (Step 2: raw_posts -> posts, backend=${BACKEND}, model=${BACKEND === 'openrouter' ? OPENROUTER_MODEL : 'hermes-cli'})...`);
+    const startTime = Date.now();
+
+    if (BACKEND === 'openrouter' && !OPENROUTER_API_KEY) {
+        console.error('[Summarizer] OPENROUTER_API_KEY is not set in .env — aborting cycle without consuming items.');
+        console.error('[Summarizer] Set OPENROUTER_API_KEY=d... in .env (get a key at https://openrouter.ai/settings/keys), or set SUMMARIZER_BACKEND=hermes.');
+        return { processed: 0, total: 0, skipped: 'missing_api_key', duration: Date.now() - startTime };
+    }
+
+    const pending = getPendingRawPosts.all(limit);
+    if (pending.length === 0) {
+        console.log('[Summarizer] No pending raw posts found to summarize.');
+        return { processed: 0, total: 0, duration: Date.now() - startTime };
+    }
+
+    console.log(`[Summarizer] Found ${pending.length} pending raw posts to summarize (concurrency=${CONCURRENCY})...`);
+    const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
+
+    const summarized = await mapWithConcurrency(pending, CONCURRENCY, async (item, idx) => {
+        if (VIDEO_TYPES.has(item.media_type)) {
+            // Video cards: title is self-explanatory, no long summary needed
+            return { item, summary: item.title, ok: true };
+        }
+
+        const result = await summarize(item.title, item.content);
+        console.log(
+            `[Summarizer] [${idx + 1}/${pending.length}] ${item.source_name} — "${item.title.slice(0, 50)}" → ` +
+            (result.ok ? 'ok' : `fallback (${result.error || 'unknown error'})`)
+        );
+        return { item, ...result };
+    });
+
+    let processed = 0;
+    for (const { item, summary, ok } of summarized) {
+        // Upsert into main posts table (excerpt included even on failure so the feed isn't empty)
+        upsertPost.run(
+            item.title,
+            summary,
+            item.media_url || null,
+            item.media_type || 'text',
+            item.source_url,
+            item.source_name,
+            item.category,
+            item.published_at || new Date().toISOString(),
+            new Date().toISOString(),
+            item.media_caption || null
+        );
+
+        // Mark summarized, or 'failed' so it's never retried/re-billed
+        markRawPostStatus.run(ok ? 'summarized' : 'failed', item.id);
+        processed++;
+    }
+
+    const failedCount = summarized.filter(r => !r.ok).length;
+    const duration = Date.now() - startTime;
+    console.log(`[Summarizer] Completed Step 2: ${processed}/${pending.length} posts moved to main posts table (${failedCount} fallback excerpts, ${duration}ms).`);
+    return { processed, total: pending.length, failed: failedCount, duration };
+}
+
+// Standalone backward-compatibility export for any other caller
+export async function summarizeText(text, title = '') {
+    const result = await summarize(title, text);
+    return { summary: result.summary, mediaCaption: null };
+}
+
+// CLI entry point
+if (process.argv[1] && process.argv[1].endsWith('summarizer.js')) {
+    initDb();
+    const limit = parseInt(process.argv[2]) || 80;
+    runSummarizer({ limit })
+        .then((res) => {
+            console.log('[Summarizer] Finished:', res);
+            process.exit(0);
+        })
+        .catch((err) => {
+            console.error('[Summarizer] Fatal error:', err);
+            process.exit(1);
+        });
+}

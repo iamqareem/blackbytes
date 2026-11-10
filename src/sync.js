@@ -1,6 +1,7 @@
 // src/sync.js — Push local SQLite → Turso remote (Snapfeed backend → cloud)
 // Runs on the local admin portal machine. One-directional: local → Turso.
 // The PWA on Cloudflare reads from Turso via HTTPS.
+import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import Database from 'better-sqlite3';
 

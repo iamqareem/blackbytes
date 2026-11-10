@@ -21,15 +21,32 @@ FRESHNESS_WINDOW_DAYS = 3.0    # posts older than this never enter the feed (kep
 FRESH_WEIGHT = 30.0            # score for a post published right now
 FRESH_DECAY = 1.5              # exp decay per day: 24h ~ x0.23, 48h ~ x0.05, 72h ~ x0.01
 
+# Feed cap: 80 posts max (8 per category × 10 categories)
+FEED_CAP = 80
+POSTS_PER_CATEGORY = 8        # minimum guaranteed slots per category in a full feed
+
 # Diversity: prevent one source/category from flooding the swipe deck
-DIVERSITY_WINDOW = 25       # first N ranked posts get diversity treatment
-SOURCE_CAP = 3              # max posts per source in the diversity window
-CATEGORY_CAP = 6            # max posts per category in the window (favorites mode only)
+DIVERSITY_WINDOW = 40       # first N ranked posts get diversity treatment
+SOURCE_CAP = 4              # max posts per source in the diversity window
+CATEGORY_CAP = 8            # max posts per category in the window
 VIDEO_TYPES = {'shorts', 'embed', 'video'}
 
-# Memes are gravity — give meme content a flat boost so it trades blows
-# with news RSS (which is always minutes-fresher than any video)
-CATEGORY_BOOST = {'Memes': 6.0, 'Entertainment': 2.0}
+# 10 valid categories — must stay in sync with db.js CHECK constraint
+VALID_CATEGORIES = {
+    'News', 'Sports', 'Geopolitics',
+    'Tech', 'AI & Quantum', 'Web3',
+    'IoT & Open Source', 'Education',
+    'Entertainment', 'Culture',
+}
+
+# Category boosts — culture/meme content gets a bump to trade blows
+# with always-fresh hard-news RSS items
+CATEGORY_BOOST = {
+    'Culture': 6.0,
+    'Entertainment': 2.0,
+    'IoT & Open Source': 1.5,   # promote OSS discovery
+    'Education': 1.5,           # surface scholarships prominently
+}
 
 
 def get_category_affinity(cursor, session_id):
@@ -97,7 +114,9 @@ def parse_post_time(created_at):
 def apply_diversity(items, favorites):
     """Reorder the top of the ranked list so the swipe deck stays varied:
     1. Cap posts per source (always on)
-    2. Cap posts per category (only when the user picked favorite categories)
+    2. Cap posts per category (always on — 8 slots each for 10 categories)
+    3. Guarantee minimum POSTS_PER_CATEGORY slots per category so every
+       category has at least some representation in the feed.
     Dropped items keep their rank and are appended after the window.
     Video spreading happens afterwards across the whole feed.
     """
@@ -114,17 +133,16 @@ def apply_diversity(items, favorites):
         else:
             dropped.append(item)
 
-    # 2) category cap (favorites mode only — an all-categories feed should stay open)
-    if favorites:
-        cat_kept, cat_dropped = [], []
-        cat_counts = Counter()
-        for item in kept:
-            if cat_counts[item['category']] < CATEGORY_CAP:
-                cat_kept.append(item)
-                cat_counts[item['category']] += 1
-            else:
-                cat_dropped.append(item)
-        kept, dropped = cat_kept, cat_dropped + dropped
+    # 2) category cap — always enforce for the 10-category system
+    cat_kept, cat_dropped = [], []
+    cat_counts = Counter()
+    for item in kept:
+        if cat_counts[item['category']] < CATEGORY_CAP:
+            cat_kept.append(item)
+            cat_counts[item['category']] += 1
+        else:
+            cat_dropped.append(item)
+    kept, dropped = cat_kept, cat_dropped + dropped
 
     return kept + dropped + tail
 
@@ -182,13 +200,13 @@ def rank_posts(limit=20, cursor_id=None, session_id='default'):
         # --- freshness window: hide posts older than 3 days from the feed ---
         post_time = parse_post_time(created_at)
         if post_time is None:
-            age_days = 0.0  # unparseable date -> treat as fresh (normalization keeps this rare)
+            age_days = 0.0  # unparseable date -> treat as fresh
         else:
             age_days = max(0.0, (now - post_time).total_seconds() / 86400.0)
         if age_days > FRESHNESS_WINDOW_DAYS:
             continue
 
-        # Engagement + freshness (both feeds and RSS-only posts get scored the same way)
+        # Engagement + freshness (both feeds and RSS-only posts scored the same)
         engagement_score = (
             likes * LIKE_WEIGHT
             + shares * SHARE_WEIGHT
@@ -224,6 +242,36 @@ def rank_posts(limit=20, cursor_id=None, session_id='default'):
 
     scored_posts = apply_diversity(scored_posts, favorites)
     scored_posts = interleave_videos(scored_posts)
+
+    # Hard cap at FEED_CAP (80) — enforce min POSTS_PER_CATEGORY (8) per
+    # category to guarantee a full diverse deck is always reachable.
+    # Strategy: fill per-category quotas from the ranked list first, then
+    # top up remaining slots with any leftover ranked posts.
+    if not favorites:
+        # Build a balanced 80-post feed — min 8 per category
+        per_cat = {}
+        overflow = []
+        for item in scored_posts:
+            cat = item['category']
+            bucket = per_cat.setdefault(cat, [])
+            if len(bucket) < POSTS_PER_CATEGORY:
+                bucket.append(item)
+            else:
+                overflow.append(item)
+
+        balanced = []
+        for bucket in per_cat.values():
+            balanced.extend(bucket)
+        # Fill remaining slots (up to FEED_CAP) from overflow sorted by score
+        remaining_slots = FEED_CAP - len(balanced)
+        if remaining_slots > 0:
+            balanced.extend(overflow[:remaining_slots])
+
+        # Re-sort by score so the feed deck itself still reads best-first
+        balanced.sort(key=lambda x: x['score'], reverse=True)
+        scored_posts = balanced[:FEED_CAP]
+    else:
+        scored_posts = scored_posts[:FEED_CAP]
 
     total_available = len(scored_posts)
 

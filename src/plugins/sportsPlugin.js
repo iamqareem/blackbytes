@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { takeNewestBySource } from '../feedUtils.js';
-import { fetchRSSFeed } from '../rssParser.js';
+import { fetchRSSFeed, USER_AGENT } from '../rssParser.js';
 import { RSS_SOURCES } from '../config/rss-sources.js';
 
 // Big European clubs — curated focus (PL elite + European giants)

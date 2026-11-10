@@ -26,8 +26,12 @@ CREATE TABLE IF NOT EXISTS posts (
     media_type TEXT CHECK(media_type IN ('video', 'image', 'embed', 'text', 'shorts')) DEFAULT 'text',
     source_url TEXT UNIQUE NOT NULL,
     source_name TEXT NOT NULL,
-    category TEXT NOT NULL CHECK(category IN ('Memes', 'Culture', 'Tech', 'Entertainment', 'News', 'Sports')),
-    engagement_score INTEGER DEFAULT 0,
+    category TEXT NOT NULL CHECK(category IN (
+        'News', 'Sports', 'Geopolitics',
+        'Tech', 'AI & Quantum', 'Web3',
+        'IoT & Open Source', 'Education',
+        'Entertainment', 'Culture'
+    )),    engagement_score INTEGER DEFAULT 0,
     views INTEGER DEFAULT 0,
     likes INTEGER DEFAULT 0,
     shares INTEGER DEFAULT 0,
@@ -76,10 +80,37 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Local-only raw feeds staging table.
+-- Scraped feeds land here FIRST before Hermes summarization.
+-- This table is NEVER synced to Turso.
+CREATE TABLE IF NOT EXISTS raw_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT,
+    media_url TEXT,
+    media_type TEXT CHECK(media_type IN ('video', 'image', 'embed', 'text', 'shorts')) DEFAULT 'text',
+    source_url TEXT UNIQUE NOT NULL,
+    source_name TEXT NOT NULL,
+    category TEXT NOT NULL CHECK(category IN (
+        'News', 'Sports', 'Geopolitics',
+        'Tech', 'AI & Quantum', 'Web3',
+        'IoT & Open Source', 'Education',
+        'Entertainment', 'Culture'
+    )),
+    published_at TIMESTAMP,
+    media_caption TEXT,
+    status TEXT CHECK(status IN ('pending', 'summarized', 'failed', 'skipped')) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_engagement ON posts(engagement_score DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_source_url ON posts(source_url);
+CREATE INDEX IF NOT EXISTS idx_raw_posts_status ON raw_posts(status);
+CREATE INDEX IF NOT EXISTS idx_raw_posts_source_url ON raw_posts(source_url);
+CREATE INDEX IF NOT EXISTS idx_raw_posts_category ON raw_posts(category);
 CREATE INDEX IF NOT EXISTS idx_interactions_session ON user_interactions(session_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_post ON user_interactions(post_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_action ON user_interactions(action_type);
@@ -94,14 +125,111 @@ function initDb() {
         db.exec(`ALTER TABLE user_interactions ADD COLUMN payload TEXT`);
         console.log('Migration: added payload column to user_interactions');
     } catch (err) {
-        // Column already exists — expected for fresh installs after schema update
         if (!err.message.includes('duplicate column')) {
             console.debug('Migration note:', err.message);
         }
     }
-    // Migration: update action_type constraint to include 'reaction'
-    // SQLite can't ALTER constraints, so we just rely on the schema for new tables
-    // and allow the old constraint to remain on existing tables — reactions still insert fine
+    // Migration: add media_caption column to posts if it doesn't exist
+    try {
+        db.exec(`ALTER TABLE posts ADD COLUMN media_caption TEXT`);
+        console.log('Migration: added media_caption column to posts');
+    } catch (err) {
+        if (!err.message.includes('duplicate column')) {
+            console.debug('Migration note (media_caption):', err.message);
+        }
+    }
+
+    // Repair: restore user_interactions foreign key to point to `posts(id)` if it was rewritten to `posts_old`
+    const interactionsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='user_interactions'").get()?.sql || '';
+    if (interactionsSql.includes('posts_old')) {
+        console.log('Repairing user_interactions foreign key (restoring reference to posts)...');
+        db.exec(`
+            PRAGMA foreign_keys = OFF;
+            BEGIN;
+            ALTER TABLE user_interactions RENAME TO user_interactions_repair;
+            CREATE TABLE user_interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                post_id INTEGER NOT NULL,
+                action_type TEXT NOT NULL CHECK(action_type IN ('view', 'like', 'share', 'save', 'reaction')),
+                payload TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+            );
+            INSERT INTO user_interactions (id, session_id, post_id, action_type, payload, created_at)
+                SELECT id, session_id, post_id, action_type, payload, created_at FROM user_interactions_repair;
+            DROP TABLE user_interactions_repair;
+            CREATE INDEX IF NOT EXISTS idx_interactions_session ON user_interactions(session_id);
+            CREATE INDEX IF NOT EXISTS idx_interactions_post ON user_interactions(post_id);
+            CREATE INDEX IF NOT EXISTS idx_interactions_action ON user_interactions(action_type);
+            COMMIT;
+            PRAGMA foreign_keys = ON;
+        `);
+        console.log('user_interactions foreign key repaired successfully.');
+    }
+    // Migration v2: Expand the posts.category CHECK constraint to the new 10-category system.
+    // SQLite can't ALTER constraints, so we recreate the table via the standard
+    // "rename → create new → copy → drop old" technique.
+    const hasNewCategories = (() => {
+        try {
+            const info = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='posts'").get();
+            return info?.sql?.includes("'AI & Quantum'");
+        } catch { return false; }
+    })();
+    if (!hasNewCategories) {
+        console.log('Migration: expanding posts.category constraint to 10 categories...');
+        db.exec(`
+            BEGIN;
+            ALTER TABLE posts RENAME TO posts_old;
+            CREATE TABLE posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                media_url TEXT,
+                media_type TEXT CHECK(media_type IN ('video', 'image', 'embed', 'text', 'shorts')) DEFAULT 'text',
+                source_url TEXT UNIQUE NOT NULL,
+                source_name TEXT NOT NULL,
+                category TEXT NOT NULL CHECK(category IN (
+                    'News', 'Sports', 'Geopolitics',
+                    'Tech', 'AI & Quantum', 'Web3',
+                    'IoT & Open Source', 'Education',
+                    'Entertainment', 'Culture'
+                )),
+                engagement_score INTEGER DEFAULT 0,
+                views INTEGER DEFAULT 0,
+                likes INTEGER DEFAULT 0,
+                shares INTEGER DEFAULT 0,
+                saves INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                media_caption TEXT
+            );
+            -- Map old Memes -> Culture during copy
+            INSERT INTO posts
+                SELECT id, title, summary, media_url, media_type, source_url, source_name,
+                    CASE category WHEN 'Memes' THEN 'Culture' ELSE category END,
+                    engagement_score, views, likes, shares, saves, created_at, indexed_at, media_caption
+                FROM posts_old;
+            DROP TABLE posts_old;
+            CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category);
+            CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_posts_engagement ON posts(engagement_score DESC);
+            CREATE INDEX IF NOT EXISTS idx_posts_source_url ON posts(source_url);
+            COMMIT;
+        `);
+        console.log('Migration: posts.category expanded to 10 categories (Memes -> Culture remapped).');
+    }
+    // Migration: rename legacy category values to new 10-category system
+    const categoryMap = [
+        ['Memes', 'Culture'],
+    ];
+    for (const [from, to] of categoryMap) {
+        if (from !== to) {
+            try {
+                db.prepare(`UPDATE posts SET category = ? WHERE category = ?`).run(to, from);
+            } catch {}
+        }
+    }
     console.log('Database schema initialized');
 }
 

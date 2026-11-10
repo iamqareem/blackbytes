@@ -16,6 +16,9 @@
     "build:js:admin": "esbuild admin/src/app.js --bundle --outfile=admin/dist/app.js --minify --format=esm --target=es2020",
     "build": "npm run build:css && npm run build:css:admin && npm run build:js && npm run build:js:admin",
     "scrape": "node src/scraper.js",
+    "summarize": "node src/summarizer.js",
+    "sync": "node src/sync.js",
+    "pipeline": "node src/pipeline.js",
     "lint": "eslint src/ admin/src/",
     "db:init": "node src/db.js"
   },

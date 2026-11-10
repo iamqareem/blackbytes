@@ -9,7 +9,9 @@ import { fileURLToPath } from 'url';
 import { getDb, initDb } from './db.js';
 import { requireAdmin, generateToken, verifyToken, setAuthCookie, clearAuthCookie, hashPassword, verifyPassword } from './auth.js';
 import { triggerScrape } from './scraper.js';
+import { runSummarizer } from './summarizer.js';
 import { syncToTurso } from './sync.js';
+import { runFullPipeline } from './pipeline.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -190,6 +192,25 @@ app.delete('/admin/api/posts/:id', requireAdmin, (req, res) => {
 app.post('/admin/api/scrape/trigger', requireAdmin, async (req, res) => {
     try {
         const result = await triggerScrape();
+        res.json({ success: true, result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/admin/api/summarize/trigger', requireAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.body?.limit) || 80;
+        const result = await runSummarizer({ limit });
+        res.json({ success: true, result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/admin/api/pipeline/trigger', requireAdmin, async (req, res) => {
+    try {
+        const result = await runFullPipeline();
         res.json({ success: true, result });
     } catch (err) {
         res.status(500).json({ error: err.message });
