@@ -24,6 +24,10 @@ const MAX_WORDS = parseInt(process.env.SUMMARY_MAX_WORDS) || 50;
 const TIMEOUT_MS = parseInt(process.env.SUMMARY_TIMEOUT_MS) || 25000;
 const CONCURRENCY = Math.max(1, parseInt(process.env.SUMMARY_CONCURRENCY) || 4);
 
+// Set when OpenRouter's free-tier DAILY cap is exhausted — subsequent calls
+// in this cycle short-circuit immediately instead of hammering the API.
+let dailyLimitHit = false;
+
 // ---------------------------------------------------------------- fallbacks
 
 // Truncate to word count fallback
@@ -77,6 +81,10 @@ export async function summarizeWithOpenRouter(title = '', content = '') {
         return { summary: truncateToWords(cleaned || title, MAX_WORDS), ok: true };
     }
 
+    if (dailyLimitHit) {
+        return { summary: '', ok: false, dailyLimit: true, error: 'free-tier daily rate limit (cycle aborted earlier)' };
+    }
+
     const endpoint = `${OPENROUTER_BASE_URL}/chat/completions`;
     const payload = {
         model: OPENROUTER_MODEL,
@@ -119,10 +127,23 @@ export async function summarizeWithOpenRouter(title = '', content = '') {
                     return { summary, ok: true };
                 }
                 lastError = 'empty model response';
+            } else if (res.status === 429) {
+                // Distinguish a free-tier DAILY cap from a per-minute burst:
+                // a daily cap is unretryable and must abort the whole cycle
+                // BEFORE other items get excerpt-fallback + 'failed' status.
+                const body = await res.json().catch(() => ({}));
+                const limitSource = body?.error?.metadata?.limit_source || '';
+                if (limitSource.includes('daily')) {
+                    dailyLimitHit = true;
+                    console.error('[summarizer] OpenRouter FREE-TIER DAILY LIMIT exhausted (429, limit_source=' + limitSource + ').');
+                    console.error('[summarizer] Aborting cycle — pending items stay pending, none marked failed.');
+                    return { summary: truncateToWords(cleaned, MAX_WORDS), ok: false, dailyLimit: true, error: 'free-tier daily rate limit' };
+                }
+                lastError = 'HTTP 429 (burst rate limit)';
             } else {
-                const retryable = res.status === 429 || res.status >= 500;
+                const retryable = res.status >= 500;
                 lastError = `HTTP ${res.status}`;
-                if (!retryable) break; // 4xx other than 429 → don't retry
+                if (!retryable) break; // other 4xx → don't retry
             }
         } catch (err) {
             lastError = err.name === 'AbortError' ? `timeout after ${TIMEOUT_MS}ms` : err.message;
@@ -283,6 +304,7 @@ function mapWithConcurrency(items, limit, fn) {
 export async function runSummarizer({ limit = 80 } = {}) {
     console.log(`[Summarizer] Starting summarization cycle (Step 2: raw_posts -> posts, backend=${BACKEND}, model=${BACKEND === 'openrouter' ? OPENROUTER_MODEL : 'hermes-cli'})...`);
     const startTime = Date.now();
+    dailyLimitHit = false; // reset per cycle
 
     if (BACKEND === 'openrouter' && !OPENROUTER_API_KEY) {
         console.error('[Summarizer] OPENROUTER_API_KEY is not set in .env — aborting cycle without consuming items.');
@@ -314,7 +336,15 @@ export async function runSummarizer({ limit = 80 } = {}) {
     });
 
     let processed = 0;
-    for (const { item, summary, ok } of summarized) {
+    let deferred = 0;
+    for (const { item, summary, ok, dailyLimit } of summarized) {
+        // Daily rate-limit failures: leave as 'pending' so the NEXT cycle
+        // picks them up — they were never actually attempted against the API.
+        if (!ok && dailyLimit) {
+            deferred++;
+            continue;
+        }
+
         // Upsert into main posts table (excerpt included even on failure so the feed isn't empty)
         upsertPost.run(
             item.title,
@@ -334,10 +364,14 @@ export async function runSummarizer({ limit = 80 } = {}) {
         processed++;
     }
 
-    const failedCount = summarized.filter(r => !r.ok).length;
+    const failedCount = summarized.filter(r => !r.ok && !r.dailyLimit).length;
+    const deferredExcerpt = summarized.filter(r => !r.ok && r.dailyLimit).length;
     const duration = Date.now() - startTime;
+    if (deferredExcerpt > 0) {
+        console.log(`[Summarizer] ${deferredExcerpt} item(s) deferred — daily free-tier limit was hit, they stay pending for the next cycle.`);
+    }
     console.log(`[Summarizer] Completed Step 2: ${processed}/${pending.length} posts moved to main posts table (${failedCount} fallback excerpts, ${duration}ms).`);
-    return { processed, total: pending.length, failed: failedCount, duration };
+    return { processed, total: pending.length, failed: failedCount, deferred: deferredExcerpt, duration };
 }
 
 // Standalone backward-compatibility export for any other caller
