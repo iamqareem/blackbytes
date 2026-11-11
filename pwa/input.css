@@ -269,7 +269,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px 0 92px;
+    padding: 10px 0 112px;
     box-sizing: border-box;
     overflow: hidden;
     margin: 0 auto;
@@ -294,8 +294,10 @@
 
   .feed-card-img-box.is-vertical {
     aspect-ratio: 9 / 16;
-    max-height: 70vh;
+    max-height: 56vh;
     width: 100%;
+    flex-shrink: 1;      /* frame yields to title + link when space is tight */
+    min-height: 220px;   /* …but never collapses to nothing */
   }
 
   /* Vertical (TikTok/Shorts) player letterboxed and centered inside the
@@ -342,6 +344,13 @@
   .feed-card-content-top {
     margin-top: 0;
     margin-bottom: 10px;
+    flex-shrink: 0;      /* title is never clipped or pushed out */
+  }
+
+  /* …and the watch link is never shadowed by the action pill */
+  .feed-card-content-bottom {
+    flex-shrink: 0;
+    padding-bottom: 2px;
   }
 
   .feed-card-source-row {
