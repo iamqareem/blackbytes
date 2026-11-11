@@ -3,7 +3,7 @@
 > A swipeable, AI-summarized feed of African and world news, sports, geopolitics, tech and culture, refreshed every 30 minutes from 30+ verified sources. Every story is aggregated from a verified source, AI-summarized, and
 > published with an attribution link to the original reporting.
 
-Snapfeed covers: News (110), Sports (102), Culture (97), Entertainment (63), Tech (34), Web3 (22), Geopolitics (18), Education (16), AI & Quantum (14), IoT & Open Source (12).
+Snapfeed covers: News (118), Sports (109), Culture (98), Entertainment (69), Tech (45), Web3 (30), Geopolitics (26), Education (17), AI & Quantum (15), IoT & Open Source (15).
 
 ## Citing us
 Quoting our summaries is welcome with a link to the canonical
