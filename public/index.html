@@ -866,13 +866,37 @@
 
             const sourceUrl = post.source_url || '#';
 
-            feed.innerHTML = `
+            // Videos (YouTube/TikTok): title on top, frame as wide as the whole
+            // area beneath it, no description — just a "Watch on …" hotlink.
+            const isWatchable = isVideo && (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be') || sourceUrl.includes('tiktok.com'));
+            const watchLabel = sourceUrl.includes('tiktok.com') ? 'Watch on TikTok'
+                : (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) ? 'Watch on YouTube'
+                : escapeHtml(post.source_name);
+            const titleBlock = `<h2 class="feed-card-title">${escapeHtml(post.title)}</h2>`;
+
+            feed.innerHTML = isVideo
+                ? `
+                <article class="feed-card is-video-card">
+                    <div class="feed-card-content feed-card-content-top">
+                        ${titleBlock}
+                    </div>
+                    <div class="${boxClass}">
+                        ${mediaHtml}
+                    </div>
+                    <div class="feed-card-content">
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
+                            ${escapeHtml(isWatchable ? watchLabel : post.source_name)} <span class="feed-card-link-arrow" aria-hidden="true">&#8599;</span>
+                        </a>
+                    </div>
+                </article>
+            `
+                : `
                 <article class="feed-card">
                     <div class="${boxClass}">
                         ${mediaHtml}
                     </div>
                     <div class="feed-card-content">
-                        <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
+                        ${titleBlock}
                         ${summaryHtml}
                         <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
                             ${escapeHtml(post.source_name)} <span class="feed-card-link-arrow" aria-hidden="true">&#8599;</span>

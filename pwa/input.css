@@ -294,9 +294,17 @@
 
   .feed-card-img-box.is-vertical {
     aspect-ratio: 9 / 16;
-    max-height: 48vh;
+    max-height: 70vh;
+    width: 100%;
+  }
+
+  /* Vertical (TikTok/Shorts) player letterboxed and centered inside the
+     full-width frame — widest view the viewport allows, no cropping. */
+  .feed-card-img-box.is-vertical iframe {
+    height: 100%;
     width: auto;
-    max-width: 100%;
+    aspect-ratio: 9 / 16;
+    margin-inline: auto;
   }
 
   html.light .feed-card-img-box {
@@ -328,6 +336,12 @@
     align-items: flex-start;
     flex-shrink: 1;
     min-height: 0;
+  }
+
+  /* Video cards: title sits above the media frame */
+  .feed-card-content-top {
+    margin-top: 0;
+    margin-bottom: 10px;
   }
 
   .feed-card-source-row {

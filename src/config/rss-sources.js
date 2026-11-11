@@ -48,6 +48,11 @@ export const RSS_SOURCES = [
     { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', category: 'Tech' },
     // [✓ images] The Verge — Atom feed, rich <media:content> per article
     { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', category: 'Tech' },
+    // [✓ images] It's FOSS — Linux/open-source news, images in <content:encoded>
+    { name: "It's FOSS", url: 'https://itsfoss.com/rss/', category: 'IoT & Open Source' },
+    // [✓ images] Zeteo — Mehdi Hasan's YouTube channel via YouTube Atom feed;
+    // parsed as embeds (thumbnail in media_url, watch URL in source_url)
+    { name: 'Zeteo', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCVG72F2Q5yCmLQfctNK6M2A', category: 'News', type: 'youtube' },
     // [✓ images] Wired — article images in every item
     { name: 'Wired', url: 'https://www.wired.com/feed/rss', category: 'Tech' },
     // [✓ images] TechCabal — Africa tech startup coverage, embeds article images

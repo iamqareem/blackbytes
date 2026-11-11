@@ -20,7 +20,11 @@ export async function fetchRSSFeed(url) {
     } catch (err) {
         try {
             const res = await axios.get(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36' },
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36',
+                    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                },
                 timeout: 15000,
             });
             return res.data;
@@ -83,13 +87,30 @@ function unwrapCdata(value) {
     return String(value || '').replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim();
 }
 
-function normalizeItem({ rawTitle, rawContent, rawMedia, rawSourceUrl, rawPublished, source }) {
+function normalizeItem({ rawTitle, rawContent, rawMedia, rawSourceUrl, rawPublished, source, youtube = null }) {
     const title = cleanField(rawTitle);
     let content = cleanField(rawContent);
     content = content.replace(/\[\s*\.\.\.\s*\]/g, '').trim();
 
     const mediaUrl = extractFirstImage(rawContent) ||
         decodeEntities(matchOne(rawMedia, [/url="([^"]+)"/])?.[1] || '');
+
+    // YouTube Atom entries: content is the video description (no <img>), so
+    // the generic image extraction only finds the media:thumbnail. Such posts
+    // are stored as embeds — thumbnail in media_url, watch URL in source_url —
+    // which the PWA + /post pages convert into a real player.
+    if (youtube) {
+        return {
+            title,
+            content: content || title,
+            media_url: youtube.thumbnail,
+            media_type: 'embed',
+            source_url: youtube.watchUrl,
+            source_name: source.name,
+            category: source.category,
+            published_at: rawPublished.trim() || new Date().toISOString(),
+        };
+    }
 
     return {
         title,
@@ -100,6 +121,20 @@ function normalizeItem({ rawTitle, rawContent, rawMedia, rawSourceUrl, rawPublis
         source_name: source.name,
         category: source.category,
         published_at: rawPublished.trim() || new Date().toISOString(),
+    };
+}
+
+// YouTube channel Atom feeds (https://www.youtube.com/feeds/videos.xml?…):
+// every entry carries <yt:videoId> plus <media:thumbnail url="…hqdefault.jpg">.
+function extractYouTubeEntry(itemXml) {
+    const videoId = matchOne(itemXml, [/<yt:videoId>([^<]+)<\/yt:videoId>/])?.[1];
+    if (!videoId) return null;
+    const thumbnail = matchOne(itemXml, [/media:thumbnail[^>]*url="(https:[^"]*\/vi\/[^"]*\/[^"]*\.jpg)"/])?.[1] ||
+                      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    return {
+        videoId,
+        watchUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        thumbnail: decodeEntities(thumbnail),
     };
 }
 
@@ -151,6 +186,7 @@ function parseAtomItem(itemXml, source) {
                           matchOne(itemXml, [/<updated>(.*?)<\/updated>/]))?.[1] || '';
 
     if (!rawSourceUrl || !rawTitle) return null;
+    const youtube = /youtube\.com\/feeds/.test(source.url) ? extractYouTubeEntry(itemXml) : null;
     return normalizeItem({
         rawTitle,
         rawContent: decodedContent,
@@ -158,6 +194,7 @@ function parseAtomItem(itemXml, source) {
         rawSourceUrl,
         rawPublished,
         source,
+        youtube,
     });
 }
 
