@@ -353,6 +353,18 @@
     padding-bottom: 2px;
   }
 
+  /* Text-only card — no media box at all; type carries the card */
+  .feed-card.is-text-card .feed-card-text {
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 24px 8px;
+  }
+  .feed-card.is-text-card .feed-card-title {
+    font-size: 1.35rem;
+    line-height: 1.3;
+  }
+
   .feed-card-source-row {
     display: flex;
     align-items: center;
@@ -489,6 +501,22 @@
     text-transform: uppercase;
     color: #8A8A8E;
     margin-bottom: 10px;
+  }
+
+  /* Monetag banner slot — lives only inside the sponsored card; collapses
+     away when the tag renders nothing (overlay zones, block, offline). */
+  .ad-slot {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .ad-slot:empty {
+    display: none;
+  }
+  .ad-slot iframe {
+    max-width: 100%;
+    border: 0;
   }
 
   .ad-art {

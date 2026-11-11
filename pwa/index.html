@@ -135,7 +135,6 @@
         // enable_ads=true in Turso site_config. ──
         const MONETAG_TAG_SRC = 'https://alwingulla.com/88/tag.min.js';
         const AD_PREVIEW = new URLSearchParams(location.search).get('ads') === 'preview';
-        let monetagInjected = false;
         let adsgramInjected = false;
         const adControllers = new Map(); // Adsgram blockId -> controller
 
@@ -576,7 +575,11 @@
         function railsAvailable() {
             if (AD_PREVIEW) return true;
             if (!adConfig.enable_ads) return false;
-            return isTelegramEnv() && !!blockForCategory(activeCategory);
+            // Telegram Mini App — category-railed Adsgram blocks.
+            // Regular browsers — Monetag banner zones, mounted in the card
+            // slot (post-basis, never persistent across swipes).
+            if (isTelegramEnv()) return !!blockForCategory(activeCategory);
+            return !!monetagSource();
         }
 
         // Sponsored cards woven into the ranked list every N posts — the slot
@@ -603,15 +606,30 @@
 
         function maybeInjectAds() {
             if (!adConfig.enable_ads) return;
-            injectMonetag();
             if (isTelegramEnv()) injectAdsgram();
         }
 
-        function injectMonetag() {
-            if (monetagInjected) return;
+        // ── Monetag — scoped to the sponsored rail card ─────────────────────
+        // The tag script used to load in <head> where overlay-format zones
+        // (in-page push, interstitial) paint persistent banners across every
+        // swipe. Instead, the tag is mounted INTO the sponsored card's slot:
+        // the banner appears only on that card and is wiped with it on the
+        // next swipe. For a clean in-card banner, use a Monetag *Banner* zone
+        // URL in monetag_tag_url.
+        function monetagSource() {
+            const src = String(adConfig.monetag_tag_url || '').trim();
+            if (src) return src;
             const zone = String(adConfig.monetag_zone_id || '').trim();
-            const src = String(adConfig.monetag_tag_url || '').trim() || (zone ? MONETAG_TAG_SRC : '');
+            return zone ? MONETAG_TAG_SRC : '';
+        }
+
+        function mountMonetagSlot() {
+            const slot = document.getElementById('monetag-slot');
+            if (!slot || slot.childElementCount) return;
+            if (!adConfig.enable_ads && !AD_PREVIEW) return;
+            const src = monetagSource();
             if (!src) return;
+            const zone = String(adConfig.monetag_zone_id || '').trim();
             const s = document.createElement('script');
             s.src = src;
             s.async = true;
@@ -619,8 +637,7 @@
             // Monetag reads the zone from the script's dataset → the attribute
             // must be data-zone, NOT zone. (dataset.zone === data-zone.)
             if (zone && !src.includes('zone')) s.dataset.zone = zone;
-            document.head.appendChild(s);
-            monetagInjected = true;
+            slot.appendChild(s);
         }
 
         function injectAdsgram() {
@@ -681,6 +698,7 @@
                 <article class="feed-card is-ad">
                     <div class="ad-card">
                         <span class="ad-badge">Sponsored</span>
+                        <div class="ad-slot" id="monetag-slot"></div>
                         <div class="ad-art">${AD_ART_SVG}</div>
                         <h2 class="ad-title">A quick boost for Snapfeed</h2>
                         <p class="ad-sub">One short ad keeps ${escapeHtml(where)} clean, free &amp; flowing.</p>
@@ -827,10 +845,12 @@
                 };
             }
 
-            // Plain image (or thumbnail fallback for unresolvable video)
+            // Plain image (or thumbnail fallback for unresolvable video).
+            // A dead image URL hides its box — the card falls back to a clean
+            // text layout rather than a placeholder graphic.
             return {
                 vertical: false,
-                html: `<img src="${escapeHtml(media_url || fallbackImg)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" onerror="this.src='${fallbackImg}'">`
+                html: `<img src="${escapeHtml(media_url || fallbackImg)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" onerror="this.closest('.feed-card-img-box')?.style.setProperty('display','none')">`
             };
         }
 
@@ -847,6 +867,7 @@
             if (post.__ad) {
                 document.body.classList.add('ad-active');
                 feed.innerHTML = renderAdCard();
+                mountMonetagSlot();
                 updateActionCounts({ likes: 0, saves: 0 });
                 updateButtonVisualState('__ad__');
                 return;
@@ -874,7 +895,23 @@
                 : escapeHtml(post.source_name);
             const titleBlock = `<h2 class="feed-card-title">${escapeHtml(post.title)}</h2>`;
 
-            feed.innerHTML = isVideo
+            // Text-only post: no image anywhere in the source → no media box,
+            // no placeholder. Title, description and hotlink carry the card.
+            const isTextOnly = !isVideo && !post.media_url;
+
+            feed.innerHTML = isTextOnly
+                ? `
+                <article class="feed-card is-text-card">
+                    <div class="feed-card-content feed-card-text">
+                        ${titleBlock}
+                        ${summaryHtml}
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
+                            ${escapeHtml(post.source_name)} <span class="feed-card-link-arrow" aria-hidden="true">&#8599;</span>
+                        </a>
+                    </div>
+                </article>
+            `
+                : isVideo
                 ? `
                 <article class="feed-card is-video-card">
                     <div class="feed-card-content feed-card-content-top">
