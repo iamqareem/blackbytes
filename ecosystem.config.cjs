@@ -12,7 +12,7 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 3001,
         ADMIN_PORT: 3001,
-        SITE_URL: 'http://localhost:3000',
+        SITE_URL: 'https://gossip.ugaplex.com',
       },
     },
     {
@@ -26,7 +26,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         PORT: 3000,
-        SITE_URL: 'http://localhost:3000',
+        SITE_URL: 'https://gossip.ugaplex.com',
       },
     },
   ],

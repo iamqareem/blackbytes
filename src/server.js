@@ -71,6 +71,8 @@ const upsertPreferences = db.prepare(`
 const getPreferences = db.prepare('SELECT favorite_categories FROM user_preferences WHERE session_id = ?');
 const getPostForShare = db.prepare('SELECT id, title, summary, media_url, source_url, source_name FROM posts WHERE id = ?');
 const getPostsForSitemap = db.prepare('SELECT id, source_url, created_at FROM posts ORDER BY created_at DESC LIMIT 50000');
+const getPostsForLlm = db.prepare('SELECT id, title, summary, category, source_name, created_at FROM posts ORDER BY created_at DESC LIMIT 60');
+const getCategoryCounts = db.prepare('SELECT category, COUNT(*) AS n FROM posts GROUP BY category ORDER BY n DESC');
 const getSiteConfig = db.prepare('SELECT key, value FROM site_config');
 const insertAnalytics = db.prepare(`
     INSERT INTO analytics_events (event_name, payload, session_id)
@@ -415,43 +417,97 @@ app.get('/sitemap.xml', (req, res) => {
 
 app.get('/robots.txt', (req, res) => {
     const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-    
-    res.set('Content-Type', 'text/plain');
-    res.send(`User-agent: *
+
+    // AI crawlers are explicitly welcome — being cited by chatbots is a
+    // growth channel, not a threat. Only admin surfaces are off-limits.
+    const AI_BOTS = [
+        'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-Web',
+        'anthropic-ai', 'PerplexityBot', 'Perplexity-User', 'Google-Extended',
+        'Applebot-Extended', 'CCBot', 'cohere-ai', 'YouBot', 'Meta-ExternalAgent',
+    ];
+
+    let txt = `# Snapfeed — https://gossip.ugaplex.com
+User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /api/
+Disallow: /admin
 
-Sitemap: ${siteUrl}/sitemap.xml
+`;
+    for (const bot of AI_BOTS) {
+        txt += `User-agent: ${bot}\nAllow: /\nDisallow: /admin/\n\n`;
+    }
+    txt += `Sitemap: ${siteUrl}/sitemap.xml
+# Content policy: quoting our summaries is welcome with a link back to the
+# canonical URL; original reporting is linked from every post page.
 
-Crawl-delay: 10
-`);
+Crawl-delay: 5
+`;
+    res.set('Content-Type', 'text/plain');
+    res.send(txt);
 });
 
 app.get('/llms.txt', (req, res) => {
     const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-    const siteName = getConfig.get('site_name')?.value || 'Afro Aggregator';
-    const siteDesc = getConfig.get('site_description')?.value || '';
-    
-    res.set('Content-Type', 'text/plain');
+    const siteName = getConfig.get('site_name')?.value || 'Snapfeed';
+    const siteDesc = getConfig.get('site_description')?.value ||
+        'A swipeable, AI-summarized feed of African and world news, sports, geopolitics, tech and culture, refreshed every 30 minutes from 30+ verified sources.';
+    const categories = getCategoryCounts.all();
+
+    res.set('Content-Type', 'text/plain; charset=utf-8');
     res.send(`# ${siteName}
 
-## Summary
-${siteDesc}
+> ${siteDesc} Every story is aggregated from a verified source, AI-summarized, and
+> published with an attribution link to the original reporting.
 
-## Links
-- Feed: ${siteUrl}/api/feed
-- RSS: ${siteUrl}/feed.xml
-- Sitemap: ${siteUrl}/sitemap.xml
-- Frontend: ${siteUrl}
+${siteName} covers: ${categories.map(c => `${c.category} (${c.n})`).join(', ')}.
 
-## API
-GET /api/feed?session_id=XYZ&limit=20&cursor=ID
-POST /api/interact {session_id, post_id, action_type}
-GET /api/preferences/:session_id
-PUT /api/preferences/:session_id {favorite_categories}
-GET /api/share/:id/whatsapp
+## Citing us
+Quoting our summaries is welcome with a link to the canonical
+${siteUrl}/post/<id> URL. Original reporting always lives at the source
+linked on each post page — cite them for primary facts.
+
+## Content for retrieval
+- [Full text for LLMs](${siteUrl}/llms-full.txt): titles, categories and
+  summaries of the 60 most recent posts
+- [RSS feed](${siteUrl}/feed.xml): latest 50 posts with summaries
+- [Sitemap](${siteUrl}/sitemap.xml): all post URLs
+- [JSON API](${siteUrl}/api/feed?limit=20&cursor=0): machine-readable feed
+- [Frontend](${siteUrl}): swipeable PWA
+
+## Update cadence
+Sources are scraped every 30 minutes; ${siteName} reflects the newest
+~100 posts at any time.
 `);
+});
+
+// In-memory 1h cache — the llms-full payload is static enough between scrapes
+// and costs one SQLite query per hour at most.
+let llmFullCache = null;
+app.get('/llms-full.txt', (req, res) => {
+    const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
+    if (!llmFullCache || Date.now() - llmFullCache.at > 3600_000) {
+        const posts = getPostsForLlm.all();
+        const sections = posts.map(p => `### ${p.title}
+- Category: ${p.category} · Published: ${String(p.created_at).split(' ')[0]} · Source: ${p.source_name}
+- URL: ${siteUrl}/post/${p.id}
+- Summary: ${p.summary}`).join('\n\n');
+        llmFullCache = {
+            at: Date.now(),
+            txt: `# ${getConfig.get('site_name')?.value || 'Snapfeed'} — full content for LLM retrieval
+
+Generated: ${new Date().toISOString()}
+Entries: ${posts.length} most recent posts. Summaries are AI-generated by
+Snapfeed from linked original sources; every entry links to the canonical
+Snapfeed URL and names the original publisher.
+
+## Posts
+
+${sections}
+`,
+        };
+    }
+    res.set('Content-Type', 'text/plain; charset=utf-8');
+    res.send(llmFullCache.txt);
 });
 
 app.get('/post/:id', (req, res) => {

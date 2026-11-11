@@ -1,7 +1,32 @@
 export function generateJsonLd(post, siteUrl) {
     const postUrl = `${siteUrl}/post/${post.id}`;
     const imageUrl = post.media_url || `${siteUrl}/icons/og-image.png`;
-    
+
+    // Video posts (YouTube/TikTok embeds) — VideoObject gives Google rich
+    // video results and tells LLMs exactly what this page is.
+    const isVideo = ['embed', 'shorts', 'video'].includes(post.media_type) &&
+        (post.source_url.includes('youtube.com') || post.source_url.includes('youtu.be') ||
+         post.source_url.includes('tiktok.com'));
+    if (isVideo) {
+        const ytId = post.source_url.match(/(?:shorts\/|v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+        return {
+            '@context': 'https://schema.org',
+            '@type': 'VideoObject',
+            name: post.title,
+            description: post.summary,
+            thumbnailUrl: [imageUrl],
+            uploadDate: post.created_at,
+            embedUrl: ytId ? `https://www.youtube.com/embed/${ytId}` : post.source_url,
+            contentUrl: post.source_url,
+            url: postUrl,
+            publisher: {
+                '@type': 'Organization',
+                name: 'Snapfeed',
+                logo: { '@type': 'ImageObject', url: `${siteUrl}/icons/icon-512.png` },
+            },
+        };
+    }
+
     return {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
