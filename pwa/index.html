@@ -638,6 +638,33 @@
             // must be data-zone, NOT zone. (dataset.zone === data-zone.)
             if (zone && !src.includes('zone')) s.dataset.zone = zone;
             slot.appendChild(s);
+
+            // Cage stray banners: some Monetag banner tags inject their frame
+            // into <body> with fixed/absolute positioning — that's what paints
+            // a banner over the post heading. Any fixed-position element that
+            // appears outside the slot within seconds of the mount is moved
+            // into the slot and un-fixed, so the banner lives in the card.
+            const cage = new MutationObserver((muts) => {
+                for (const m of muts) {
+                    for (const n of m.addedNodes) {
+                        if (n.nodeType !== 1 || slot.contains(n) || n === s) continue;
+                        if (n.tagName === 'IFRAME' || n.tagName === 'INS' || n.tagName === 'DIV') {
+                            try {
+                                const cs = getComputedStyle(n);
+                                if (cs.position === 'fixed' || cs.position === 'absolute') {
+                                    n.style.position = 'static';
+                                    n.style.width = '100%';
+                                    slot.appendChild(n);
+                                }
+                            } catch (_) { /* cross-origin quirks — ignore */ }
+                        }
+                    }
+                }
+            });
+            cage.observe(document.body, { childList: true });
+            // The slot dies with the card (feed.innerHTML wipe); stop watching
+            // shortly after in case the card is gone.
+            setTimeout(() => cage.disconnect(), 8000);
         }
 
         function injectAdsgram() {
@@ -702,10 +729,11 @@
                         <div class="ad-art">${AD_ART_SVG}</div>
                         <h2 class="ad-title">A quick boost for Snapfeed</h2>
                         <p class="ad-sub">One short ad keeps ${escapeHtml(where)} clean, free &amp; flowing.</p>
+                        ${isTelegramEnv() || AD_PREVIEW ? `
                         <button class="ad-cta" data-ad-cta>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7 4 20 12 7 20 7 4"/></svg>
                             Watch &amp; boost
-                        </button>
+                        </button>` : ''}
                     </div>
                 </article>
             `;
