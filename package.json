@@ -21,7 +21,8 @@
     "sync": "node src/sync.js",
     "pipeline": "node src/pipeline.js",
     "lint": "eslint src/ admin/src/",
-    "db:init": "node src/db.js"
+    "db:init": "node src/db.js",
+    "build:seo": "node scripts/generate-static-seo.mjs"
   },
   "keywords": [
     "aggregator",

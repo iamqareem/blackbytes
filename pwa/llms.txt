@@ -1,0 +1,22 @@
+# Snapfeed
+
+> A swipeable, AI-summarized feed of African and world news, sports, geopolitics, tech and culture, refreshed every 30 minutes from 30+ verified sources. Every story is aggregated from a verified source, AI-summarized, and
+> published with an attribution link to the original reporting.
+
+Snapfeed covers: News (110), Sports (102), Culture (97), Entertainment (63), Tech (34), Web3 (22), Geopolitics (18), Education (16), AI & Quantum (14), IoT & Open Source (12).
+
+## Citing us
+Quoting our summaries is welcome with a link to the canonical
+https://snaps.ugaplex.com/post/<id> URL. Original reporting always lives at the source
+linked on each post page — cite them for primary facts.
+
+## Content for retrieval
+- [Full text for LLMs](https://snaps.ugaplex.com/llms-full.txt): titles, categories and
+  summaries of the 60 most recent posts
+- [RSS feed](https://snaps.ugaplex.com/feed.xml): latest 50 posts with summaries
+- [Sitemap](https://snaps.ugaplex.com/sitemap.xml): all post URLs
+- [Frontend](https://snaps.ugaplex.com): swipeable PWA
+
+## Update cadence
+Sources are scraped every 30 minutes; Snapfeed reflects the newest
+~100 posts at any time.
