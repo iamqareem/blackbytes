@@ -426,7 +426,7 @@ app.get('/robots.txt', (req, res) => {
         'Applebot-Extended', 'CCBot', 'cohere-ai', 'YouBot', 'Meta-ExternalAgent',
     ];
 
-    let txt = `# Snapfeed — https://gossip.ugaplex.com
+    let txt = `# Snapfeed — https://snaps.ugaplex.com
 User-agent: *
 Allow: /
 Disallow: /admin/

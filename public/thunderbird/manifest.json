@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "description": "Read Afrocentric media & memes in Thunderbird via text-only RSS feed",
     "author": "Afro Aggregator",
-    "homepage_url": "https://gossip.ugaplex.com",
+    "homepage_url": "https://snaps.ugaplex.com",
     "icons": {
         "16": "icons/icon-16.png",
         "32": "icons/icon-32.png",
@@ -18,7 +18,7 @@
         "alarms"
     ],
     "host_permissions": [
-        "https://gossip.ugaplex.com/*"
+        "https://snaps.ugaplex.com/*"
     ],
     "background": {
         "scripts": ["background.js"],

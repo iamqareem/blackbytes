@@ -7,23 +7,23 @@
     <meta name="description" content="Snapfeed — a swipeable, AI-summarized feed of African and world news, sports, geopolitics, tech and culture, updated every 30 minutes from 30+ verified sources.">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
     <title>Snapfeed — Afrocentric news & culture, summarized</title>
-    <link rel="canonical" href="https://gossip.ugaplex.com/">
+    <link rel="canonical" href="https://snaps.ugaplex.com/">
 
     <!-- Social -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Snapfeed">
     <meta property="og:title" content="Snapfeed — Afrocentric news & culture, summarized">
     <meta property="og:description" content="Swipe through AI-summarized news, sports, geopolitics, tech and culture — refreshed every 30 minutes.">
-    <meta property="og:url" content="https://gossip.ugaplex.com/">
-    <meta property="og:image" content="https://gossip.ugaplex.com/icons/logo-640x360.png">
+    <meta property="og:url" content="https://snaps.ugaplex.com/">
+    <meta property="og:image" content="https://snaps.ugaplex.com/icons/logo-640x360.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Snapfeed — Afrocentric news & culture, summarized">
     <meta name="twitter:description" content="Swipe through AI-summarized news, sports, geopolitics, tech and culture — refreshed every 30 minutes.">
-    <meta name="twitter:image" content="https://gossip.ugaplex.com/icons/logo-640x360.png">
+    <meta name="twitter:image" content="https://snaps.ugaplex.com/icons/logo-640x360.png">
 
     <!-- Machine-readable site identity (search + LLM crawlers) -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"WebSite","name":"Snapfeed","alternateName":"Snapfeed News","url":"https://gossip.ugaplex.com/","description":"AI-summarized Afrocentric news feed","publisher":{"@type":"Organization","name":"Snapfeed","url":"https://gossip.ugaplex.com/","logo":{"@type":"ImageObject","url":"https://gossip.ugaplex.com/icons/icon-512.png"}},"potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://gossip.ugaplex.com/post/{search_term_string}"},"query-input":"required name=search_term_string"}}
+    {"@context":"https://schema.org","@type":"WebSite","name":"Snapfeed","alternateName":"Snapfeed News","url":"https://snaps.ugaplex.com/","description":"AI-summarized Afrocentric news feed","publisher":{"@type":"Organization","name":"Snapfeed","url":"https://snaps.ugaplex.com/","logo":{"@type":"ImageObject","url":"https://snaps.ugaplex.com/icons/icon-512.png"}},"potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://snaps.ugaplex.com/post/{search_term_string}"},"query-input":"required name=search_term_string"}}
     </script>
 
     <!-- PWA -->
@@ -1041,7 +1041,7 @@
         // Canonical share links go to Snapfeed (server-rendered /post/:id with
         // OG tags = rich WhatsApp preview), never to the source article. The
         // in-card link still hotlinks to the original platform on purpose.
-        const SHARE_BASE_URL = 'https://gossip.ugaplex.com';
+        const SHARE_BASE_URL = 'https://snaps.ugaplex.com';
 
         function shareTextFor(post) {
             const url = `${SHARE_BASE_URL}/post/${post.id}`;

@@ -25,7 +25,7 @@
 
 import axios from 'axios';
 
-const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Snapfeed/1.0 (+https://gossip.ugaplex.com)';
+const USER_AGENT = process.env.SCRAPER_USER_AGENT || 'Snapfeed/1.0 (+https://snaps.ugaplex.com)';
 
 // Top-5 European leagues (ranked as "best two" picks).
 const TOP_EUROPEAN = new Set([

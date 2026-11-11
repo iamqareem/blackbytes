@@ -113,7 +113,7 @@ export async function summarizeWithOpenRouter(title = '', content = '') {
                 headers: {
                     'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
                     'Content-Type': 'application/json',
-                    'HTTP-Referer': process.env.SITE_URL || 'https://gossip.ugaplex.com',
+                    'HTTP-Referer': process.env.SITE_URL || 'https://snaps.ugaplex.com',
                     'X-Title': 'Snapfeed Summarizer',
                 },
                 body: JSON.stringify(payload),

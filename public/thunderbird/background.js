@@ -1,4 +1,4 @@
-const FEED_URL = 'https://gossip.ugaplex.com/feed.xml';
+const FEED_URL = 'https://snaps.ugaplex.com/feed.xml';
 const SYNC_INTERVAL = 30;
 
 async function fetchAndCacheFeed() {
