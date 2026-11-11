@@ -1,152 +1,36 @@
-const CACHE_NAME = 'snapfeed-v1';
-const STATIC_CACHE = 'afro-static-v1';
-const API_CACHE = 'afro-api-v1';
-const IMAGE_CACHE = 'afro-images-v1';
-
-const STATIC_ASSETS = [
-    '/',
-    '/manifest.json',
-    '/dist/styles.css',
-    '/dist/app.js',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png',
-];
-
-const CACHE_STRATEGIES = {
-    static: 'cache-first',
-    api: 'stale-while-revalidate',
-    images: 'cache-first',
-};
-
-async function installSW() {
-    const cache = await caches.open(STATIC_CACHE);
-    await cache.addAll(STATIC_ASSETS);
-    console.log('[SW] Static assets cached');
-    return self.skipWaiting();
+// Snapfeed service worker — Monetag worker (must live at site root /sw.js)
+// + legacy cache cleanup. Replaces the old cleanup-only SW: the stale-cache
+// pipeline is already dead (_headers serves everything no-cache), so this
+// file now doubles as Monetag's push/rewards worker.
+self.options = {
+    "domain": "5gvci.com",
+    "zoneId": 12159495
 }
+self.lary = ""
+importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
 
-async function activateSW() {
-    const cacheNames = await caches.keys();
-    await Promise.all(
-        cacheNames
-            .filter(name => ![STATIC_CACHE, API_CACHE, IMAGE_CACHE].includes(name))
-            .map(name => caches.delete(name))
-    );
-    console.log('[SW] Activated');
-    return self.clients.claim();
-}
-
-async function fetchStatic(request) {
-    const cache = await caches.open(STATIC_CACHE);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-        return cached;
-    }
-    
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch (err) {
-        console.log('[SW] Static fetch failed:', err);
-        return new Response('Offline', { status: 503 });
-    }
-}
-
-async function fetchAPI(request) {
-    const cache = await caches.open(API_CACHE);
-    const cached = await cache.match(request);
-    
-    const fetchPromise = fetch(request).then(response => {
-        if (response.ok) {
-            cache.put(request, response.clone());
-        }
-        return response;
-    }).catch(() => cached);
-    
-    if (cached) {
-        return cached;
-    }
-    
-    return fetchPromise;
-}
-
-async function fetchImages(request) {
-    const cache = await caches.open(IMAGE_CACHE);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-        return cached;
-    }
-    
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch (err) {
-        return new Response('', { status: 503 });
-    }
-}
-
-async function handleFetch(event) {
-    const { request } = event;
-    const url = new URL(request.url);
-    
-    if (request.method !== 'GET') {
-        return fetch(request);
-    }
-    
-    if (url.pathname.startsWith('/api/')) {
-        event.respondWith(fetchAPI(request));
-        return;
-    }
-    
-    if (url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/)) {
-        event.respondWith(fetchImages(request));
-        return;
-    }
-    
-    if (STATIC_ASSETS.some(asset => url.pathname === asset || url.pathname.startsWith(asset.replace('*', '')))) {
-        event.respondWith(fetchStatic(request));
-        return;
-    }
-    
-    event.respondWith(fetchStatic(request));
-}
-
-async function handleMessage(event) {
-    if (event.data === 'skipWaiting') {
-        await self.skipWaiting();
-    }
-}
-
-self.addEventListener('install', event => {
-    event.waitUntil(installSW());
+// ── Legacy cache cleanup ──────────────────────────────────────────────────
+// The previous SW (afro-static-v1 / afro-api-v1 / afro-images-v1) served the
+// app shell cache-first, which pinned old HTML on returning devices. Purge
+// every legacy cache on activation. Scoped prefixes so Monetag's own caches
+// are never touched.
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
-    event.waitUntil(activateSW());
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith('snapfeed') || k.startsWith('afro'))
+          .map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
+  );
 });
 
-self.addEventListener('fetch', event => {
-    handleFetch(event);
-});
-
-self.addEventListener('message', event => {
-    handleMessage(event);
-});
-
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-interactions') {
-        event.waitUntil(syncInteractions());
-    }
-});
-
-async function syncInteractions() {
-    console.log('[SW] Syncing interactions');
-}
+// No fetch handler of our own → network-only for app assets; Monetag's
+// imported script owns whatever it registers.

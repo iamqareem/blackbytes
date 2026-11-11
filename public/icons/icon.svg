@@ -1,20 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Snapfeed">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0095F6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ED4956;stop-opacity:1" />
+    <linearGradient id="leaf" x1="140" y1="380" x2="390" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00A6C2"/>
+      <stop offset="1" stop-color="#5CF3FF"/>
     </linearGradient>
+    <radialGradient id="bg" cx="35%" cy="28%" r="85%">
+      <stop offset="0" stop-color="#111A22"/>
+      <stop offset="1" stop-color="#080B0F"/>
+    </radialGradient>
   </defs>
-  <circle cx="64" cy="64" r="64" fill="url(#grad)"/>
-  <!-- Speech bubble with whisper lines - symbolizing gossip -->
-  <g fill="white">
-    <!-- Main bubble -->
-    <path d="M38 84 Q38 56 56 56 Q74 56 74 74 Q74 86 64 96 Q54 86 38 84 Z" opacity="0.95"/>
-    <!-- Whisper dots - three dots suggesting quiet sharing -->
-    <circle cx="48" cy="70" r="3.5" fill="#0095F6" opacity="0.9"/>
-    <circle cx="64" cy="68" r="3.5" fill="#ED4956" opacity="0.9"/>
-    <circle cx="80" cy="70" r="3.5" fill="#F56040" opacity="0.9"/>
-    <!-- Small sparkle suggesting viral spread -->
-    <polygon points="95,50 96.5,54 101,54 97.5,56.5 98.5,61 95,58.5 91.5,61 92.5,56.5 89,54 93.5,54" fill="#FFD700" opacity="0.9"/>
-  </g>
+
+  <!-- disc -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+  <!-- faint harmony ring -->
+  <circle cx="256" cy="256" r="238" fill="none" stroke="#2BE8FF" stroke-opacity="0.18" stroke-width="8"/>
+
+  <!-- dew drop (balance, upper-left) -->
+  <circle cx="150" cy="152" r="20" fill="#2BE8FF" fill-opacity="0.9"/>
+
+  <!-- leaf -->
+  <path d="M160 368 C164 260 250 160 376 136 C352 264 272 348 160 368 Z" fill="url(#leaf)"/>
+  <!-- vein -->
+  <path d="M186 348 Q262 272 352 168" fill="none" stroke="#0A0E13" stroke-opacity="0.75"
+        stroke-width="16" stroke-linecap="round"/>
+  <!-- sprout stem -->
+  <path d="M120 420 Q148 396 160 368" fill="none" stroke="#5CF3FF" stroke-width="18" stroke-linecap="round"/>
 </svg>

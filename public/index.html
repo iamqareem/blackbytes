@@ -4,90 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="description" content="Snapfeed - Your daily dose of Afrocentric memes, culture &amp; tech">
-    
     <title>Snapfeed</title>
-    
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
-    <link rel="mask-icon" href="/icons/icon.svg" color="#3B82F6">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Snapfeed">
-    <meta property="og:description" content="Your daily dose of Afrocentric memes, culture &amp; tech">
-    <meta property="og:image" content="/icons/og-image.png">
-    <meta property="og:url" content="https://gossip.ugaplex.com">
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Snapfeed">
-    <meta name="twitter:description" content="Your daily dose of Afrocentric memes, culture &amp; tech">
-    <meta name="twitter:image" content="/icons/og-image.png">
-    <meta name="twitter:site" content="@snapfeed">
 
-    <link rel="stylesheet" href="/dist/styles.css">
-    <script>try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light')}catch(e){}</script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-    <script type="module" src="/dist/app.js"></script>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="preload" href="/fonts/zen-kurenaido-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+    <!-- Telegram Mini App SDK (initializes Telegram WebApp if opened in Telegram) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Self-contained CSS -->
+    <link rel="stylesheet" href="/style.css">
+
+    <!-- Theme toggle (runs before body renders) -->
+    <script>
+        (() => {
+            const saved = localStorage.getItem('snapfeed_theme');
+            if (saved === 'light' || (!saved && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.documentElement.classList.add('light');
+            }
+        })();
+    </script>
 </head>
 <body>
 
-    <!-- Transparent header — logo + theme toggle float over cards -->
+    <!-- Header — transparent, name + actions, then minimal sideways category tabs -->
     <header class="header" role="banner">
         <div class="header-inner">
             <a href="/" class="logo" aria-label="Snapfeed Home">
-                <svg class="logo-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#ED4956;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <circle cx="64" cy="64" r="64" fill="url(#logoGrad)"/>
-                    <path d="M38 84 Q38 56 56 56 Q74 56 74 74 Q74 86 64 96 Q54 86 38 84 Z" fill="white" opacity="0.95"/>
-                    <circle cx="48" cy="70" r="3.5" fill="#3B82F6" opacity="0.9"/>
-                    <circle cx="64" cy="68" r="3.5" fill="#ED4956" opacity="0.9"/>
-                    <circle cx="80" cy="70" r="3.5" fill="#F56040" opacity="0.9"/>
-                    <polygon points="95,50 96.5,54 101,54 97.5,56.5 98.5,61 95,58.5 91.5,61 92.5,56.5 89,54 93.5,54" fill="#FFD700" opacity="0.9"/>
-                </svg>
                 <span class="logo-text">Snapfeed</span>
             </a>
-            <div style="display:flex; align-items:center; gap:2px;">
+            <div class="header-actions">
                 <button id="prefs-toggle" aria-label="Content preferences" title="Preferences">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                 </button>
                 <button id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"/></svg>
                 </button>
             </div>
         </div>
+        <!-- Sideways category navigation: first tab = main feed -->
+        <nav class="cat-tabs" id="cat-tabs" aria-label="Categories"></nav>
     </header>
 
-    <!-- Full-screen snap-scroll feed -->
-    <main class="feed" id="feed" role="main" aria-label="Flashcard feed"></main>
+    <!-- Swipe / Flashcard Feed Container -->
+    <main class="feed" id="feed" role="main" aria-label="Flashcard feed">
+        <div style="color: rgba(255,255,255,0.4); font-size: 0.9rem;">Loading feed...</div>
+    </main>
 
-    <!-- Loader overlay -->
-    <div class="feed-loader" id="loader" aria-live="polite">
-        <div class="spinner"></div>
-    </div>
-
-    <!-- Empty state -->
-    <div class="empty-state hidden" id="empty-state">
-        <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <p class="empty-state-title">No content yet</p>
-        <p class="empty-state-desc">Check back soon for fresh content</p>
-    </div>
-
-    <!-- Bottom-left action pill: like / save / share on one horizontal plane -->
-    <div class="action-pill" id="action-pill" role="group" aria-label="Post actions">
+    <!-- Bottom Action Pill: Like / Save / Share — one monolithic unit -->
+    <div id="action-bar" class="action-pill" role="group" aria-label="Post actions">
         <!-- Like -->
         <div class="action-btn-wrap">
             <button class="action-btn" data-action="like" aria-label="Like" title="Like">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
             </button>
-            <span class="action-btn-count" id="like-count">0</span>
+            <span class="action-btn-count hidden" id="count-like"></span>
         </div>
 
         <!-- Save -->
@@ -95,57 +72,997 @@
             <button class="action-btn" data-action="save" aria-label="Save" title="Save">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
             </button>
-            <span class="action-btn-count" id="save-count">0</span>
+            <span class="action-btn-count hidden" id="count-save"></span>
         </div>
 
-        <!-- Share -->
+        <!-- Share (no count in frontend — counted in admin backend only) -->
         <div class="action-btn-wrap">
             <button class="action-btn" data-action="share" aria-label="Share" title="Share">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
             </button>
-            <span class="action-btn-count" id="share-count">0</span>
         </div>
     </div>
 
-    <!-- Floating emoji trigger (bottom-right, colinear with the action pill) -->
-    <nav class="action-bar" id="action-bar" role="navigation" aria-label="Reactions">
-        <div class="action-btn-wrap" style="position:relative;">
-            <button id="emoji-trigger" class="emoji-trigger" aria-label="Reactions" aria-expanded="false" aria-haspopup="true" title="React">
-                😊
-            </button>
-        </div>
-    </nav>
+    <!-- Floating Review Trigger — manga speech balloon + rating star -->
+    <button id="review-trigger" class="review-trigger" aria-label="Leave a review" title="Review us">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- tilted manga speech balloon with tail -->
+            <path d="M5.2 4.2 H17.3 a2.6 2.6 0 0 1 2.6 2.6 V13.7 a2.6 2.6 0 0 1 -2.6 2.6 H11.6 l-4.2 3.3 0.6 -3.3 H5.2 a2.6 2.6 0 0 1 -2.6 -2.6 V6.8 a2.6 2.6 0 0 1 2.6 -2.6 Z"/>
+            <!-- rating star inside -->
+            <path fill="currentColor" stroke="none" transform="translate(4.76 3.09) scale(0.57)" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+            <!-- kira sparkle accent (twinkles) -->
+            <path class="review-spark" d="M21.3 1.4 c0.3 1.4 0.7 1.8 2.1 2.1 c-1.4 0.3 -1.8 0.7 -2.1 2.1 c-0.3 -1.4 -0.7 -1.8 -2.1 -2.1 c1.4 -0.3 1.8 -0.7 2.1 -2.1 Z"/>
+        </svg>
+    </button>
 
-    <!-- Emoji picker (global, positioned fixed) -->
-    <div id="emoji-picker" class="emoji-picker" role="menu" aria-label="Choose reaction"></div>
-
-    <!-- Progress dots -->
-    <div class="progress-dots" id="progress-dots" aria-hidden="true"></div>
-
-    <!-- Preferences modal -->
-    <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Content preferences">
+    <!-- Preferences Modal (Conforms to Theme) -->
+    <div id="prefs-modal" class="prefs-modal" role="dialog" aria-modal="true" aria-label="Preferences">
         <div class="prefs-card">
             <button id="prefs-close" class="prefs-close" aria-label="Close">&times;</button>
-            <h2 class="prefs-title">Your feed, your rules</h2>
-            <p class="prefs-desc">Pick what you want to see — we'll only push content from your picks.</p>
-            <div class="prefs-chips" id="prefs-chips"></div>
+            <h2 class="prefs-title">Your feed, your way</h2>
+            <p class="prefs-desc">Tap a category to favorite it — changes apply instantly. Favorites float to the top of your feed.</p>
+            <div id="prefs-chips" class="prefs-chips"></div>
             <div class="prefs-actions">
-                <button id="prefs-all" class="btn btn-secondary">Show everything</button>
-                <button id="prefs-save" class="btn btn-primary">Save</button>
+                <button id="prefs-clear" class="prefs-text-btn" type="button">Clear all</button>
+                <button id="prefs-undo" class="prefs-text-btn hidden" type="button">Undo changes</button>
+                <button id="prefs-done" class="btn btn-primary">Done · 0</button>
             </div>
         </div>
     </div>
 
-    <!-- Cookie banner -->
-    <div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
-        <div class="cookie-content">
-            <p class="cookie-text">We use cookies to personalise your feed. <a href="/privacy.html">Privacy Policy</a></p>
-            <div class="cookie-actions">
-                <button id="cookie-decline" class="btn btn-secondary btn-sm">Decline</button>
-                <button id="cookie-accept" class="btn btn-primary btn-sm">Accept</button>
-            </div>
-        </div>
-    </div>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
+    <script type="module">
+        // ── Config ──
+        const WORKER_URL = 'https://wrangler-auth.abdukarrim6.workers.dev';
+
+        let adConfig = {
+            enable_ads: false,
+            adsense_client_id: '',
+            adsense_slot_feed: '',
+            monetag_zone_id: '',
+            monetag_tag_url: '',
+            adsgram_blocks: '{}',
+            ad_rail_interval: 6,
+            affiliate_aliexpress: false,
+            affiliate_aliexpress_tag: '',
+            google_review_url: '',
+        };
+
+        // ── Ad rails — Monetag (site-wide overlay formats) + Adsgram (Telegram,
+        // category-railed in-feed cards). Everything stays off until
+        // enable_ads=true in Turso site_config. ──
+        const MONETAG_TAG_SRC = 'https://alwingulla.com/88/tag.min.js';
+        const AD_PREVIEW = new URLSearchParams(location.search).get('ads') === 'preview';
+        let monetagInjected = false;
+        let adsgramInjected = false;
+        const adControllers = new Map(); // Adsgram blockId -> controller
+
+        // ── State ──
+        const CAT_TABS = ['Feed', 'News', 'Sports', 'Geopolitics', 'Tech', 'AI & Quantum', 'Web3', 'IoT & Open Source', 'Education', 'Entertainment', 'Culture'];
+        let activeCategory = 'Feed';
+        let posts = [];
+        let ranked = [];
+        let activeIndex = 0;
+        let favorites = JSON.parse(localStorage.getItem('snapfeed_favorites') || '[]');
+        let interactions = JSON.parse(localStorage.getItem('snapfeed_interactions') || '{}');
+        let theme = localStorage.getItem('snapfeed_theme') || 'dark';
+
+        // ── DOM Elements ──
+        const feed = document.getElementById('feed');
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefsBtn = document.getElementById('prefs-toggle');
+        const prefsModal = document.getElementById('prefs-modal');
+        const prefsClose = document.getElementById('prefs-close');
+        const prefsDone = document.getElementById('prefs-done');
+        const prefsUndo = document.getElementById('prefs-undo');
+        const prefsClear = document.getElementById('prefs-clear');
+        const prefsChips = document.getElementById('prefs-chips');
+        const reviewTrigger = document.getElementById('review-trigger');
+        const toastEl = document.getElementById('toast');
+        const catTabs = document.getElementById('cat-tabs');
+
+        // ── Category tabs (sideways navigation) ──
+        function renderCatTabs() {
+            catTabs.innerHTML = CAT_TABS.map(cat => `
+                <button class="cat-tab${cat === activeCategory ? ' active' : ''}" data-cat="${cat}"
+                        role="tab" aria-selected="${cat === activeCategory}">${cat}</button>
+            `).join('');
+            catTabs.querySelectorAll('.cat-tab').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setCategory(btn.dataset.cat);
+                });
+            });
+        }
+
+        function setCategory(cat) {
+            if (cat === activeCategory) return;
+            activeCategory = cat;
+            activeIndex = 0;
+            renderCatTabs();
+            rerank();
+            document.body.classList.remove('hud-tucked');
+            renderCard(0);
+        }
+
+        function stepCategory(dir) {
+            const i = CAT_TABS.indexOf(activeCategory);
+            const next = Math.min(CAT_TABS.length - 1, Math.max(0, i + dir));
+            if (next !== i) setCategory(CAT_TABS[next]);
+        }
+
+        // ── Init ──
+        function init() {
+            applyTheme();
+            detectTelegram();
+            renderCatTabs();
+            setupEventListeners();
+            fetchAndRender();
+        }
+
+        // Same SVGs as the local reference (public/) — sun for light, simple moon for dark
+        const ICON_SUN = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 008 0z"/></svg>';
+        const ICON_MOON = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>';
+
+        function applyTheme() {
+            if (theme === 'light') {
+                document.documentElement.classList.add('light');
+                themeToggle.innerHTML = ICON_SUN;
+            } else {
+                document.documentElement.classList.remove('light');
+                themeToggle.innerHTML = ICON_MOON;
+            }
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', theme === 'light' ? '#FFFFFF' : '#000000');
+        }
+
+        function detectTelegram() {
+            if (!isTelegramEnv()) return;
+            document.documentElement.classList.add('is-telegram');
+            try {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            } catch (_) {}
+            // Telegram captures vertical swipes to close the Mini App, which
+            // blocks swipe-down -> previous post. Disable that capture.
+            try {
+                if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+                    window.Telegram.WebApp.disableVerticalSwipes();
+                } else {
+                    window.Telegram.WebApp.isVerticalSwipesEnabled = false;
+                }
+            } catch (_) {}
+        }
+
+        // ── Reviews — opens our Google Business Profile review page ──
+        // URL comes from Turso site_config key `google_review_url`
+        // (set it via the Turso dashboard; shows a toast until then).
+        function openReview() {
+            const url = String(adConfig.google_review_url || '').trim();
+            if (!url) {
+                showToast('Reviews are opening soon');
+                return;
+            }
+            try {
+                const tg = window.Telegram?.WebApp;
+                if (tg?.openLink) tg.openLink(url);
+                else window.open(url, '_blank', 'noopener');
+            } catch (_) {
+                window.open(url, '_blank', 'noopener');
+            }
+        }
+
+        // ── Preferences shared state (used by setupEventListeners AND
+        // renderPrefsChips) ──
+        let prefsSnapshot = null;
+
+        function persistFavorites() {
+            localStorage.setItem('snapfeed_favorites', JSON.stringify(favorites));
+            // Live preview: favorites apply instantly, no explicit save
+            rerank();
+            activeIndex = 0;
+            renderCard(0);
+        }
+
+        // Footer state: undo visibility + selection count on the Done button
+        function updatePrefsFooterState() {
+            const dirty = prefsSnapshot !== null && JSON.stringify(favorites) !== prefsSnapshot;
+            prefsUndo.classList.toggle('hidden', !dirty);
+            prefsDone.textContent = favorites.length
+                ? `Done · ${favorites.length} favor${favorites.length === 1 ? 'ite' : 'ites'}`
+                : 'Done';
+        }
+
+        function setupEventListeners() {
+            // Theme toggle
+            themeToggle.addEventListener('click', () => {
+                theme = theme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('snapfeed_theme', theme);
+                applyTheme();
+            });
+
+            // Preferences modal — instant apply, snapshot + undo.
+            // persistFavorites / updatePrefsFooterState live at module scope
+            // (renderPrefsChips calls them too).
+            prefsBtn.addEventListener('click', () => {
+                prefsSnapshot = JSON.stringify(favorites);
+                renderPrefsChips();
+                updatePrefsFooterState();
+                prefsModal.classList.add('open');
+            });
+
+            prefsClose.addEventListener('click', () => prefsModal.classList.remove('open'));
+            prefsDone.addEventListener('click', () => prefsModal.classList.remove('open'));
+
+            prefsUndo.addEventListener('click', () => {
+                if (prefsSnapshot === null) return;
+                favorites = JSON.parse(prefsSnapshot);
+                persistFavorites();
+                renderPrefsChips();
+                updatePrefsFooterState();
+            });
+
+            prefsClear.addEventListener('click', () => {
+                favorites = [];
+                persistFavorites();
+                renderPrefsChips();
+                updatePrefsFooterState();
+            });
+
+            // ─── Sideways category navigation (swipe the tab strip) ───
+            let tabTouchX = 0, tabTouchY = 0, tabSwiped = false;
+            catTabs.addEventListener('touchstart', (e) => {
+                tabTouchX = e.touches[0].clientX;
+                tabTouchY = e.touches[0].clientY;
+                tabSwiped = true;
+            }, { passive: true });
+            catTabs.addEventListener('touchend', (e) => {
+                if (!tabSwiped) return;
+                tabSwiped = false;
+                const dx = e.changedTouches[0].clientX - tabTouchX;
+                const dy = e.changedTouches[0].clientY - tabTouchY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                    stepCategory(dx < 0 ? 1 : -1);
+                }
+            }, { passive: true });
+
+            // Keyboard: left/right arrows also step categories when at feed edges
+            // (handled in the keydown block below)
+
+            // Action buttons (via data-action selectors — no hardcoded IDs)
+            document.querySelectorAll('.action-pill .action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = btn.dataset.action;
+                    if (action === 'share') handleShare();
+                    else toggleInteraction(action);
+                });
+            });
+
+            // Sponsored rail CTA — delegated (feed HTML is replaced per card)
+            feed.addEventListener('click', (e) => {
+                if (e.target.closest('[data-ad-cta]')) handleAdTap();
+            });
+
+            // Review trigger
+            reviewTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openReview();
+            });
+
+            // ─── Swipe & Navigation Gestures (No scrollbar needed) ───
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isSwiping = false;
+
+            feed.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isSwiping = true;
+            }, { passive: true });
+
+            feed.addEventListener('touchend', (e) => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                const diffX = e.changedTouches[0].clientX - touchStartX;
+                const diffY = e.changedTouches[0].clientY - touchStartY;
+
+                // Any movement cancels a pending single-tap HUD toggle
+                if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; lastTapAt = 0; }
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
+                    // Swipe vertical — navigate; HUD returns on card change
+                    if (diffY < 0 && activeIndex < ranked.length - 1) {
+                        // Swipe UP -> Next post
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    } else if (diffY > 0 && activeIndex > 0) {
+                        // Swipe DOWN -> Previous post
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
+                    document.body.classList.remove('hud-tucked');
+                } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+                    // Clean tap — HUD toggle (delayed) or double-tap like
+                    handleFeedTap(e);
+                }
+            }, { passive: true });
+
+            // ── Tap disambiguation: single tap → HUD, double tap → like ──
+            let tapTimer = null;
+            let lastTapAt = 0;
+            function handleFeedTap(e) {
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
+                const now = Date.now();
+                if (now - lastTapAt < 320) {
+                    // Second tap within the window → like; the pending HUD
+                    // toggle from the first tap is cancelled
+                    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+                    lastTapAt = 0;
+                    doubleTapLike();
+                    return;
+                }
+                lastTapAt = now;
+                if (tapTimer) return;
+                tapTimer = setTimeout(() => {
+                    tapTimer = null;
+                    document.body.classList.toggle('hud-tucked');
+                }, 280);
+            }
+
+            // Desktop click on the post (non-interactive area) — same HUD toggle.
+            // Skipped when the click is the synthetic one following a touch tap
+            // (otherwise touchend + click would toggle twice and cancel out).
+            let lastTouchEnd = 0;
+            feed.addEventListener('touchend', () => { lastTouchEnd = Date.now(); }, { passive: true, capture: true });
+            feed.addEventListener('click', (e) => {
+                if (Date.now() - lastTouchEnd < 600) return;
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
+                document.body.classList.toggle('hud-tucked');
+            });
+
+            // Desktop double-click → like (the two click toggles cancel each
+            // other out, so the HUD ends where it started). Skipped when the
+            // gesture came from touch — the touchend path already handles it.
+            feed.addEventListener('dblclick', (e) => {
+                if (Date.now() - lastTouchEnd < 700) return;
+                if (e.target.closest('a, button, iframe, .action-pill, .review-trigger')) return;
+                e.preventDefault();
+                doubleTapLike();
+            });
+
+            // Desktop Mouse Wheel / Trackpad Gesture
+            let wheelTimer = null;
+            window.addEventListener('wheel', (e) => {
+                if (wheelTimer) return;
+                if (Math.abs(e.deltaY) > 25) {
+                    if (e.deltaY > 0 && activeIndex < ranked.length - 1) {
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    } else if (e.deltaY < 0 && activeIndex > 0) {
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
+                    wheelTimer = setTimeout(() => { wheelTimer = null; }, 320);
+                }
+            }, { passive: true });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+                    if (activeIndex < ranked.length - 1) {
+                        e.preventDefault();
+                        activeIndex++;
+                        renderCard(activeIndex);
+                    }
+                } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+                    if (activeIndex > 0) {
+                        e.preventDefault();
+                        activeIndex--;
+                        renderCard(activeIndex);
+                    }
+                } else if (e.key === 'ArrowRight') {
+                    stepCategory(1);
+                } else if (e.key === 'ArrowLeft') {
+                    stepCategory(-1);
+                }
+            });
+        }
+
+        // ── Data Fetching ──
+        async function fetchAndRender() {
+            try {
+                const [rawPosts, config] = await Promise.all([
+                    fetchFromTurso(),
+                    fetchConfigFromTurso()
+                ]);
+                posts = rawPosts;
+                adConfig = config;
+                maybeInjectAds();
+                rerank();
+                renderCard(activeIndex);
+            } catch (err) {
+                console.error('Fetch failed:', err);
+                feed.innerHTML = '<div style="color:rgba(255,255,255,0.5);text-align:center;padding:20px;">Failed to load feed. Check connection.</div>';
+                showToast('Failed to load feed');
+            }
+        }
+
+        async function fetchFromTurso() {
+            const res = await fetch(`${WORKER_URL}/api/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    statements: [
+                        `SELECT id, title, summary, media_url, media_type, source_url, source_name, category, likes, shares, saves, views, created_at, indexed_at FROM posts ORDER BY indexed_at DESC LIMIT 100;`
+                    ]
+                }),
+            });
+            if (!res.ok) throw new Error(`Worker HTTP ${res.status}`);
+            const data = await res.json();
+            const rows = Array.isArray(data) ? (data[0]?.results?.rows || []) : (data.results?.[0]?.rows || []);
+            return rows.map(row => ({
+                id: row[0],
+                title: row[1] || '',
+                summary: row[2] || '',
+                media_url: row[3] || '',
+                media_type: row[4] || '',
+                source_url: row[5] || '',
+                source_name: row[6] || 'Snapfeed',
+                category: row[7] || 'General',
+                likes: Number(row[8]) || 0,
+                shares: Number(row[9]) || 0,
+                saves: Number(row[10]) || 0,
+                views: Number(row[11]) || 0,
+                created_at: row[12],
+                indexed_at: row[13]
+            }));
+        }
+
+        async function fetchConfigFromTurso() {
+            try {
+                const res = await fetch(`${WORKER_URL}/api/posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        statements: [`SELECT key, value FROM site_config;`]
+                    }),
+                });
+                if (!res.ok) return adConfig;
+                const data = await res.json();
+                const rows = Array.isArray(data) ? (data[0]?.results?.rows || []) : (data.results?.[0]?.rows || []);
+                const cfg = { ...adConfig };
+                rows.forEach(([key, value]) => {
+                    if (!(key in cfg)) return;
+                    // site_config values are strings — coerce back to the
+                    // default's type ('false' must NOT be truthy!)
+                    if (typeof cfg[key] === 'boolean') cfg[key] = value === 'true';
+                    else cfg[key] = value;
+                });
+                return cfg;
+            } catch (_) {
+                return adConfig;
+            }
+        }
+
+        // ── Ads: category-railed rails (Adsgram, Telegram) + Monetag overlays ──
+        const TG_PLATFORMS = ['ios', 'android', 'macos', 'tdesktop', 'weba', 'webk'];
+
+        function isTelegramEnv() {
+            const tg = window.Telegram?.WebApp;
+            if (!tg) return false;
+            // The Telegram SDK also loads in regular browsers (platform
+            // "unknown", empty initData) — only a real Mini App context counts.
+            return !!(tg.initData
+                || (tg.initDataUnsafe && tg.initDataUnsafe.user)
+                || TG_PLATFORMS.includes(tg.platform));
+        }
+
+        function adBlocks() {
+            try {
+                const map = JSON.parse(adConfig.adsgram_blocks || '{}');
+                return (map && typeof map === 'object') ? map : {};
+            } catch (_) {
+                return {};
+            }
+        }
+
+        function blockForCategory(cat) {
+            const map = adBlocks();
+            return String(map[cat] || map.default || '').trim();
+        }
+
+        function railsAvailable() {
+            if (AD_PREVIEW) return true;
+            if (!adConfig.enable_ads) return false;
+            return isTelegramEnv() && !!blockForCategory(activeCategory);
+        }
+
+        // Sponsored cards woven into the ranked list every N posts — the slot
+        // resolves the Adsgram block for the ACTIVE category (its own rail).
+        function withAdRails(list) {
+            if (!railsAvailable()) return list;
+            const interval = Math.min(20, Math.max(3, Number(adConfig.ad_rail_interval) || 6));
+            const out = [];
+            let sinceAd = 0;
+            for (const post of list) {
+                out.push(post);
+                sinceAd++;
+                if (sinceAd >= interval) {
+                    out.push({ __ad: true, id: `ad-${activeCategory}` });
+                    sinceAd = 0;
+                }
+            }
+            return out;
+        }
+
+        function rerank() {
+            ranked = withAdRails(rankAndFilter(posts));
+        }
+
+        function maybeInjectAds() {
+            if (!adConfig.enable_ads) return;
+            injectMonetag();
+            if (isTelegramEnv()) injectAdsgram();
+        }
+
+        function injectMonetag() {
+            if (monetagInjected) return;
+            const zone = String(adConfig.monetag_zone_id || '').trim();
+            const src = String(adConfig.monetag_tag_url || '').trim() || (zone ? MONETAG_TAG_SRC : '');
+            if (!src) return;
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.setAttribute('data-cfasync', 'false');
+            // Monetag reads the zone from the script's dataset → the attribute
+            // must be data-zone, NOT zone. (dataset.zone === data-zone.)
+            if (zone && !src.includes('zone')) s.dataset.zone = zone;
+            document.head.appendChild(s);
+            monetagInjected = true;
+        }
+
+        function injectAdsgram() {
+            if (adsgramInjected || window.Adsgram) { adsgramInjected = true; return; }
+            const s = document.createElement('script');
+            s.src = 'https://sad.adsgram.ai/js/sad.min.js';
+            s.async = true;
+            document.head.appendChild(s);
+            adsgramInjected = true;
+        }
+
+        async function handleAdTap() {
+            // Outside Telegram (or preview mode) — show the design, no ad call
+            if (!adConfig.enable_ads || !isTelegramEnv()) {
+                showToast('Ad preview — goes live inside Telegram');
+                return;
+            }
+            const blockId = blockForCategory(activeCategory);
+            if (!blockId) {
+                showToast('Sponsored spot coming soon');
+                return;
+            }
+            injectAdsgram();
+            if (!window.Adsgram) {
+                showToast('Ad is warming up — tap again in a sec');
+                return;
+            }
+            let ctrl = adControllers.get(blockId);
+            if (!ctrl) {
+                try {
+                    ctrl = window.Adsgram.init({ blockId });
+                    adControllers.set(blockId, ctrl);
+                } catch (_) {
+                    showToast('Ad is warming up — tap again in a sec');
+                    return;
+                }
+            }
+            try {
+                await ctrl.show();
+                showToast('Boost received — thank you!');
+            } catch (_) {
+                showToast('No worries — skipped it');
+            }
+        }
+
+        const AD_ART_SVG = `
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <path class="ad-spark ad-spark-main" d="M50 14 C55 37 63 45 86 50 C63 55 55 63 50 86 C45 63 37 55 14 50 C37 45 45 37 50 14 Z"/>
+                <path class="ad-spark" d="M24 20 C25.4 26.4 27.6 28.6 34 30 C27.6 31.4 25.4 33.6 24 40 C22.6 33.6 20.4 31.4 14 30 C20.4 28.6 22.6 26.4 24 20 Z"/>
+                <path class="ad-spark" d="M74 66 C75.4 72.4 77.6 74.6 84 76 C77.6 77.4 75.4 79.6 74 86 C72.6 79.6 70.4 77.4 64 76 C70.4 74.6 72.6 72.4 74 66 Z"/>
+                <path class="ad-tick" d="M66 24 C70.5 21.5 75.5 21 80 22"/>
+                <path class="ad-tick" d="M26 76 C21.5 78.5 16.5 79 12 78"/>
+            </svg>`;
+
+        function renderAdCard() {
+            const where = activeCategory === 'Feed' ? 'the feed' : activeCategory;
+            return `
+                <article class="feed-card is-ad">
+                    <div class="ad-card">
+                        <span class="ad-badge">Sponsored</span>
+                        <div class="ad-art">${AD_ART_SVG}</div>
+                        <h2 class="ad-title">A quick boost for Snapfeed</h2>
+                        <p class="ad-sub">One short ad keeps ${escapeHtml(where)} clean, free &amp; flowing.</p>
+                        <button class="ad-cta" data-ad-cta>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+                            Watch &amp; boost
+                        </button>
+                    </div>
+                </article>
+            `;
+        }
+
+        function rankAndFilter(items) {
+            const now = new Date();
+            const FRESHNESS_WINDOW_DAYS = 30;
+            const FRESH_WEIGHT = 30;
+            const FRESH_DECAY = 0.15;
+            const CATEGORY_BOOST = { Memes: 6.0, Entertainment: 2.0 };
+            const SOURCE_CAP = 3;
+            const CATEGORY_CAP = 6;
+            const DIVERSITY_WINDOW = 25;
+
+            // Category tab filter — "Feed" shows everything
+            if (activeCategory !== 'Feed') {
+                items = items.filter(p => p.category === activeCategory);
+            }
+
+            let scored = items.map(post => {
+                const postTime = new Date(post.created_at);
+                const ageDays = isNaN(postTime) ? 0 : Math.max(0, (now - postTime) / 86400000);
+                if (ageDays > FRESHNESS_WINDOW_DAYS) return null;
+                const engagement = (post.likes || 0) * 1 + (post.shares || 0) * 2 + (post.saves || 0) * 3 + (post.views || 0) * 0.0001;
+                const recency = FRESH_WEIGHT * Math.exp(-FRESH_DECAY * ageDays);
+                const score = engagement + recency + (CATEGORY_BOOST[post.category] || 0);
+                return { ...post, score };
+            }).filter(Boolean);
+
+            if (!scored.length) {
+                scored = items.map(post => {
+                    const engagement = (post.likes || 0) * 1 + (post.shares || 0) * 2 + (post.saves || 0) * 3 + (post.views || 0) * 0.0001;
+                    return { ...post, score: engagement };
+                });
+            }
+
+            scored.sort((a, b) => b.score - a.score);
+
+            if (favorites.length) {
+                const filtered = scored.filter(p => favorites.includes(p.category));
+                if (filtered.length) scored = filtered;
+            }
+
+            const window = scored.slice(0, DIVERSITY_WINDOW);
+            const tail = scored.slice(DIVERSITY_WINDOW);
+            const kept = [], dropped = [];
+            const srcCounts = {};
+            for (const item of window) {
+                if ((srcCounts[item.source_name] || 0) < SOURCE_CAP) {
+                    kept.push(item);
+                    srcCounts[item.source_name] = (srcCounts[item.source_name] || 0) + 1;
+                } else {
+                    dropped.push(item);
+                }
+            }
+
+            return interleaveVideos([...kept, ...dropped, ...tail]);
+        }
+
+        function interleaveVideos(items) {
+            const VIDEO_TYPES = new Set(['shorts', 'embed', 'video']);
+            const videos = items.filter(i => VIDEO_TYPES.has(i.media_type));
+            if (!videos.length) return items;
+            const others = items.filter(i => !VIDEO_TYPES.has(i.media_type));
+            const out = [];
+            let vi = 0;
+            for (let pos = 0; pos < items.length; pos++) {
+                const target = Math.floor(((pos + 1) * videos.length) / items.length);
+                if (vi < videos.length && target > vi) {
+                    out.push(videos[vi]);
+                    vi++;
+                } else if (others.length) {
+                    out.push(others.shift());
+                }
+            }
+            while (vi < videos.length) { out.push(videos[vi]); vi++; }
+            return out;
+        }
+
+        // ── Media renderer — mirrors local server (src/client.js) ──
+        // TikTok posts store media_url=NULL (URL is in source_url), and YouTube
+        // posts store a THUMBNAIL in media_url. Both must be converted to real
+        // player iframes here, or embeds render as dead images.
+        function extractYouTubeId(url) {
+            if (!url) return null;
+            return url.match(/(?:shorts\/|v=|youtu\.be\/|vi\/)([^&\n?#/]+)/)?.[1] || null;
+        }
+
+        function renderMedia(post, fallbackImg) {
+            const { media_type, media_url, source_url, title } = post;
+
+            // TikTok — official player, vertical (works with /video/ID and vm.tiktok.com/ID)
+            if ((media_type === 'embed' || media_type === 'shorts') && source_url && source_url.includes('tiktok.com')) {
+                const videoId = source_url.match(/\/video\/(\d+)/)?.[1] || source_url.match(/vm\.tiktok\.com\/([A-Za-z0-9]+)/)?.[1];
+                if (videoId) {
+                    return {
+                        vertical: true,
+                        html: `<iframe src="https://www.tiktok.com/player/v1/${videoId}"
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen loading="lazy"
+                                title="${escapeHtml(title)}"></iframe>`
+                    };
+                }
+            }
+
+            // YouTube — embed player from source_url or thumbnail media_url
+            // Renders wide 16:9 frame (vertical: false) matching DevBytes mobile app YouTube shorts embedding
+            const isYouTube = (source_url && (source_url.includes('youtube.com') || source_url.includes('youtu.be'))) ||
+                              (media_url && media_url.includes('ytimg.com'));
+            if ((media_type === 'embed' || media_type === 'shorts') && isYouTube) {
+                const ytId = extractYouTubeId(source_url) || extractYouTubeId(media_url);
+                if (ytId) {
+                    return {
+                        vertical: false,
+                        html: `<iframe src="https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen loading="lazy"
+                                title="${escapeHtml(title)}"></iframe>`
+                    };
+                }
+            }
+
+            // Generic video with a real player URL in media_url (exclude static image files)
+            if (['shorts', 'embed', 'video'].includes(media_type) &&
+                media_url && /^https?:\/\//.test(media_url) &&
+                !/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(media_url) &&
+                !media_url.includes('ytimg.com')) {
+                return {
+                    vertical: media_type === 'shorts',
+                    html: `<iframe src="${escapeHtml(media_url)}"
+                            allow="autoplay; encrypted-media; picture-in-picture"
+                            allowfullscreen loading="lazy"
+                            title="${escapeHtml(title)}"></iframe>`
+                };
+            }
+
+            // Plain image (or thumbnail fallback for unresolvable video)
+            return {
+                vertical: false,
+                html: `<img src="${escapeHtml(media_url || fallbackImg)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" onerror="this.src='${fallbackImg}'">`
+            };
+        }
+
+        // ── Single Card Flashcard Renderer ──
+        function renderCard(index) {
+            if (index < 0 || index >= ranked.length) {
+                feed.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:0.9rem;">No more content</div>';
+                return;
+            }
+
+            const post = ranked[index];
+
+            // Sponsored rail card — category-railed ad slot
+            if (post.__ad) {
+                document.body.classList.add('ad-active');
+                feed.innerHTML = renderAdCard();
+                updateActionCounts({ likes: 0, saves: 0 });
+                updateButtonVisualState('__ad__');
+                return;
+            }
+            document.body.classList.remove('ad-active');
+
+            const isVideo = ['shorts', 'embed', 'video'].includes(post.media_type);
+            const fallbackImg = 'https://placehold.co/600x400/181818/888888?text=Snapfeed';
+
+            const { html: mediaHtml, vertical } = renderMedia(post, fallbackImg);
+            const boxClass = `feed-card-img-box${vertical ? ' is-vertical' : (isVideo ? '' : ' ratio-4-3')}`;
+
+            // Headings for ALL posts, summaries for everything except videos that don't need summaries
+            const summaryHtml = (!isVideo && post.summary)
+                ? `<p class="feed-card-summary">${escapeHtml(post.summary)}</p>`
+                : '';
+
+            const sourceUrl = post.source_url || '#';
+
+            feed.innerHTML = `
+                <article class="feed-card">
+                    <div class="${boxClass}">
+                        ${mediaHtml}
+                    </div>
+                    <div class="feed-card-content">
+                        <h2 class="feed-card-title">${escapeHtml(post.title)}</h2>
+                        ${summaryHtml}
+                        <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="feed-card-link">
+                            ${escapeHtml(post.source_name)} <span class="feed-card-link-arrow" aria-hidden="true">&#8599;</span>
+                        </a>
+                    </div>
+                </article>
+            `;
+
+            updateActionCounts(post);
+            updateButtonVisualState(String(post.id));
+        }
+
+        function formatCount(n) {
+            n = Number(n) || 0;
+            if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return String(n);
+        }
+
+        function updateActionCounts(post) {
+            // Counts hidden when zero — and shares are never numbered in the
+            // frontend (tracked in the admin backend only).
+            const likeEl = document.getElementById('count-like');
+            const saveEl = document.getElementById('count-save');
+            likeEl.textContent = post.likes > 0 ? formatCount(post.likes) : '';
+            likeEl.classList.toggle('hidden', !(post.likes > 0));
+            saveEl.textContent = post.saves > 0 ? formatCount(post.saves) : '';
+            saveEl.classList.toggle('hidden', !(post.saves > 0));
+        }
+
+        function updateButtonVisualState(postId) {
+            const act = interactions[postId] || {};
+            document.querySelectorAll('.action-pill .action-btn').forEach(btn => {
+                const action = btn.dataset.action;
+                btn.classList.toggle('active', !!act[action]);
+            });
+        }
+
+        function toggleInteraction(action) {
+            const post = ranked[activeIndex];
+            if (!post || post.__ad) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            interactions[id][action] = !interactions[id][action];
+            const isAct = interactions[id][action];
+
+            if (action === 'like') post.likes = Math.max(0, (post.likes || 0) + (isAct ? 1 : -1));
+            if (action === 'save') post.saves = Math.max(0, (post.saves || 0) + (isAct ? 1 : -1));
+
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+            showToast(action.charAt(0).toUpperCase() + action.slice(1) + (isAct ? 'd' : ' removed'));
+        }
+
+        // ── Sharing ──
+        // Canonical share links go to Snapfeed (server-rendered /post/:id with
+        // OG tags = rich WhatsApp preview), never to the source article. The
+        // in-card link still hotlinks to the original platform on purpose.
+        const SHARE_BASE_URL = 'https://gossip.ugaplex.com';
+
+        function shareTextFor(post) {
+            const url = `${SHARE_BASE_URL}/post/${post.id}`;
+            const summary = String(post.summary || '').trim();
+            return `*${post.title}*\n\n${summary}\n\n🔗 Read more on Snapfeed: ${url}`;
+        }
+
+        function handleShare() {
+            const post = ranked[activeIndex];
+            if (!post || post.__ad) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            interactions[id].share = true;
+            post.shares = (post.shares || 0) + 1;
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+
+            const text = shareTextFor(post);
+            const shareData = {
+                title: post.title,
+                text,
+                url: `${SHARE_BASE_URL}/post/${post.id}`,
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied — paste it in WhatsApp!');
+                }).catch(() => {
+                    showToast('Shared');
+                });
+            } else {
+                showToast('Shared');
+            }
+        }
+
+        function renderPrefsChips() {
+            const categories = ['News', 'Sports', 'Geopolitics', 'Tech', 'AI & Quantum', 'Web3', 'IoT & Open Source', 'Education', 'Entertainment', 'Culture'];
+            prefsChips.innerHTML = categories.map(cat => `
+                <button class="prefs-chip ${favorites.includes(cat) ? 'selected' : ''}"
+                        data-cat="${cat}" aria-pressed="${favorites.includes(cat)}">
+                    ${cat}${favorites.includes(cat) ? ' ✓' : ''}
+                </button>
+            `).join('');
+
+            prefsChips.querySelectorAll('.prefs-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cat = btn.dataset.cat;
+                    if (favorites.includes(cat)) {
+                        favorites = favorites.filter(c => c !== cat);
+                    } else {
+                        favorites.push(cat);
+                    }
+                    persistFavorites();
+                    renderPrefsChips();
+                    updatePrefsFooterState();
+                });
+            });
+        }
+
+        // ── Double-tap to like ──
+        // TikTok-style: two taps anywhere on the card (non-interactive area)
+        // likes the current post. A stray double-tap never unlikes — reuse the
+        // heart if it's already lit.
+        function doubleTapLike() {
+            const post = ranked[activeIndex];
+            if (!post || post.__ad) return;
+            const id = String(post.id);
+            if (!interactions[id]) interactions[id] = {};
+
+            if (interactions[id].like) {
+                showToast('Already liked ❤️');
+                return;
+            }
+
+            interactions[id].like = true;
+            post.likes = (post.likes || 0) + 1;
+            localStorage.setItem('snapfeed_interactions', JSON.stringify(interactions));
+            updateActionCounts(post);
+            updateButtonVisualState(id);
+
+            // Burst overlay on the media box
+            const mediaBox = feed.querySelector('.feed-card-img-box');
+            if (mediaBox && !mediaBox.querySelector('.like-burst')) {
+                const burst = document.createElement('div');
+                burst.className = 'like-burst';
+                burst.textContent = '❤️';
+                mediaBox.appendChild(burst);
+                setTimeout(() => burst.remove(), 750);
+            }
+            showToast('Liked');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            if (toastTimer) clearTimeout(toastTimer);
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            toastTimer = setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 2000);
+        }
+
+        // ── Boot ──
+        // Legacy cleanup (scoped): an older SW cached stale assets (old
+        // Tailwind markup). Clear only OUR leftover caches — a blanket
+        // unregister/delete would kill Monetag's /sw.js worker, which the
+        // Monetag tag registers once enable_ads is on.
+        if ('serviceWorker' in navigator) {
+            if (window.caches && caches.keys) {
+                caches.keys()
+                    .then((keys) => Promise.all(
+                        keys.filter((k) => k.startsWith('snapfeed') || k.startsWith('afro')).map((k) => caches.delete(k))
+                    ))
+                    .catch(() => {});
+            }
+        }
+
+        init();
+    </script>
 </body>
 </html>

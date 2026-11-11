@@ -9,15 +9,25 @@ self.options = {
 self.lary = ""
 importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
 
-// Clear the legacy 'snapfeed-v1' cache left by an earlier SW. Scoped to
-// snapfeed* so Monetag's own caches are never touched.
+// ── Legacy cache cleanup ──────────────────────────────────────────────────
+// The previous SW (afro-static-v1 / afro-api-v1 / afro-images-v1) served the
+// app shell cache-first, which pinned old HTML on returning devices. Purge
+// every legacy cache on activation. Scoped prefixes so Monetag's own caches
+// are never touched.
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
       await Promise.all(
-        keys.filter((k) => k.startsWith('snapfeed')).map((k) => caches.delete(k))
+        keys
+          .filter((k) => k.startsWith('snapfeed') || k.startsWith('afro'))
+          .map((k) => caches.delete(k))
       );
+      await self.clients.claim();
     })()
   );
 });

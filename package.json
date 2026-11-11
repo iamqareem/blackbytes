@@ -12,6 +12,7 @@
     "build:css": "tailwindcss -i src/input.css -o public/dist/styles.css --minify",
     "build:css:admin": "esbuild admin/input.css --minify --outfile=admin/dist/styles.css --loader:.css=css",
     "build:css:pwa": "tailwindcss -i pwa/input.css -o pwa/style.css --minify --content './pwa/**/*.{html,js}'",
+    "build:public": "cp pwa/index.html pwa/style.css pwa/sw.js pwa/manifest.json public/ && cp -r pwa/fonts pwa/icons public/ && echo 'public/ synced from pwa/'",
     "build:js": "esbuild src/client.js --bundle --outfile=public/dist/app.js --minify --format=esm --target=es2020",
     "build:js:admin": "esbuild admin/src/app.js --bundle --outfile=admin/dist/app.js --minify --format=esm --target=es2020",
     "build": "npm run build:css && npm run build:css:admin && npm run build:js && npm run build:js:admin",
